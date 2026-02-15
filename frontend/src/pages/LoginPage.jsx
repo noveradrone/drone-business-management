@@ -1,0 +1,44 @@
+import { useState } from "react";
+import { api, setToken } from "../api";
+
+export default function LoginPage({ onLogin }) {
+  const [email, setEmail] = useState("admin@drone.local");
+  const [password, setPassword] = useState("admin123");
+  const [error, setError] = useState("");
+
+  async function submit(e) {
+    e.preventDefault();
+    setError("");
+    try {
+      const { token } = await api.auth.login({ email, password });
+      setToken(token);
+      onLogin();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <div className="login-wrap">
+      <div className="login-card">
+        <h2>Connexion</h2>
+        <p>Gestion d’entreprise de drone</p>
+        <form onSubmit={submit} className="form-grid" style={{ gridTemplateColumns: "1fr" }}>
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Mot de passe"
+            type="password"
+            required
+          />
+          <button type="submit">Se connecter</button>
+        </form>
+        {error && <p className="error">{error}</p>}
+        <p style={{ margin: "8px 0 0", color: "#5b6473", fontSize: "0.85rem" }}>
+          API: {api.meta.base}
+        </p>
+      </div>
+    </div>
+  );
+}

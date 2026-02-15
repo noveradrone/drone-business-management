@@ -1,0 +1,73 @@
+const express = require("express");
+const db = require("../db");
+const { authRequired } = require("../middleware/auth");
+
+const router = express.Router();
+
+router.get("/", authRequired, (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT m.*, c.company_name, d.serial_number, d.brand, d.model
+       FROM missions m
+       JOIN clients c ON c.id = m.client_id
+       JOIN drones d ON d.id = m.drone_id
+       ORDER BY m.mission_date DESC`
+    )
+    .all();
+  res.json(rows);
+});
+
+router.post("/", authRequired, (req, res) => {
+  const {
+    drone_id,
+    client_id,
+    mission_date,
+    location,
+    duration_minutes,
+    flight_hours_logged = 0,
+    cycles_logged = 0,
+    photo_url,
+    notes
+  } = req.body;
+
+  if (!drone_id || !client_id || !mission_date || !location || !duration_minutes) {
+    return res.status(400).json({
+      message: "drone_id, client_id, mission_date, location and duration_minutes are required"
+    });
+  }
+
+  const tx = db.transaction(() => {
+    const result = db
+      .prepare(
+        `INSERT INTO missions (
+          drone_id, client_id, mission_date, location, duration_minutes,
+          flight_hours_logged, cycles_logged, photo_url, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        drone_id,
+        client_id,
+        mission_date,
+        location,
+        duration_minutes,
+        flight_hours_logged,
+        cycles_logged,
+        photo_url || null,
+        notes || null
+      );
+
+    db.prepare(
+      `UPDATE drones
+       SET total_flight_hours = total_flight_hours + ?,
+           total_cycles = total_cycles + ?
+       WHERE id = ?`
+    ).run(flight_hours_logged, cycles_logged, drone_id);
+
+    return result.lastInsertRowid;
+  });
+
+  const missionId = tx();
+  res.status(201).json(db.prepare("SELECT * FROM missions WHERE id = ?").get(missionId));
+});
+
+module.exports = router;
