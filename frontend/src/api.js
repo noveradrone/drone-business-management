@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || "/api";
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 let token = localStorage.getItem("dbm_token") || "";
 
@@ -23,9 +23,7 @@ async function request(path, options = {}) {
       headers
     });
   } catch (error) {
-    throw new Error(
-      `Impossible de joindre l'API (${API_BASE}). Vérifie que le backend tourne sur le port 4000.`
-    );
+    throw new Error("Impossible de joindre l'API.");
   }
 
   if (!res.ok) {
