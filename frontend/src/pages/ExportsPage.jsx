@@ -31,7 +31,7 @@ export default function ExportsPage() {
 
       {error && <p className="error">{error}</p>}
 
-      <div className="card-grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+      <div className="card-grid export-grid">
         <div className="card">
           <p className="card-label">Flotte</p>
           <p className="card-value" style={{ fontSize: "1rem" }}>Drones</p>

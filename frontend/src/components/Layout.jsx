@@ -17,7 +17,7 @@ export default function Layout({ onLogout }) {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand">Drone Business</div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div className="topbar-actions">
           <span className="pill">Apple-style UI</span>
           <button className="secondary" onClick={onLogout}>
             Déconnexion

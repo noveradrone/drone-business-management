@@ -138,7 +138,7 @@ export default function QuotesPage() {
             <button type="button" className="secondary" onClick={addItem}>Ajouter une ligne</button>
           </div>
           {items.map((item, index) => (
-            <div key={index} style={{ display: "grid", gap: 8, gridTemplateColumns: "2fr 1fr 1fr auto", marginBottom: 8 }}>
+            <div key={index} className="line-item-row">
               <input placeholder="Description" value={item.description} onChange={(e) => updateItem(index, "description", e.target.value)} required={index === 0} />
               <input type="number" min="0" step="0.01" value={item.quantity} onChange={(e) => updateItem(index, "quantity", e.target.value)} placeholder="Qte" />
               <input type="number" min="0" step="0.01" value={item.unit_price} onChange={(e) => updateItem(index, "unit_price", e.target.value)} placeholder="Prix unitaire" />

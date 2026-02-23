@@ -23,7 +23,7 @@ export default function LoginPage({ onLogin }) {
       <div className="login-card">
         <h2>Connexion</h2>
         <p>Gestion d’entreprise de drone</p>
-        <form onSubmit={submit} className="form-grid" style={{ gridTemplateColumns: "1fr" }}>
+        <form onSubmit={submit} className="form-grid login-form">
           <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
           <input
             value={password}

@@ -238,7 +238,7 @@ export default function InvoicesPage() {
             <button type="button" className="secondary" onClick={addItem}>Ajouter une ligne</button>
           </div>
           {items.map((item, index) => (
-            <div key={index} style={{ display: "grid", gap: 8, gridTemplateColumns: "2fr 1fr 1fr auto", marginBottom: 8 }}>
+            <div key={index} className="line-item-row">
               <input placeholder="Description" value={item.description} onChange={(e) => updateItem(index, "description", e.target.value)} required={index === 0} />
               <input type="number" min="0" step="0.01" placeholder="Qte" value={item.quantity} onChange={(e) => updateItem(index, "quantity", e.target.value)} />
               <input type="number" min="0" step="0.01" placeholder="Prix unitaire" value={item.unit_price} onChange={(e) => updateItem(index, "unit_price", e.target.value)} />
@@ -254,7 +254,7 @@ export default function InvoicesPage() {
         <div className="page-head" style={{ marginBottom: 8 }}>
           <h2 style={{ fontSize: "1rem" }}>Recherche factures</h2>
         </div>
-        <div style={{ display: "grid", gap: 8, gridTemplateColumns: "2fr 1fr" }}>
+        <div className="filter-row">
           <input placeholder="Recherche numero / client" value={query} onChange={(e) => setQuery(e.target.value)} />
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="all">Tous statuts</option>

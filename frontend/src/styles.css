@@ -41,6 +41,13 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  gap: 10px;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .brand {
@@ -88,6 +95,7 @@ body {
   font-weight: 500;
   padding: 10px 12px;
   margin: 2px 0;
+  white-space: nowrap;
 }
 
 .nav-link.active {
@@ -145,6 +153,27 @@ form.form-grid {
   margin-bottom: 14px;
 }
 
+.login-form {
+  grid-template-columns: 1fr;
+}
+
+.line-item-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  margin-bottom: 8px;
+}
+
+.filter-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 2fr 1fr;
+}
+
+.export-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 input,
 select,
 textarea,
@@ -188,6 +217,7 @@ button.secondary {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: #fff;
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
@@ -256,12 +286,15 @@ th {
   .sidebar {
     position: static;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 4px;
+    overflow-x: auto;
+    padding: 8px;
   }
 
   .nav-link {
     margin: 0;
+    flex: 0 0 auto;
   }
 
   .card-grid {
@@ -278,6 +311,25 @@ th {
     padding: 14px;
   }
 
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .topbar-actions {
+    justify-content: space-between;
+  }
+
+  .topbar-actions button {
+    width: auto;
+  }
+
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
   .main-panel {
     padding: 14px;
   }
@@ -288,5 +340,21 @@ th {
 
   form.form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .line-item-row {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .export-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pill {
+    font-size: 0.8rem;
   }
 }
