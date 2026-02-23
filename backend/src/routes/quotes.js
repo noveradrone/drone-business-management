@@ -99,4 +99,14 @@ router.get("/:id/pdf", authRequired, async (req, res) => {
   res.send(pdf);
 });
 
+router.delete("/:id", authRequired, (req, res) => {
+  try {
+    const result = db.prepare("DELETE FROM quotes WHERE id = ?").run(req.params.id);
+    if (!result.changes) return res.status(404).json({ message: "Quote not found" });
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(409).json({ message: "Quote cannot be deleted because it is still referenced" });
+  }
+});
+
 module.exports = router;

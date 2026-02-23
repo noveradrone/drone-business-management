@@ -187,4 +187,11 @@ router.get("/:id/pdf", authRequired, async (req, res) => {
   res.send(pdf);
 });
 
+router.delete("/:id", authRequired, (req, res) => {
+  const result = db.prepare("DELETE FROM invoices WHERE id = ?").run(req.params.id);
+  if (!result.changes) return res.status(404).json({ message: "Invoice not found" });
+  refreshAutomaticReminders();
+  return res.status(204).send();
+});
+
 module.exports = router;

@@ -46,6 +46,17 @@ export default function ClientsPage() {
     }
   }
 
+  async function removeClient(client) {
+    if (!window.confirm(`Supprimer le client ${client.company_name} ?`)) return;
+    setError("");
+    try {
+      await api.clients.remove(client.id);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   return (
     <div>
       <div className="page-head">
@@ -75,6 +86,7 @@ export default function ClientsPage() {
               <th>Téléphone</th>
               <th>SIRET</th>
               <th>TVA</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -86,6 +98,11 @@ export default function ClientsPage() {
                 <td>{c.phone || "-"}</td>
                 <td>{c.siret || "-"}</td>
                 <td>{c.vat_number || "-"}</td>
+                <td>
+                  <button type="button" className="secondary" onClick={() => removeClient(c)}>
+                    Supprimer
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

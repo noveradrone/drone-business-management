@@ -70,4 +70,28 @@ router.post("/", authRequired, (req, res) => {
   res.status(201).json(db.prepare("SELECT * FROM missions WHERE id = ?").get(missionId));
 });
 
+router.delete("/:id", authRequired, (req, res) => {
+  const tx = db.transaction(() => {
+    const mission = db.prepare("SELECT * FROM missions WHERE id = ?").get(req.params.id);
+    if (!mission) throw new Error("Mission not found");
+
+    db.prepare(
+      `UPDATE drones
+       SET total_flight_hours = MAX(0, total_flight_hours - ?),
+           total_cycles = MAX(0, total_cycles - ?)
+       WHERE id = ?`
+    ).run(Number(mission.flight_hours_logged || 0), Number(mission.cycles_logged || 0), mission.drone_id);
+
+    db.prepare("DELETE FROM missions WHERE id = ?").run(req.params.id);
+  });
+
+  try {
+    tx();
+    return res.status(204).send();
+  } catch (error) {
+    if (error.message === "Mission not found") return res.status(404).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
+  }
+});
+
 module.exports = router;

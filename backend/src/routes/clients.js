@@ -53,4 +53,14 @@ router.put("/:id", authRequired, (req, res) => {
   res.json(db.prepare("SELECT * FROM clients WHERE id = ?").get(req.params.id));
 });
 
+router.delete("/:id", authRequired, (req, res) => {
+  try {
+    const result = db.prepare("DELETE FROM clients WHERE id = ?").run(req.params.id);
+    if (!result.changes) return res.status(404).json({ message: "Client not found" });
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(409).json({ message: "Client cannot be deleted because it is still referenced" });
+  }
+});
+
 module.exports = router;

@@ -30,6 +30,17 @@ export default function DronesPage() {
     }
   }
 
+  async function removeDrone(drone) {
+    if (!window.confirm(`Supprimer le drone ${drone.serial_number} ?`)) return;
+    setError("");
+    try {
+      await api.drones.remove(drone.id);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   return (
     <div>
       <div className="page-head">
@@ -55,6 +66,7 @@ export default function DronesPage() {
               <th>État</th>
               <th>Heures</th>
               <th>Cycles</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -66,6 +78,11 @@ export default function DronesPage() {
                 <td>{d.status}</td>
                 <td>{Number(d.total_flight_hours).toFixed(1)}</td>
                 <td>{d.total_cycles}</td>
+                <td>
+                  <button type="button" className="secondary" onClick={() => removeDrone(d)}>
+                    Supprimer
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

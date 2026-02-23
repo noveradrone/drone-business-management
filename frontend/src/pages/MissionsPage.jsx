@@ -72,6 +72,17 @@ export default function MissionsPage() {
     }
   }
 
+  async function removeMission(mission) {
+    if (!window.confirm(`Supprimer la mission du ${mission.mission_date} ?`)) return;
+    setError("");
+    try {
+      await api.missions.remove(mission.id);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   return (
     <div>
       <div className="page-head">
@@ -169,6 +180,7 @@ export default function MissionsPage() {
               <th>Lieu</th>
               <th>Durée</th>
               <th>Heures log</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -180,6 +192,11 @@ export default function MissionsPage() {
                 <td>{m.location}</td>
                 <td>{m.duration_minutes} min</td>
                 <td>{Number(m.flight_hours_logged || 0).toFixed(1)}</td>
+                <td>
+                  <button type="button" className="secondary" onClick={() => removeMission(m)}>
+                    Supprimer
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

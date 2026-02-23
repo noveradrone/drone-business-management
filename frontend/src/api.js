@@ -47,21 +47,25 @@ export const api = {
   },
   drones: {
     list: () => request("/drones"),
-    create: (data) => request("/drones", { method: "POST", body: JSON.stringify(data) })
+    create: (data) => request("/drones", { method: "POST", body: JSON.stringify(data) }),
+    remove: (id) => request(`/drones/${id}`, { method: "DELETE" })
   },
   clients: {
     list: () => request("/clients"),
-    create: (data) => request("/clients", { method: "POST", body: JSON.stringify(data) })
+    create: (data) => request("/clients", { method: "POST", body: JSON.stringify(data) }),
+    remove: (id) => request(`/clients/${id}`, { method: "DELETE" })
   },
   missions: {
     list: () => request("/missions"),
-    create: (data) => request("/missions", { method: "POST", body: JSON.stringify(data) })
+    create: (data) => request("/missions", { method: "POST", body: JSON.stringify(data) }),
+    remove: (id) => request(`/missions/${id}`, { method: "DELETE" })
   },
   quotes: {
     list: () => request("/quotes"),
     get: (id) => request(`/quotes/${id}`),
     create: (data) => request("/quotes", { method: "POST", body: JSON.stringify(data) }),
-    pdf: (id) => request(`/quotes/${id}/pdf`)
+    pdf: (id) => request(`/quotes/${id}/pdf`),
+    remove: (id) => request(`/quotes/${id}`, { method: "DELETE" })
   },
   invoices: {
     list: () => request("/invoices"),
@@ -70,11 +74,13 @@ export const api = {
     pdf: (id) => request(`/invoices/${id}/pdf`),
     addPayment: (id, data) =>
       request(`/invoices/${id}/payments`, { method: "POST", body: JSON.stringify(data) }),
-    paymentReceiptPdf: (id, paymentId) => request(`/invoices/${id}/payments/${paymentId}/receipt-pdf`)
+    paymentReceiptPdf: (id, paymentId) => request(`/invoices/${id}/payments/${paymentId}/receipt-pdf`),
+    remove: (id) => request(`/invoices/${id}`, { method: "DELETE" })
   },
   insurances: {
     list: () => request("/insurances"),
-    create: (data) => request("/insurances", { method: "POST", body: JSON.stringify(data) })
+    create: (data) => request("/insurances", { method: "POST", body: JSON.stringify(data) }),
+    remove: (id) => request(`/insurances/${id}`, { method: "DELETE" })
   },
   settings: {
     company: () => request("/settings/company"),

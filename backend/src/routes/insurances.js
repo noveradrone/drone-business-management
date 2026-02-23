@@ -53,4 +53,11 @@ router.post("/", authRequired, (req, res) => {
   res.status(201).json(db.prepare("SELECT * FROM insurances WHERE id = ?").get(result.lastInsertRowid));
 });
 
+router.delete("/:id", authRequired, (req, res) => {
+  const result = db.prepare("DELETE FROM insurances WHERE id = ?").run(req.params.id);
+  if (!result.changes) return res.status(404).json({ message: "Insurance not found" });
+  refreshAutomaticReminders();
+  return res.status(204).send();
+});
+
 module.exports = router;

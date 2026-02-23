@@ -60,6 +60,17 @@ export default function InsurancesPage() {
     }
   }
 
+  async function removeInsurance(insurance) {
+    if (!window.confirm(`Supprimer le contrat ${insurance.policy_number} ?`)) return;
+    setError("");
+    try {
+      await api.insurances.remove(insurance.id);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   return (
     <div>
       <div className="page-head">
@@ -140,6 +151,7 @@ export default function InsurancesPage() {
               <th>Début</th>
               <th>Fin</th>
               <th>Prime</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -151,6 +163,11 @@ export default function InsurancesPage() {
                 <td>{i.valid_from}</td>
                 <td>{i.valid_until}</td>
                 <td>{i.premium_amount ? `${Number(i.premium_amount).toFixed(2)} €` : "-"}</td>
+                <td>
+                  <button type="button" className="secondary" onClick={() => removeInsurance(i)}>
+                    Supprimer
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

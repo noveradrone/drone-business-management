@@ -104,6 +104,17 @@ export default function QuotesPage() {
     }
   }
 
+  async function removeQuote(quote) {
+    if (!window.confirm(`Supprimer le devis ${quote.quote_number} ?`)) return;
+    setError("");
+    try {
+      await api.quotes.remove(quote.id);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   return (
     <div>
       <div className="page-head">
@@ -161,6 +172,7 @@ export default function QuotesPage() {
               <th>Statut</th>
               <th>Total</th>
               <th>PDF</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -174,6 +186,11 @@ export default function QuotesPage() {
                 <td>{Number(q.total || 0).toFixed(2)} EUR</td>
                 <td>
                   <button className="secondary" onClick={() => downloadPdf(q)}>PDF</button>
+                </td>
+                <td>
+                  <button type="button" className="secondary" onClick={() => removeQuote(q)}>
+                    Supprimer
+                  </button>
                 </td>
               </tr>
             ))}

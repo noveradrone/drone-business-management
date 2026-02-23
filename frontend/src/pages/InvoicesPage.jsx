@@ -178,6 +178,21 @@ export default function InvoicesPage() {
     }
   }
 
+  async function removeInvoice(invoice) {
+    if (!window.confirm(`Supprimer la facture ${invoice.invoice_number} ?`)) return;
+    setError("");
+    try {
+      await api.invoices.remove(invoice.id);
+      if (selectedInvoiceId === invoice.id) {
+        setSelectedInvoiceId(null);
+        setSelectedInvoice(null);
+      }
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   const dueSelected = selectedInvoice
     ? Math.max(0, Number(selectedInvoice.total || 0) - Number(selectedInvoice.amount_received || 0))
     : 0;
@@ -298,6 +313,9 @@ export default function InvoicesPage() {
                   <td style={{ display: "flex", gap: 6 }}>
                     <button className="secondary" onClick={() => downloadInvoicePdf(i)}>PDF</button>
                     <button className="secondary" onClick={() => loadInvoiceDetails(i.id)}>Paiement</button>
+                    <button type="button" className="secondary" onClick={() => removeInvoice(i)}>
+                      Supprimer
+                    </button>
                   </td>
                 </tr>
               );
