@@ -9,6 +9,7 @@ const navItems = [
   ["/invoices", "Factures"],
   ["/insurances", "Assurances"],
   ["/exports", "Exports"],
+  ["/documents", "Documents"],
   ["/settings", "Parametres"]
 ];
 
