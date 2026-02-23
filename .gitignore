@@ -1,0 +1,6 @@
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+backend/drone-business.db
+.DS_Store
+.env
