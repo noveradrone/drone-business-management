@@ -29,7 +29,7 @@ router.put("/company", authRequired, (req, res) => {
       id, company_name, legal_form, capital_amount, address_line1, zip_code, city, country,
       siret, vat_number, rcs_info, phone, email, website, bank_name, bank_bic, bank_iban, logo_data_url, payment_terms,
       late_penalty_rate, fixed_indemnity, vat_exemption_mention, quote_validity_days, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       company_name=excluded.company_name,
       legal_form=excluded.legal_form,
