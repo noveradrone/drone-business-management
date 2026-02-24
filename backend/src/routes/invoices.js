@@ -38,59 +38,77 @@ router.get("/next-number", authRequired, (req, res) => {
 });
 
 router.get("/stats", authRequired, async (req, res) => {
-  syncInvoiceStatuses();
-  await processOverdueReminders();
+  try {
+    syncInvoiceStatuses();
+    await processOverdueReminders();
 
-  const totals = db
-    .prepare(
-      `SELECT
-         COALESCE(SUM(total), 0) AS total_facture,
-         COALESCE(SUM(amount_received), 0) AS total_encaisse,
-         COALESCE(SUM(total - amount_received), 0) AS total_restant,
-         SUM(CASE WHEN status = 'overdue' THEN 1 ELSE 0 END) AS factures_en_retard
-       FROM invoices`
-    )
-    .get();
+    const totals = db
+      .prepare(
+        `SELECT
+           COALESCE(SUM(total), 0) AS total_facture,
+           COALESCE(SUM(amount_received), 0) AS total_encaisse,
+           COALESCE(SUM(total - amount_received), 0) AS total_restant,
+           COALESCE(SUM(CASE WHEN status = 'overdue' THEN 1 ELSE 0 END), 0) AS factures_en_retard
+         FROM invoices`
+      )
+      .get();
 
-  const averageDelay = db
-    .prepare(
-      `SELECT AVG(julianday(MAX(p.payment_date)) - julianday(i.invoice_date)) AS value
-       FROM invoices i
-       JOIN payments p ON p.invoice_id = i.id
-       GROUP BY i.id`
-    )
-    .all();
-  const avg = averageDelay.length
-    ? averageDelay.reduce((sum, r) => sum + toNumber(r.value), 0) / averageDelay.length
-    : 0;
+    // SQLite-safe aggregation:
+    // 1) compute MAX(payment_date) per invoice
+    // 2) then compute AVG(delay) on that derived table
+    const averageDelay = db
+      .prepare(
+        `SELECT COALESCE(AVG(julianday(last_payment_date) - julianday(invoice_date)), 0) AS value
+         FROM (
+           SELECT i.id, i.invoice_date, MAX(p.payment_date) AS last_payment_date
+           FROM invoices i
+           JOIN payments p ON p.invoice_id = i.id
+           GROUP BY i.id, i.invoice_date
+         ) t`
+      )
+      .get();
+    const avg = toNumber(averageDelay?.value, 0);
 
-  const monthlyCollections = db
-    .prepare(
-      `SELECT substr(payment_date, 1, 7) AS month, ROUND(SUM(amount), 2) AS amount
-       FROM payments
-       GROUP BY substr(payment_date, 1, 7)
-       ORDER BY month DESC
-       LIMIT 12`
-    )
-    .all();
+    const monthlyCollections = db
+      .prepare(
+        `SELECT substr(payment_date, 1, 7) AS month, ROUND(SUM(amount), 2) AS amount
+         FROM payments
+         GROUP BY substr(payment_date, 1, 7)
+         ORDER BY month DESC
+         LIMIT 12`
+      )
+      .all();
 
-  const unpaidMonthly = db
-    .prepare(
-      `SELECT substr(invoice_date, 1, 7) AS month, ROUND(SUM(total - amount_received), 2) AS unpaid
-       FROM invoices
-       WHERE (total - amount_received) > 0
-       GROUP BY substr(invoice_date, 1, 7)
-       ORDER BY month DESC
-       LIMIT 12`
-    )
-    .all();
+    const unpaidMonthly = db
+      .prepare(
+        `SELECT substr(invoice_date, 1, 7) AS month, ROUND(SUM(total - amount_received), 2) AS unpaid
+         FROM invoices
+         WHERE (total - amount_received) > 0
+         GROUP BY substr(invoice_date, 1, 7)
+         ORDER BY month DESC
+         LIMIT 12`
+      )
+      .all();
 
-  res.json({
-    ...totals,
-    delai_moyen_paiement: Number(avg.toFixed(2)),
-    encaissements_mensuels: monthlyCollections,
-    impayes_mensuels: unpaidMonthly
-  });
+    return res.json({
+      ...totals,
+      delai_moyen_paiement: Number(avg.toFixed(2)),
+      encaissements_mensuels: monthlyCollections,
+      impayes_mensuels: unpaidMonthly
+    });
+  } catch (error) {
+    console.error("Invoice stats query failed:", error);
+    return res.status(500).json({
+      message: "Impossible de calculer les statistiques de factures.",
+      total_facture: 0,
+      total_encaisse: 0,
+      total_restant: 0,
+      factures_en_retard: 0,
+      delai_moyen_paiement: 0,
+      encaissements_mensuels: [],
+      impayes_mensuels: []
+    });
+  }
 });
 
 router.get("/", authRequired, async (req, res) => {
