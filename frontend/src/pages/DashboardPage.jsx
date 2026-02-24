@@ -18,7 +18,7 @@ export default function DashboardPage() {
   if (error) return <p className="error">{error}</p>;
   if (!summary) return <p>Chargement...</p>;
 
-  const { kpis, topDrones, cashflow } = summary;
+  const { kpis, topDrones, cashflow, mostProfitableMission, maintenanceAlerts = [] } = summary;
 
   return (
     <div>
@@ -43,6 +43,39 @@ export default function DashboardPage() {
           <p className="card-label">A recevoir</p>
           <p className="card-value">{Number(kpis.receivable || 0).toFixed(2)} €</p>
         </div>
+      </div>
+
+      <div className="card-grid">
+        <div className="card">
+          <p className="card-label">Panier moyen</p>
+          <p className="card-value">{Number(kpis.averageBasket || 0).toFixed(2)} €</p>
+        </div>
+        <div className="card">
+          <p className="card-label">CA mois en cours</p>
+          <p className="card-value">{Number(kpis.revenueCurrentMonth || 0).toFixed(2)} €</p>
+        </div>
+        <div className="card">
+          <p className="card-label">CA 12 mois glissants</p>
+          <p className="card-value">{Number(kpis.revenueLast12Months || 0).toFixed(2)} €</p>
+        </div>
+        <div className="card">
+          <p className="card-label">Objectif mensuel atteint</p>
+          <p className="card-value">
+            {Number(kpis.targetProgressPercent || 0).toFixed(1)}% ({Number(kpis.monthlyTarget || 0).toFixed(0)}€)
+          </p>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 12 }}>
+        <h3 style={{ marginTop: 0 }}>Mission la plus rentable</h3>
+        {!mostProfitableMission ? (
+          <p style={{ margin: 0 }}>Aucune mission rentable disponible.</p>
+        ) : (
+          <p style={{ margin: 0 }}>
+            {mostProfitableMission.company_name} ({mostProfitableMission.mission_date}) - Marge:{" "}
+            {Number(mostProfitableMission.gross_margin || 0).toFixed(2)} €
+          </p>
+        )}
       </div>
 
       <div className="card" style={{ marginBottom: 12 }}>
@@ -91,6 +124,40 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Alertes maintenance</h3>
+        {maintenanceAlerts.length === 0 ? (
+          <p style={{ margin: 0 }}>Aucune alerte maintenance.</p>
+        ) : (
+          <div className="table-wrap" style={{ marginBottom: 12 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Drone</th>
+                  <th>Cycles</th>
+                  <th>Seuil cycles</th>
+                  <th>Heures</th>
+                  <th>Seuil helice</th>
+                </tr>
+              </thead>
+              <tbody>
+                {maintenanceAlerts.map((a) => (
+                  <tr key={a.id}>
+                    <td>
+                      {a.brand} {a.model} ({a.serial_number})
+                    </td>
+                    <td>{a.total_cycles}</td>
+                    <td>{a.battery_cycle_threshold}</td>
+                    <td>{Number(a.total_flight_hours || 0).toFixed(1)}</td>
+                    <td>{Number(a.propeller_hours_threshold || 0).toFixed(1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="card">

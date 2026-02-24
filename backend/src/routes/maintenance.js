@@ -63,13 +63,15 @@ router.post("/", authRequired, (req, res) => {
          total_cycles = CASE
            WHEN ? IS NULL THEN total_cycles
            ELSE MAX(total_cycles, ?)
-         END
+         END,
+         last_maintenance_date = ?
        WHERE id = ?`
     ).run(
       flight_hours_at_maintenance || null,
       flight_hours_at_maintenance || null,
       cycles_at_maintenance || null,
       cycles_at_maintenance || null,
+      maintenance_date,
       drone_id
     );
 

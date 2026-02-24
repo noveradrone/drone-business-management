@@ -15,6 +15,9 @@ const insurancesRoutes = require("./routes/insurances");
 const dashboardRoutes = require("./routes/dashboard");
 const exportsRoutes = require("./routes/exports");
 const settingsRoutes = require("./routes/settings");
+const pipelineRoutes = require("./routes/pipeline");
+const reviewsRoutes = require("./routes/reviews");
+const forecastRoutes = require("./routes/forecast");
 
 const app = express();
 app.use(cors());
@@ -37,6 +40,9 @@ app.use("/api/insurances", insurancesRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/exports", exportsRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/pipeline", pipelineRoutes);
+app.use("/api/reviews", reviewsRoutes);
+app.use("/api/forecast", forecastRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

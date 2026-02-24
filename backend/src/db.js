@@ -73,6 +73,32 @@ CREATE TABLE IF NOT EXISTS missions (
   FOREIGN KEY (client_id) REFERENCES clients(id)
 );
 
+CREATE TABLE IF NOT EXISTS commercial_pipeline (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER NOT NULL UNIQUE,
+  status TEXT NOT NULL CHECK(status IN ('prospect','quote_sent','followup_1','followup_2','accepted','lost')) DEFAULT 'prospect',
+  source TEXT,
+  notes TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS clients_a_relancer (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER NOT NULL,
+  mission_id INTEGER NOT NULL UNIQUE,
+  phone TEXT,
+  mission_date TEXT NOT NULL,
+  avis_demande INTEGER NOT NULL DEFAULT 0,
+  date_demande TEXT,
+  compteur_relances INTEGER NOT NULL DEFAULT 0,
+  last_relance_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+  FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS quotes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   client_id INTEGER NOT NULL,
@@ -189,6 +215,7 @@ CREATE TABLE IF NOT EXISTS company_settings (
   fixed_indemnity TEXT DEFAULT '40 EUR',
   vat_exemption_mention TEXT,
   quote_validity_days INTEGER DEFAULT 30,
+  monthly_revenue_target REAL DEFAULT 4000,
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 `;
@@ -205,9 +232,30 @@ function ensureColumn(table, column, definition) {
 
 ensureColumn("clients", "siret", "TEXT");
 ensureColumn("clients", "vat_number", "TEXT");
+ensureColumn("clients", "source_channel", "TEXT");
+ensureColumn("clients", "is_prospect", "INTEGER NOT NULL DEFAULT 0");
+
+ensureColumn("missions", "preparation_hours", "REAL NOT NULL DEFAULT 0");
+ensureColumn("missions", "flight_time_hours", "REAL NOT NULL DEFAULT 0");
+ensureColumn("missions", "montage_hours", "REAL NOT NULL DEFAULT 0");
+ensureColumn("missions", "mileage_km", "REAL NOT NULL DEFAULT 0");
+ensureColumn("missions", "variable_costs", "REAL NOT NULL DEFAULT 0");
+ensureColumn("missions", "department", "TEXT");
+ensureColumn("missions", "selected_pack", "TEXT");
+ensureColumn("missions", "mission_status", "TEXT NOT NULL DEFAULT 'planned'");
+ensureColumn("missions", "avis_demande", "INTEGER NOT NULL DEFAULT 0");
+ensureColumn("missions", "date_avis_demande", "TEXT");
+ensureColumn("missions", "avis_relances_count", "INTEGER NOT NULL DEFAULT 0");
+
+ensureColumn("drones", "last_maintenance_date", "TEXT");
+ensureColumn("drones", "incident_history", "TEXT");
+ensureColumn("drones", "battery_cycle_threshold", "INTEGER NOT NULL DEFAULT 300");
+ensureColumn("drones", "propeller_hours_threshold", "REAL NOT NULL DEFAULT 120");
+
 ensureColumn("company_settings", "bank_name", "TEXT");
 ensureColumn("company_settings", "bank_bic", "TEXT");
 ensureColumn("company_settings", "bank_iban", "TEXT");
+ensureColumn("company_settings", "monthly_revenue_target", "REAL DEFAULT 4000");
 
 const adminExists = db.prepare("SELECT id FROM users WHERE email = ?").get("admin@drone.local");
 if (!adminExists) {

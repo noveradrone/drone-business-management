@@ -48,6 +48,7 @@ export const api = {
   drones: {
     list: () => request("/drones"),
     create: (data) => request("/drones", { method: "POST", body: JSON.stringify(data) }),
+    update: (id, data) => request(`/drones/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     remove: (id) => request(`/drones/${id}`, { method: "DELETE" })
   },
   clients: {
@@ -59,6 +60,19 @@ export const api = {
     list: () => request("/missions"),
     create: (data) => request("/missions", { method: "POST", body: JSON.stringify(data) }),
     remove: (id) => request(`/missions/${id}`, { method: "DELETE" })
+  },
+  pipeline: {
+    list: () => request("/pipeline"),
+    upsert: (data) => request("/pipeline/upsert", { method: "POST", body: JSON.stringify(data) }),
+    stats: () => request("/pipeline/stats")
+  },
+  reviews: {
+    refresh: () => request("/reviews/refresh", { method: "POST", body: JSON.stringify({}) }),
+    eligible: () => request("/reviews/eligible"),
+    send: (id) => request(`/reviews/send/${id}`, { method: "POST", body: JSON.stringify({}) })
+  },
+  forecast: {
+    summary: () => request("/forecast/summary")
   },
   quotes: {
     list: () => request("/quotes"),

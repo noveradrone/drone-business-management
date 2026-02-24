@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 
+const packOptions = ["Essentiel", "Premium", "Instagram"];
+const statusOptions = ["planned", "in_progress", "completed", "cancelled"];
+
 export default function MissionsPage() {
   const [missions, setMissions] = useState([]);
   const [clients, setClients] = useState([]);
@@ -15,6 +18,14 @@ export default function MissionsPage() {
     duration_minutes: 30,
     flight_hours_logged: 0.5,
     cycles_logged: 1,
+    preparation_hours: 0.5,
+    flight_time_hours: 0.5,
+    montage_hours: 0.5,
+    mileage_km: 0,
+    variable_costs: 0,
+    department: "",
+    selected_pack: "Essentiel",
+    mission_status: "planned",
     photo_url: "",
     notes: ""
   });
@@ -50,6 +61,11 @@ export default function MissionsPage() {
         duration_minutes: Number(form.duration_minutes),
         flight_hours_logged: Number(form.flight_hours_logged),
         cycles_logged: Number(form.cycles_logged),
+        preparation_hours: Number(form.preparation_hours),
+        flight_time_hours: Number(form.flight_time_hours),
+        montage_hours: Number(form.montage_hours),
+        mileage_km: Number(form.mileage_km),
+        variable_costs: Number(form.variable_costs),
         photo_url: form.photo_url || null,
         notes: form.notes || null
       });
@@ -61,6 +77,14 @@ export default function MissionsPage() {
         duration_minutes: 30,
         flight_hours_logged: 0.5,
         cycles_logged: 1,
+        preparation_hours: 0.5,
+        flight_time_hours: 0.5,
+        montage_hours: 0.5,
+        mileage_km: 0,
+        variable_costs: 0,
+        department: "",
+        selected_pack: "Essentiel",
+        mission_status: "planned",
         photo_url: "",
         notes: ""
       });
@@ -87,17 +111,13 @@ export default function MissionsPage() {
     <div>
       <div className="page-head">
         <h2>Missions</h2>
-        <span className="pill">Création dans l'interface</span>
+        <span className="pill">ERP evenementiel</span>
       </div>
 
       {error && <p className="error">{error}</p>}
 
       <form className="form-grid" onSubmit={submit}>
-        <select
-          value={form.client_id}
-          onChange={(e) => setForm({ ...form, client_id: e.target.value })}
-          required
-        >
+        <select value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })} required>
           <option value="">Client</option>
           {clients.map((c) => (
             <option key={c.id} value={c.id}>
@@ -105,11 +125,7 @@ export default function MissionsPage() {
             </option>
           ))}
         </select>
-        <select
-          value={form.drone_id}
-          onChange={(e) => setForm({ ...form, drone_id: e.target.value })}
-          required
-        >
+        <select value={form.drone_id} onChange={(e) => setForm({ ...form, drone_id: e.target.value })} required>
           <option value="">Drone</option>
           {drones.map((d) => (
             <option key={d.id} value={d.id}>
@@ -117,56 +133,35 @@ export default function MissionsPage() {
             </option>
           ))}
         </select>
-        <input
-          type="date"
-          value={form.mission_date}
-          onChange={(e) => setForm({ ...form, mission_date: e.target.value })}
-          required
-        />
-        <input
-          placeholder="Lieu"
-          value={form.location}
-          onChange={(e) => setForm({ ...form, location: e.target.value })}
-          required
-        />
-        <input
-          type="number"
-          min="1"
-          placeholder="Durée (min)"
-          value={form.duration_minutes}
-          onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })}
-          required
-        />
-        <input
-          type="number"
-          min="0"
-          step="0.1"
-          placeholder="Heures de vol"
-          value={form.flight_hours_logged}
-          onChange={(e) => setForm({ ...form, flight_hours_logged: e.target.value })}
-          required
-        />
-        <input
-          type="number"
-          min="0"
-          step="1"
-          placeholder="Cycles"
-          value={form.cycles_logged}
-          onChange={(e) => setForm({ ...form, cycles_logged: e.target.value })}
-          required
-        />
-        <input
-          placeholder="URL photo (optionnel)"
-          value={form.photo_url}
-          onChange={(e) => setForm({ ...form, photo_url: e.target.value })}
-        />
-        <input
-          placeholder="Notes (optionnel)"
-          value={form.notes}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
-        />
+        <input type="date" value={form.mission_date} onChange={(e) => setForm({ ...form, mission_date: e.target.value })} required />
+        <input placeholder="Lieu" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} required />
+        <input type="number" min="1" placeholder="Duree (min)" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} required />
+        <input type="number" min="0" step="0.1" placeholder="Heures log" value={form.flight_hours_logged} onChange={(e) => setForm({ ...form, flight_hours_logged: e.target.value })} required />
+        <input type="number" min="0" step="1" placeholder="Cycles" value={form.cycles_logged} onChange={(e) => setForm({ ...form, cycles_logged: e.target.value })} required />
+        <input type="number" min="0" step="0.1" placeholder="Temps preparation (h)" value={form.preparation_hours} onChange={(e) => setForm({ ...form, preparation_hours: e.target.value })} />
+        <input type="number" min="0" step="0.1" placeholder="Temps vol (h)" value={form.flight_time_hours} onChange={(e) => setForm({ ...form, flight_time_hours: e.target.value })} />
+        <input type="number" min="0" step="0.1" placeholder="Temps montage (h)" value={form.montage_hours} onChange={(e) => setForm({ ...form, montage_hours: e.target.value })} />
+        <input type="number" min="0" step="0.1" placeholder="Kilometrage" value={form.mileage_km} onChange={(e) => setForm({ ...form, mileage_km: e.target.value })} />
+        <input type="number" min="0" step="0.01" placeholder="Couts variables" value={form.variable_costs} onChange={(e) => setForm({ ...form, variable_costs: e.target.value })} />
+        <input placeholder="Departement" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+        <select value={form.selected_pack} onChange={(e) => setForm({ ...form, selected_pack: e.target.value })}>
+          {packOptions.map((pack) => (
+            <option key={pack} value={pack}>
+              {pack}
+            </option>
+          ))}
+        </select>
+        <select value={form.mission_status} onChange={(e) => setForm({ ...form, mission_status: e.target.value })}>
+          {statusOptions.map((status) => (
+            <option key={status} value={status}>
+              {status}
+            </option>
+          ))}
+        </select>
+        <input placeholder="URL photo (optionnel)" value={form.photo_url} onChange={(e) => setForm({ ...form, photo_url: e.target.value })} />
+        <input placeholder="Notes (optionnel)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         <button style={{ gridColumn: "1 / -1" }} disabled={submitting}>
-          {submitting ? "Création..." : "Créer la mission"}
+          {submitting ? "Creation..." : "Creer la mission"}
         </button>
       </form>
 
@@ -176,10 +171,13 @@ export default function MissionsPage() {
             <tr>
               <th>Date</th>
               <th>Client</th>
-              <th>Drone</th>
-              <th>Lieu</th>
-              <th>Durée</th>
-              <th>Heures log</th>
+              <th>Pack</th>
+              <th>Dep.</th>
+              <th>Statut</th>
+              <th>CA</th>
+              <th>Cout total</th>
+              <th>Marge brute</th>
+              <th>Taux horaire</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -188,10 +186,13 @@ export default function MissionsPage() {
               <tr key={m.id}>
                 <td>{m.mission_date}</td>
                 <td>{m.company_name}</td>
-                <td>{m.brand} {m.model}</td>
-                <td>{m.location}</td>
-                <td>{m.duration_minutes} min</td>
-                <td>{Number(m.flight_hours_logged || 0).toFixed(1)}</td>
+                <td>{m.selected_pack || "-"}</td>
+                <td>{m.department || "-"}</td>
+                <td>{m.mission_status}</td>
+                <td>{Number(m.mission_revenue || 0).toFixed(2)} EUR</td>
+                <td>{Number(m.total_cost || 0).toFixed(2)} EUR</td>
+                <td>{Number(m.gross_margin || 0).toFixed(2)} EUR</td>
+                <td>{Number(m.effective_hourly_rate || 0).toFixed(2)} EUR/h</td>
                 <td>
                   <button type="button" className="secondary" onClick={() => removeMission(m)}>
                     Supprimer

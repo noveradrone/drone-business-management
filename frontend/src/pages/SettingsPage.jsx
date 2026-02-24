@@ -27,7 +27,8 @@ export default function SettingsPage() {
     late_penalty_rate: "Taux BCE + 10 points",
     fixed_indemnity: "40 EUR",
     vat_exemption_mention: "",
-    quote_validity_days: 30
+    quote_validity_days: 30,
+    monthly_revenue_target: 4000
   });
 
   useEffect(() => {
@@ -55,7 +56,8 @@ export default function SettingsPage() {
     try {
       const updated = await api.settings.updateCompany({
         ...form,
-        quote_validity_days: Number(form.quote_validity_days || 30)
+        quote_validity_days: Number(form.quote_validity_days || 30),
+        monthly_revenue_target: Number(form.monthly_revenue_target || 0)
       });
       setForm((prev) => ({ ...prev, ...updated }));
       setSaved(true);
@@ -98,6 +100,7 @@ export default function SettingsPage() {
         <input placeholder="Indemnite recouvrement" value={form.fixed_indemnity || ""} onChange={(e) => setForm({ ...form, fixed_indemnity: e.target.value })} />
         <input placeholder="Mention TVA non applicable" value={form.vat_exemption_mention || ""} onChange={(e) => setForm({ ...form, vat_exemption_mention: e.target.value })} />
         <input type="number" min="1" placeholder="Validite devis (jours)" value={form.quote_validity_days || 30} onChange={(e) => setForm({ ...form, quote_validity_days: e.target.value })} />
+        <input type="number" min="0" step="0.01" placeholder="Objectif mensuel (EUR)" value={form.monthly_revenue_target || 0} onChange={(e) => setForm({ ...form, monthly_revenue_target: e.target.value })} />
 
         <div className="card" style={{ gridColumn: "1 / -1" }}>
           <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>Logo (PNG/JPG)</label>

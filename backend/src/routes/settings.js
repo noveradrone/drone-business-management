@@ -21,6 +21,10 @@ router.put("/company", authRequired, (req, res) => {
       payload.quote_validity_days === undefined
         ? current.quote_validity_days
         : Number(payload.quote_validity_days || 30),
+    monthly_revenue_target:
+      payload.monthly_revenue_target === undefined
+        ? Number(current.monthly_revenue_target || 4000)
+        : Number(payload.monthly_revenue_target || 0),
     updated_at: new Date().toISOString().slice(0, 19).replace("T", " ")
   };
 
@@ -28,8 +32,8 @@ router.put("/company", authRequired, (req, res) => {
     `INSERT INTO company_settings (
       id, company_name, legal_form, capital_amount, address_line1, zip_code, city, country,
       siret, vat_number, rcs_info, phone, email, website, bank_name, bank_bic, bank_iban, logo_data_url, payment_terms,
-      late_penalty_rate, fixed_indemnity, vat_exemption_mention, quote_validity_days, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      late_penalty_rate, fixed_indemnity, vat_exemption_mention, quote_validity_days, monthly_revenue_target, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       company_name=excluded.company_name,
       legal_form=excluded.legal_form,
@@ -53,6 +57,7 @@ router.put("/company", authRequired, (req, res) => {
       fixed_indemnity=excluded.fixed_indemnity,
       vat_exemption_mention=excluded.vat_exemption_mention,
       quote_validity_days=excluded.quote_validity_days,
+      monthly_revenue_target=excluded.monthly_revenue_target,
       updated_at=excluded.updated_at`
   ).run(
     merged.id,
@@ -78,6 +83,7 @@ router.put("/company", authRequired, (req, res) => {
     merged.fixed_indemnity || "40 EUR",
     merged.vat_exemption_mention || "",
     merged.quote_validity_days || 30,
+    Number(merged.monthly_revenue_target || 0),
     merged.updated_at
   );
 

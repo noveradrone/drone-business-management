@@ -3,7 +3,15 @@ import { api } from "../api";
 
 export default function DronesPage() {
   const [drones, setDrones] = useState([]);
-  const [form, setForm] = useState({ brand: "", model: "", serial_number: "" });
+  const [form, setForm] = useState({
+    brand: "",
+    model: "",
+    serial_number: "",
+    last_maintenance_date: "",
+    incident_history: "",
+    battery_cycle_threshold: 300,
+    propeller_hours_threshold: 120
+  });
   const [error, setError] = useState("");
 
   async function load() {
@@ -23,7 +31,15 @@ export default function DronesPage() {
     setError("");
     try {
       await api.drones.create(form);
-      setForm({ brand: "", model: "", serial_number: "" });
+      setForm({
+        brand: "",
+        model: "",
+        serial_number: "",
+        last_maintenance_date: "",
+        incident_history: "",
+        battery_cycle_threshold: 300,
+        propeller_hours_threshold: 120
+      });
       load();
     } catch (e) {
       setError(e.message);
@@ -51,7 +67,11 @@ export default function DronesPage() {
         <input placeholder="Marque" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} required />
         <input placeholder="Modèle" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} required />
         <input placeholder="Numéro de série" value={form.serial_number} onChange={(e) => setForm({ ...form, serial_number: e.target.value })} required />
-        <button>Ajouter</button>
+        <input type="date" placeholder="Derniere maintenance" value={form.last_maintenance_date} onChange={(e) => setForm({ ...form, last_maintenance_date: e.target.value })} />
+        <input placeholder="Historique incidents" value={form.incident_history} onChange={(e) => setForm({ ...form, incident_history: e.target.value })} />
+        <input type="number" min="0" step="1" placeholder="Seuil cycles batterie" value={form.battery_cycle_threshold} onChange={(e) => setForm({ ...form, battery_cycle_threshold: e.target.value })} />
+        <input type="number" min="0" step="0.1" placeholder="Seuil heures helices" value={form.propeller_hours_threshold} onChange={(e) => setForm({ ...form, propeller_hours_threshold: e.target.value })} />
+        <button style={{ gridColumn: "1 / -1" }}>Ajouter</button>
       </form>
 
       {error && <p className="error">{error}</p>}
@@ -66,6 +86,7 @@ export default function DronesPage() {
               <th>État</th>
               <th>Heures</th>
               <th>Cycles</th>
+              <th>Seuils</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -78,6 +99,9 @@ export default function DronesPage() {
                 <td>{d.status}</td>
                 <td>{Number(d.total_flight_hours).toFixed(1)}</td>
                 <td>{d.total_cycles}</td>
+                <td>
+                  {d.battery_cycle_threshold || 300} cyc / {Number(d.propeller_hours_threshold || 120).toFixed(1)} h
+                </td>
                 <td>
                   <button type="button" className="secondary" onClick={() => removeDrone(d)}>
                     Supprimer

@@ -10,7 +10,9 @@ export default function ClientsPage() {
     phone: "",
     billing_address: "",
     siret: "",
-    vat_number: ""
+    vat_number: "",
+    source_channel: "",
+    is_prospect: 1
   });
   const [error, setError] = useState("");
 
@@ -38,7 +40,9 @@ export default function ClientsPage() {
         phone: "",
         billing_address: "",
         siret: "",
-        vat_number: ""
+        vat_number: "",
+        source_channel: "",
+        is_prospect: 1
       });
       load();
     } catch (e) {
@@ -71,6 +75,11 @@ export default function ClientsPage() {
         <input placeholder="Adresse de facturation" value={form.billing_address} onChange={(e) => setForm({ ...form, billing_address: e.target.value })} />
         <input placeholder="SIRET client" value={form.siret} onChange={(e) => setForm({ ...form, siret: e.target.value })} />
         <input placeholder="TVA client" value={form.vat_number} onChange={(e) => setForm({ ...form, vat_number: e.target.value })} />
+        <input placeholder="Source lead (Instagram, Google...)" value={form.source_channel} onChange={(e) => setForm({ ...form, source_channel: e.target.value })} />
+        <select value={String(form.is_prospect)} onChange={(e) => setForm({ ...form, is_prospect: Number(e.target.value) })}>
+          <option value="1">Prospect</option>
+          <option value="0">Client actif</option>
+        </select>
         <button style={{ gridColumn: "1 / -1" }}>Ajouter</button>
       </form>
 
@@ -86,6 +95,7 @@ export default function ClientsPage() {
               <th>Téléphone</th>
               <th>SIRET</th>
               <th>TVA</th>
+              <th>Source</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -98,6 +108,7 @@ export default function ClientsPage() {
                 <td>{c.phone || "-"}</td>
                 <td>{c.siret || "-"}</td>
                 <td>{c.vat_number || "-"}</td>
+                <td>{c.source_channel || "-"}</td>
                 <td>
                   <button type="button" className="secondary" onClick={() => removeClient(c)}>
                     Supprimer

@@ -8,6 +8,9 @@ const navItems = [
   ["/quotes", "Devis"],
   ["/invoices", "Factures"],
   ["/insurances", "Assurances"],
+  ["/pipeline", "Pipeline"],
+  ["/reviews", "Avis Google"],
+  ["/forecast", "Previsionnel"],
   ["/exports", "Exports"],
   ["/documents", "Documents"],
   ["/settings", "Parametres"]

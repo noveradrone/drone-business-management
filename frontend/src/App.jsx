@@ -13,6 +13,9 @@ import InsurancesPage from "./pages/InsurancesPage";
 import ExportsPage from "./pages/ExportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import DocumentsPage from "./pages/DocumentsPage";
+import PipelinePage from "./pages/PipelinePage";
+import ReviewsPage from "./pages/ReviewsPage";
+import ForecastPage from "./pages/ForecastPage";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -49,6 +52,9 @@ export default function App() {
           <Route path="invoices" element={<InvoicesPage />} />
           <Route path="insurances" element={<InsurancesPage />} />
           <Route path="exports" element={<ExportsPage />} />
+          <Route path="pipeline" element={<PipelinePage />} />
+          <Route path="reviews" element={<ReviewsPage />} />
+          <Route path="forecast" element={<ForecastPage />} />
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>

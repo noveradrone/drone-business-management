@@ -1,20 +1,36 @@
 const express = require("express");
 const db = require("../db");
 const { authRequired } = require("../middleware/auth");
+const { computeMissionFinancials } = require("../services/missionMetrics");
 
 const router = express.Router();
 
 router.get("/", authRequired, (req, res) => {
   const rows = db
     .prepare(
-      `SELECT m.*, c.company_name, d.serial_number, d.brand, d.model
+      `SELECT
+         m.*,
+         c.company_name,
+         c.source_channel,
+         d.serial_number,
+         d.brand,
+         d.model,
+         (
+           SELECT COALESCE(SUM(i.total), 0)
+           FROM invoices i
+           WHERE i.mission_id = m.id
+         ) AS mission_revenue
        FROM missions m
        JOIN clients c ON c.id = m.client_id
        JOIN drones d ON d.id = m.drone_id
        ORDER BY m.mission_date DESC`
     )
     .all();
-  res.json(rows);
+  const withFinancials = rows.map((row) => ({
+    ...row,
+    ...computeMissionFinancials(row, row.mission_revenue)
+  }));
+  res.json(withFinancials);
 });
 
 router.post("/", authRequired, (req, res) => {
@@ -26,6 +42,14 @@ router.post("/", authRequired, (req, res) => {
     duration_minutes,
     flight_hours_logged = 0,
     cycles_logged = 0,
+    preparation_hours = 0,
+    flight_time_hours = 0,
+    montage_hours = 0,
+    mileage_km = 0,
+    variable_costs = 0,
+    department = null,
+    selected_pack = null,
+    mission_status = "planned",
     photo_url,
     notes
   } = req.body;
@@ -41,8 +65,10 @@ router.post("/", authRequired, (req, res) => {
       .prepare(
         `INSERT INTO missions (
           drone_id, client_id, mission_date, location, duration_minutes,
-          flight_hours_logged, cycles_logged, photo_url, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          flight_hours_logged, cycles_logged,
+          preparation_hours, flight_time_hours, montage_hours, mileage_km, variable_costs,
+          department, selected_pack, mission_status, photo_url, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         drone_id,
@@ -52,6 +78,14 @@ router.post("/", authRequired, (req, res) => {
         duration_minutes,
         flight_hours_logged,
         cycles_logged,
+        preparation_hours,
+        flight_time_hours,
+        montage_hours,
+        mileage_km,
+        variable_costs,
+        department || null,
+        selected_pack || null,
+        mission_status || "planned",
         photo_url || null,
         notes || null
       );
@@ -67,7 +101,11 @@ router.post("/", authRequired, (req, res) => {
   });
 
   const missionId = tx();
-  res.status(201).json(db.prepare("SELECT * FROM missions WHERE id = ?").get(missionId));
+  const mission = db.prepare("SELECT * FROM missions WHERE id = ?").get(missionId);
+  res.status(201).json({
+    ...mission,
+    ...computeMissionFinancials(mission, 0)
+  });
 });
 
 router.delete("/:id", authRequired, (req, res) => {
