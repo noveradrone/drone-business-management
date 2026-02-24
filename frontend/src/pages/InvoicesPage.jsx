@@ -516,7 +516,7 @@ export default function InvoicesPage() {
                   <td>{Number(i.amount_received || 0).toFixed(2)} {i.currency}</td>
                   <td>{due.toFixed(2)} {i.currency}</td>
                   <td>{i.nombre_relances || 0}</td>
-                  <td style={{ display: "flex", gap: 6 }}>
+                  <td className="actions-cell">
                     <button className="secondary" onClick={() => downloadInvoicePdf(i)}>PDF</button>
                     <button className="secondary" onClick={() => loadInvoiceDetails(i.id)}>Paiement</button>
                     {i.status !== "paid" && (
