@@ -18,6 +18,7 @@ const settingsRoutes = require("./routes/settings");
 const pipelineRoutes = require("./routes/pipeline");
 const reviewsRoutes = require("./routes/reviews");
 const forecastRoutes = require("./routes/forecast");
+const articlesRoutes = require("./routes/articles");
 
 const app = express();
 app.use(cors());
@@ -43,6 +44,7 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/pipeline", pipelineRoutes);
 app.use("/api/reviews", reviewsRoutes);
 app.use("/api/forecast", forecastRoutes);
+app.use("/api/articles", articlesRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

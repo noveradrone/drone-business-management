@@ -21,7 +21,7 @@ export default function DashboardPage() {
   const { kpis, topDrones, cashflow, mostProfitableMission, maintenanceAlerts = [] } = summary;
 
   return (
-    <div>
+    <div className="dashboard-page">
       <div className="page-head">
         <h2>Dashboard</h2>
       </div>

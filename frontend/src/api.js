@@ -83,13 +83,20 @@ export const api = {
   },
   invoices: {
     list: () => request("/invoices"),
+    stats: () => request("/invoices/stats"),
+    nextNumber: (invoiceDate) => request(`/invoices/next-number?date=${encodeURIComponent(invoiceDate)}`),
     get: (id) => request(`/invoices/${id}`),
     create: (data) => request("/invoices", { method: "POST", body: JSON.stringify(data) }),
     pdf: (id) => request(`/invoices/${id}/pdf`),
     addPayment: (id, data) =>
       request(`/invoices/${id}/payments`, { method: "POST", body: JSON.stringify(data) }),
+    markPaid: (id, data) => request(`/invoices/${id}/mark-paid`, { method: "POST", body: JSON.stringify(data) }),
     paymentReceiptPdf: (id, paymentId) => request(`/invoices/${id}/payments/${paymentId}/receipt-pdf`),
     remove: (id) => request(`/invoices/${id}`, { method: "DELETE" })
+  },
+  articles: {
+    list: () => request("/articles"),
+    create: (data) => request("/articles", { method: "POST", body: JSON.stringify(data) })
   },
   insurances: {
     list: () => request("/insurances"),
@@ -98,7 +105,10 @@ export const api = {
   },
   settings: {
     company: () => request("/settings/company"),
-    updateCompany: (data) => request("/settings/company", { method: "PUT", body: JSON.stringify(data) })
+    updateCompany: (data) => request("/settings/company", { method: "PUT", body: JSON.stringify(data) }),
+    theme: () => request("/settings/theme"),
+    updateTheme: (data) => request("/settings/theme", { method: "PUT", body: JSON.stringify(data) }),
+    resetTheme: () => request("/settings/theme", { method: "DELETE" })
   },
   exports: {
     csv: (entity) => request(`/exports/csv/${entity}`)

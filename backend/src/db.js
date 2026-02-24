@@ -155,6 +155,25 @@ CREATE TABLE IF NOT EXISTS invoice_items (
   FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS articles (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
+  price REAL NOT NULL DEFAULT 0,
+  tax_rate REAL NOT NULL DEFAULT 20,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS invoice_relances (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  invoice_id INTEGER NOT NULL,
+  relance_type TEXT NOT NULL CHECK(relance_type IN ('j3','j7')),
+  sent_at TEXT NOT NULL DEFAULT (datetime('now')),
+  channel TEXT NOT NULL DEFAULT 'email',
+  message TEXT,
+  FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS payments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   invoice_id INTEGER NOT NULL,
@@ -218,6 +237,21 @@ CREATE TABLE IF NOT EXISTS company_settings (
   monthly_revenue_target REAL DEFAULT 4000,
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS user_theme_preferences (
+  user_id INTEGER PRIMARY KEY,
+  primary_color TEXT NOT NULL DEFAULT '#0a84ff',
+  secondary_color TEXT NOT NULL DEFAULT '#93c5fd',
+  button_color TEXT NOT NULL DEFAULT '#0a84ff',
+  background_color TEXT NOT NULL DEFAULT '#f3f6fb',
+  sidebar_color TEXT NOT NULL DEFAULT 'rgba(255,255,255,0.84)',
+  mode TEXT NOT NULL CHECK(mode IN ('light','dark')) DEFAULT 'light',
+  radius_style TEXT NOT NULL CHECK(radius_style IN ('normal','rounded','pill')) DEFAULT 'rounded',
+  shadows_enabled INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 `;
 
 db.exec(schema);
@@ -256,6 +290,17 @@ ensureColumn("company_settings", "bank_name", "TEXT");
 ensureColumn("company_settings", "bank_bic", "TEXT");
 ensureColumn("company_settings", "bank_iban", "TEXT");
 ensureColumn("company_settings", "monthly_revenue_target", "REAL DEFAULT 4000");
+
+ensureColumn("invoices", "acompte_pourcentage", "REAL NOT NULL DEFAULT 0");
+ensureColumn("invoices", "acompte_montant", "REAL NOT NULL DEFAULT 0");
+ensureColumn("invoices", "solde_restant", "REAL NOT NULL DEFAULT 0");
+ensureColumn("invoices", "date_paiement", "TEXT");
+ensureColumn("invoices", "moyen_paiement", "TEXT");
+ensureColumn("invoices", "note_interne", "TEXT");
+ensureColumn("invoices", "nombre_relances", "INTEGER NOT NULL DEFAULT 0");
+ensureColumn("invoices", "last_relance_date", "TEXT");
+ensureColumn("invoices", "relance_j3_sent_at", "TEXT");
+ensureColumn("invoices", "relance_j7_sent_at", "TEXT");
 
 const adminExists = db.prepare("SELECT id FROM users WHERE email = ?").get("admin@drone.local");
 if (!adminExists) {

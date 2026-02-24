@@ -108,7 +108,7 @@ export default function MissionsPage() {
   }
 
   return (
-    <div>
+    <div className="missions-page">
       <div className="page-head">
         <h2>Missions</h2>
         <span className="pill">ERP evenementiel</span>
@@ -160,7 +160,7 @@ export default function MissionsPage() {
         </select>
         <input placeholder="URL photo (optionnel)" value={form.photo_url} onChange={(e) => setForm({ ...form, photo_url: e.target.value })} />
         <input placeholder="Notes (optionnel)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-        <button style={{ gridColumn: "1 / -1" }} disabled={submitting}>
+        <button className="primary-action" style={{ gridColumn: "1 / -1" }} disabled={submitting}>
           {submitting ? "Creation..." : "Creer la mission"}
         </button>
       </form>

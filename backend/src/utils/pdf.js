@@ -31,7 +31,7 @@ function drawBox(doc, x, y, w, h) {
   doc.rect(x, y, w, h).lineWidth(1).stroke("#222222");
 }
 
-function drawInvoiceLikeTemplate(doc, invoice, items, client, settings) {
+function drawInvoiceLikeTemplate(doc, invoice, items, client, settings, profitability = null) {
   const pageW = doc.page.width;
   const left = 50;
   const right = pageW - 50;
@@ -149,8 +149,25 @@ function drawInvoiceLikeTemplate(doc, invoice, items, client, settings) {
   doc.text("Total TTC", labelX, totalY + 50, { width: 90, align: "right" });
   doc.text(moneyFr(invoice.total, invoice.currency), valueX - 120, totalY + 50, { width: 120, align: "right" });
 
+  const acompteMontant = Number(invoice.acompte_montant || 0);
+  const soldeRestant = Number(invoice.solde_restant || Math.max(0, Number(invoice.total || 0) - Number(invoice.amount_received || 0)));
+  doc.font("Helvetica").fontSize(11);
+  doc.text("Acompte", labelX, totalY + 74, { width: 90, align: "right" });
+  doc.text(moneyFr(acompteMontant, invoice.currency), valueX - 120, totalY + 74, { width: 120, align: "right" });
+  doc.font("Helvetica-Bold").fontSize(11);
+  doc.text("Solde restant", labelX, totalY + 96, { width: 90, align: "right" });
+  doc.text(moneyFr(soldeRestant, invoice.currency), valueX - 120, totalY + 96, { width: 120, align: "right" });
+
+  if (profitability) {
+    doc.font("Helvetica-Bold").fontSize(10).text("Rentabilite mission", left, totalY + 74);
+    doc.font("Helvetica").fontSize(9.5);
+    doc.text(`Cout estime mission: ${moneyFr(profitability.cost_estimated, invoice.currency)}`, left, totalY + 90);
+    doc.text(`Marge brute: ${moneyFr(profitability.gross_margin, invoice.currency)}`, left, totalY + 104);
+    doc.text(`% marge: ${Number(profitability.margin_percent || 0).toFixed(2)}%`, left, totalY + 118);
+  }
+
   doc.font("Helvetica").fontSize(9);
-  const legalY = totalY + 72;
+  const legalY = totalY + 132;
   doc.text(`Conditions de reglement: ${oneLine(settings.payment_terms, 85) || "Paiement a 30 jours"}`, left, legalY, {
     width: right - left
   });
@@ -311,9 +328,9 @@ function finalize(doc) {
   });
 }
 
-function buildInvoicePdf(invoice, items, client, companySettings = {}) {
+function buildInvoicePdf(invoice, items, client, companySettings = {}, profitability = null) {
   const doc = new PDFDocument({ size: "A4", margin: 40 });
-  drawInvoiceLikeTemplate(doc, invoice, items, client || {}, companySettings || {});
+  drawInvoiceLikeTemplate(doc, invoice, items, client || {}, companySettings || {}, profitability);
   return finalize(doc);
 }
 

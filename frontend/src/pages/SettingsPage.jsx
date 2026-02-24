@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { applyTheme, DEFAULT_THEME } from "../theme";
 
 export default function SettingsPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [themeSaved, setThemeSaved] = useState(false);
+  const [themeSaving, setThemeSaving] = useState(false);
   const [form, setForm] = useState({
     company_name: "Novera Drone",
     legal_form: "",
@@ -30,11 +33,15 @@ export default function SettingsPage() {
     quote_validity_days: 30,
     monthly_revenue_target: 4000
   });
+  const [appearance, setAppearance] = useState(DEFAULT_THEME);
 
   useEffect(() => {
-    api.settings
-      .company()
-      .then((data) => setForm((prev) => ({ ...prev, ...data })))
+    Promise.all([api.settings.company(), api.settings.theme()])
+      .then(([company, theme]) => {
+        setForm((prev) => ({ ...prev, ...company }));
+        setAppearance((prev) => ({ ...prev, ...(theme || {}) }));
+        applyTheme(theme || DEFAULT_THEME);
+      })
       .catch((e) => setError(e.message));
   }, []);
 
@@ -68,6 +75,45 @@ export default function SettingsPage() {
     }
   }
 
+  function onThemeChange(key, value) {
+    const next = { ...appearance, [key]: value };
+    setAppearance(next);
+    setThemeSaved(false);
+    applyTheme(next);
+  }
+
+  async function saveTheme() {
+    setError("");
+    setThemeSaved(false);
+    setThemeSaving(true);
+    try {
+      const updated = await api.settings.updateTheme(appearance);
+      setAppearance((prev) => ({ ...prev, ...(updated || {}) }));
+      applyTheme(updated || appearance);
+      setThemeSaved(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setThemeSaving(false);
+    }
+  }
+
+  async function resetTheme() {
+    setError("");
+    setThemeSaved(false);
+    setThemeSaving(true);
+    try {
+      const reset = await api.settings.resetTheme();
+      setAppearance((prev) => ({ ...prev, ...(reset || DEFAULT_THEME) }));
+      applyTheme(reset || DEFAULT_THEME);
+      setThemeSaved(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setThemeSaving(false);
+    }
+  }
+
   return (
     <div>
       <div className="page-head">
@@ -77,6 +123,69 @@ export default function SettingsPage() {
 
       {error && <p className="error">{error}</p>}
       {saved && <p style={{ color: "#106c2f", marginBottom: 10 }}>Parametres enregistres.</p>}
+      {themeSaved && <p style={{ color: "#106c2f", marginBottom: 10 }}>Apparence enregistree.</p>}
+
+      <div className="card" style={{ marginBottom: 14 }}>
+        <div className="page-head" style={{ marginBottom: 10 }}>
+          <h2 style={{ fontSize: "1rem" }}>Apparence</h2>
+          <span className="pill">Personnalisation visuelle</span>
+        </div>
+        <form className="form-grid" onSubmit={(e) => e.preventDefault()}>
+          <label>
+            Couleur principale
+            <input type="color" value={appearance.primary_color} onChange={(e) => onThemeChange("primary_color", e.target.value)} />
+          </label>
+          <label>
+            Couleur secondaire
+            <input type="color" value={appearance.secondary_color} onChange={(e) => onThemeChange("secondary_color", e.target.value)} />
+          </label>
+          <label>
+            Couleur boutons
+            <input type="color" value={appearance.button_color} onChange={(e) => onThemeChange("button_color", e.target.value)} />
+          </label>
+          <label>
+            Couleur fond
+            <input type="color" value={appearance.background_color} onChange={(e) => onThemeChange("background_color", e.target.value)} />
+          </label>
+          <label>
+            Couleur sidebar
+            <input type="text" value={appearance.sidebar_color} onChange={(e) => onThemeChange("sidebar_color", e.target.value)} placeholder="#ffffff ou rgba(...)" />
+          </label>
+          <label>
+            Mode
+            <select value={appearance.mode} onChange={(e) => onThemeChange("mode", e.target.value)}>
+              <option value="light">Clair</option>
+              <option value="dark">Sombre</option>
+            </select>
+          </label>
+          <label>
+            Arrondis
+            <select value={appearance.radius_style} onChange={(e) => onThemeChange("radius_style", e.target.value)}>
+              <option value="normal">Normales</option>
+              <option value="rounded">Arrondies</option>
+              <option value="pill">Tres arrondies</option>
+            </select>
+          </label>
+          <label>
+            Ombres
+            <select
+              value={String(appearance.shadows_enabled ? 1 : 0)}
+              onChange={(e) => onThemeChange("shadows_enabled", Number(e.target.value))}
+            >
+              <option value="1">Activees</option>
+              <option value="0">Desactivees</option>
+            </select>
+          </label>
+          <div style={{ display: "flex", gap: 8, gridColumn: "1 / -1" }}>
+            <button type="button" onClick={saveTheme} disabled={themeSaving}>
+              {themeSaving ? "Enregistrement..." : "Enregistrer apparence"}
+            </button>
+            <button type="button" className="secondary" onClick={resetTheme} disabled={themeSaving}>
+              Reinitialiser theme par defaut
+            </button>
+          </div>
+        </form>
+      </div>
 
       <form className="form-grid" onSubmit={submit}>
         <input placeholder="Nom entreprise" value={form.company_name || ""} onChange={(e) => setForm({ ...form, company_name: e.target.value })} required />

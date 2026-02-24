@@ -57,7 +57,7 @@ export default function PipelinePage() {
   }
 
   return (
-    <div>
+    <div className="pipeline-page">
       <div className="page-head">
         <h2>Pipeline commercial</h2>
       </div>
@@ -100,7 +100,7 @@ export default function PipelinePage() {
         </select>
         <input placeholder="Source (Instagram, bouche-a-oreille...)" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
         <input placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-        <button style={{ gridColumn: "1 / -1" }}>Mettre a jour</button>
+        <button className="primary-action" style={{ gridColumn: "1 / -1" }}>Mettre a jour</button>
       </form>
 
       <div className="table-wrap">

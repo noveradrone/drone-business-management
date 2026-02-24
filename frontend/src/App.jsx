@@ -16,6 +16,7 @@ import DocumentsPage from "./pages/DocumentsPage";
 import PipelinePage from "./pages/PipelinePage";
 import ReviewsPage from "./pages/ReviewsPage";
 import ForecastPage from "./pages/ForecastPage";
+import { applyTheme, DEFAULT_THEME } from "./theme";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -24,10 +25,19 @@ export default function App() {
   useEffect(() => {
     api.auth
       .me()
-      .then(() => setAuthenticated(true))
+      .then(async () => {
+        setAuthenticated(true);
+        try {
+          const theme = await api.settings.theme();
+          applyTheme(theme);
+        } catch {
+          applyTheme(DEFAULT_THEME);
+        }
+      })
       .catch(() => {
         setToken("");
         setAuthenticated(false);
+        applyTheme(DEFAULT_THEME);
       })
       .finally(() => setReady(true));
   }, []);

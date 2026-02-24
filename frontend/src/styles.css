@@ -1,17 +1,34 @@
 :root {
   color-scheme: light;
-  --bg: #f4f6fb;
+  --bg-color: #f3f6fb;
+  --primary-color: #0a84ff;
+  --secondary-color: #93c5fd;
+  --button-color: #0a84ff;
+  --sidebar-color: rgba(255, 255, 255, 0.84);
   --surface: rgba(255, 255, 255, 0.72);
   --surface-strong: #ffffff;
   --border: rgba(15, 23, 42, 0.12);
   --text: #0f172a;
   --muted: #5b6473;
-  --accent: #0071e3;
-  --accent-strong: #005bb8;
+  --accent: var(--primary-color);
+  --accent-strong: #0064d6;
   --danger: #c62828;
-  --shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+  --shadow: 0 12px 34px rgba(15, 23, 42, 0.1);
   --radius-xl: 20px;
-  --radius-md: 12px;
+  --radius-md: 14px;
+  --button-text: #ffffff;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: rgba(18, 25, 38, 0.82);
+  --surface-strong: #172033;
+  --border: rgba(147, 168, 199, 0.22);
+  --text: #e6eef8;
+  --muted: #9fb0c8;
+  --danger: #ff6b6b;
+  --accent-strong: #2d8cff;
+  --button-text: #0b1220;
 }
 
 * {
@@ -23,10 +40,11 @@ body {
   font-family: "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at 0% 0%, rgba(0, 113, 227, 0.14), transparent 36%),
-    radial-gradient(circle at 100% 0%, rgba(68, 171, 255, 0.18), transparent 34%),
-    linear-gradient(180deg, #f8fbff 0%, var(--bg) 62%);
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--primary-color) 18%, transparent), transparent 36%),
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--secondary-color) 18%, transparent), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 70%, var(--bg-color) 30%) 0%, var(--bg-color) 62%);
   min-height: 100vh;
+  transition: background 180ms ease, color 160ms ease;
 }
 
 .app-shell {
@@ -57,9 +75,9 @@ body {
 }
 
 .pill {
-  background: rgba(0, 113, 227, 0.1);
+  background: color-mix(in srgb, var(--primary-color) 15%, transparent);
   color: var(--accent);
-  border: 1px solid rgba(0, 113, 227, 0.25);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 35%, transparent);
   border-radius: 999px;
   padding: 6px 10px;
   font-size: 0.85rem;
@@ -85,6 +103,7 @@ body {
   align-self: start;
   position: sticky;
   top: 16px;
+  background: var(--sidebar-color);
 }
 
 .nav-link {
@@ -99,7 +118,7 @@ body {
 }
 
 .nav-link.active {
-  background: rgba(0, 113, 227, 0.12);
+  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
   color: var(--accent);
 }
 
@@ -188,27 +207,38 @@ textarea {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
-  background: #fff;
+  background: color-mix(in srgb, var(--surface-strong) 94%, #ffffff 6%);
   color: var(--text);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: color-mix(in srgb, var(--primary-color) 45%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 17%, transparent);
+  outline: none;
 }
 
 button {
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 10px 13px;
-  background: var(--accent);
-  color: #fff;
+  background: var(--button-color);
+  color: var(--button-text);
   font-weight: 600;
   cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease, background 120ms ease;
 }
 
 button:hover {
-  background: var(--accent-strong);
+  filter: brightness(0.96);
+  transform: translateY(-1px);
 }
 
 button.secondary {
-  background: #eef3fb;
-  color: #1f2937;
+  background: color-mix(in srgb, var(--secondary-color) 24%, var(--surface-strong));
+  color: var(--text);
   border: 1px solid var(--border);
 }
 
@@ -237,7 +267,7 @@ td {
 th {
   color: var(--muted);
   font-weight: 600;
-  background: #fafcff;
+  background: color-mix(in srgb, var(--surface-strong) 95%, #ffffff 5%);
 }
 
 .error {
@@ -276,6 +306,10 @@ th {
   display: grid;
   place-items: center;
   color: var(--muted);
+}
+
+.primary-action {
+  width: 100%;
 }
 
 .documents-intro {
@@ -342,12 +376,20 @@ th {
   border-radius: 10px;
   padding: 10px 13px;
   background: var(--accent);
-  color: #fff;
+  color: var(--button-text);
   font-weight: 600;
 }
 
 .document-download:hover {
-  background: var(--accent-strong);
+  filter: brightness(0.96);
+}
+
+.mobile-menu-btn {
+  display: none;
+}
+
+.sidebar-overlay {
+  display: none;
 }
 
 @media (max-width: 960px) {
@@ -355,18 +397,42 @@ th {
     grid-template-columns: 1fr;
   }
 
+  .mobile-menu-btn {
+    display: inline-flex;
+  }
+
   .sidebar {
-    position: static;
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 4px;
-    overflow-x: auto;
-    padding: 8px;
+    position: fixed;
+    z-index: 30;
+    left: 12px;
+    top: 72px;
+    width: min(84vw, 320px);
+    max-height: calc(100vh - 96px);
+    overflow: auto;
+    transform: translateX(-120%);
+    opacity: 0;
+    transition: transform 180ms ease, opacity 160ms ease;
+    padding: 10px;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: rgba(15, 23, 42, 0.2);
+    border: 0;
+    padding: 0;
   }
 
   .nav-link {
-    margin: 0;
-    flex: 0 0 auto;
+    margin: 2px 0;
+    white-space: normal;
   }
 
   .card-grid {
@@ -393,7 +459,8 @@ th {
   }
 
   .topbar-actions {
-    justify-content: space-between;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .topbar-actions button {
@@ -407,7 +474,7 @@ th {
   }
 
   .main-panel {
-    padding: 14px;
+    padding: 12px;
   }
 
   .card-grid {
@@ -416,6 +483,10 @@ th {
 
   form.form-grid {
     grid-template-columns: 1fr;
+  }
+
+  button {
+    min-height: 44px;
   }
 
   .line-item-row {
@@ -436,5 +507,19 @@ th {
 
   .pill {
     font-size: 0.8rem;
+  }
+
+  .page-head .pill {
+    max-width: 100%;
+  }
+
+  .table-wrap {
+    border-radius: 12px;
+  }
+
+  .primary-action {
+    position: sticky;
+    bottom: 8px;
+    z-index: 5;
   }
 }
