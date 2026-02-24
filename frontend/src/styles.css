@@ -35,13 +35,6 @@
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
 body {
   margin: 0;
   font-family: "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -260,7 +253,6 @@ button.secondary {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 560px;
 }
 
 th,
@@ -542,39 +534,67 @@ th {
 
   .table-wrap {
     width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow-x: visible;
+    overflow-y: visible;
     border-radius: 12px;
+    border: 0;
+    background: transparent;
   }
 
-  table {
-    min-width: 520px;
+  table.mobile-cards-table {
+    width: 100%;
+    border: none;
+    min-width: 0;
+    border-collapse: separate;
+    border-spacing: 0;
   }
 
-  .dashboard-page table {
-    min-width: 440px;
+  table.mobile-cards-table thead {
+    display: none;
   }
 
-  .pipeline-page table {
-    min-width: 520px;
+  table.mobile-cards-table tbody,
+  table.mobile-cards-table tr,
+  table.mobile-cards-table td {
+    display: block;
+    width: 100%;
   }
 
-  .missions-page table {
-    min-width: 760px;
+  table.mobile-cards-table tr {
+    margin-bottom: 12px;
+    background: var(--surface-strong);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    box-shadow: var(--shadow);
   }
 
-  .invoices-page table {
-    min-width: 980px;
+  table.mobile-cards-table td {
+    border: 0;
+    padding: 6px 0;
+    text-align: left;
+  }
+
+  table.mobile-cards-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
 
   .actions-cell {
-    flex-direction: column;
-    align-items: stretch;
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
   }
 
   .actions-cell button {
-    width: 100%;
+    width: auto;
+    min-width: 120px;
   }
 
   .sidebar {
@@ -627,19 +647,8 @@ th {
     max-width: 100%;
   }
 
-  .dashboard-page table {
-    min-width: 360px;
-  }
-
-  .pipeline-page table {
-    min-width: 460px;
-  }
-
-  .missions-page table {
-    min-width: 680px;
-  }
-
-  .invoices-page table {
-    min-width: 920px;
+  .actions-cell button {
+    width: 100%;
+    min-width: 0;
   }
 }

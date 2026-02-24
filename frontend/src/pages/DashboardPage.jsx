@@ -81,7 +81,7 @@ export default function DashboardPage() {
       <div className="card" style={{ marginBottom: 12 }}>
         <h3 style={{ marginTop: 0 }}>Top drones (heures de vol)</h3>
         <div className="table-wrap">
-          <table>
+          <table className="mobile-cards-table">
             <thead>
               <tr>
                 <th>Drone</th>
@@ -93,10 +93,10 @@ export default function DashboardPage() {
             <tbody>
               {topDrones.map((d) => (
                 <tr key={d.id}>
-                  <td>{d.brand} {d.model}</td>
-                  <td>{d.serial_number}</td>
-                  <td>{Number(d.total_flight_hours).toFixed(1)}</td>
-                  <td>{d.total_cycles}</td>
+                  <td data-label="Drone">{d.brand} {d.model}</td>
+                  <td data-label="S/N">{d.serial_number}</td>
+                  <td data-label="Heures">{Number(d.total_flight_hours).toFixed(1)}</td>
+                  <td data-label="Cycles">{d.total_cycles}</td>
                 </tr>
               ))}
             </tbody>
@@ -107,7 +107,7 @@ export default function DashboardPage() {
       <div className="card" style={{ marginBottom: 12 }}>
         <h3 style={{ marginTop: 0 }}>Encaissements mensuels</h3>
         <div className="table-wrap">
-          <table>
+          <table className="mobile-cards-table">
             <thead>
               <tr>
                 <th>Mois</th>
@@ -117,8 +117,8 @@ export default function DashboardPage() {
             <tbody>
               {cashflow.map((c) => (
                 <tr key={c.month}>
-                  <td>{c.month}</td>
-                  <td>{Number(c.collected).toFixed(2)} €</td>
+                  <td data-label="Mois">{c.month}</td>
+                  <td data-label="Collecte">{Number(c.collected).toFixed(2)} €</td>
                 </tr>
               ))}
             </tbody>
@@ -132,7 +132,7 @@ export default function DashboardPage() {
           <p style={{ margin: 0 }}>Aucune alerte maintenance.</p>
         ) : (
           <div className="table-wrap" style={{ marginBottom: 12 }}>
-            <table>
+            <table className="mobile-cards-table">
               <thead>
                 <tr>
                   <th>Drone</th>
@@ -145,13 +145,13 @@ export default function DashboardPage() {
               <tbody>
                 {maintenanceAlerts.map((a) => (
                   <tr key={a.id}>
-                    <td>
+                    <td data-label="Drone">
                       {a.brand} {a.model} ({a.serial_number})
                     </td>
-                    <td>{a.total_cycles}</td>
-                    <td>{a.battery_cycle_threshold}</td>
-                    <td>{Number(a.total_flight_hours || 0).toFixed(1)}</td>
-                    <td>{Number(a.propeller_hours_threshold || 0).toFixed(1)}</td>
+                    <td data-label="Cycles">{a.total_cycles}</td>
+                    <td data-label="Seuil cycles">{a.battery_cycle_threshold}</td>
+                    <td data-label="Heures">{Number(a.total_flight_hours || 0).toFixed(1)}</td>
+                    <td data-label="Seuil helice">{Number(a.propeller_hours_threshold || 0).toFixed(1)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -166,7 +166,7 @@ export default function DashboardPage() {
           <p style={{ margin: 0 }}>Aucun rappel en attente.</p>
         ) : (
           <div className="table-wrap">
-            <table>
+            <table className="mobile-cards-table">
               <thead>
                 <tr>
                   <th>Type</th>
@@ -177,9 +177,9 @@ export default function DashboardPage() {
               <tbody>
                 {reminders.map((r) => (
                   <tr key={r.id}>
-                    <td>{r.reminder_type}</td>
-                    <td>{r.due_date}</td>
-                    <td>{r.message}</td>
+                    <td data-label="Type">{r.reminder_type}</td>
+                    <td data-label="Echeance">{r.due_date}</td>
+                    <td data-label="Message">{r.message}</td>
                   </tr>
                 ))}
               </tbody>

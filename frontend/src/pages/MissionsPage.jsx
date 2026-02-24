@@ -166,7 +166,7 @@ export default function MissionsPage() {
       </form>
 
       <div className="table-wrap">
-        <table>
+        <table className="mobile-cards-table">
           <thead>
             <tr>
               <th>Date</th>
@@ -184,16 +184,16 @@ export default function MissionsPage() {
           <tbody>
             {missions.map((m) => (
               <tr key={m.id}>
-                <td>{m.mission_date}</td>
-                <td>{m.company_name}</td>
-                <td>{m.selected_pack || "-"}</td>
-                <td>{m.department || "-"}</td>
-                <td>{m.mission_status}</td>
-                <td>{Number(m.mission_revenue || 0).toFixed(2)} EUR</td>
-                <td>{Number(m.total_cost || 0).toFixed(2)} EUR</td>
-                <td>{Number(m.gross_margin || 0).toFixed(2)} EUR</td>
-                <td>{Number(m.effective_hourly_rate || 0).toFixed(2)} EUR/h</td>
-                <td>
+                <td data-label="Date">{m.mission_date}</td>
+                <td data-label="Client">{m.company_name}</td>
+                <td data-label="Pack">{m.selected_pack || "-"}</td>
+                <td data-label="Departement">{m.department || "-"}</td>
+                <td data-label="Statut">{m.mission_status}</td>
+                <td data-label="CA">{Number(m.mission_revenue || 0).toFixed(2)} EUR</td>
+                <td data-label="Cout total">{Number(m.total_cost || 0).toFixed(2)} EUR</td>
+                <td data-label="Marge brute">{Number(m.gross_margin || 0).toFixed(2)} EUR</td>
+                <td data-label="Taux horaire">{Number(m.effective_hourly_rate || 0).toFixed(2)} EUR/h</td>
+                <td data-label="Actions">
                   <button type="button" className="secondary" onClick={() => removeMission(m)}>
                     Supprimer
                   </button>

@@ -104,7 +104,7 @@ export default function PipelinePage() {
       </form>
 
       <div className="table-wrap">
-        <table>
+        <table className="mobile-cards-table">
           <thead>
             <tr>
               <th>Client</th>
@@ -116,10 +116,10 @@ export default function PipelinePage() {
           <tbody>
             {pipeline.map((p) => (
               <tr key={p.id}>
-                <td>{p.company_name}</td>
-                <td>{statuses.find((s) => s.value === p.status)?.label || p.status}</td>
-                <td>{p.source || p.source_channel || "-"}</td>
-                <td>{p.updated_at}</td>
+                <td data-label="Client">{p.company_name}</td>
+                <td data-label="Statut">{statuses.find((s) => s.value === p.status)?.label || p.status}</td>
+                <td data-label="Source">{p.source || p.source_channel || "-"}</td>
+                <td data-label="Derniere maj">{p.updated_at}</td>
               </tr>
             ))}
           </tbody>
@@ -128,7 +128,7 @@ export default function PipelinePage() {
 
       {stats && (
         <div className="table-wrap" style={{ marginTop: 12 }}>
-          <table>
+          <table className="mobile-cards-table">
             <thead>
               <tr>
                 <th>Source</th>
@@ -139,9 +139,9 @@ export default function PipelinePage() {
             <tbody>
               {(stats.conversion_by_source || []).map((s) => (
                 <tr key={s.source}>
-                  <td>{s.source}</td>
-                  <td>{Number(s.conversion_rate || 0).toFixed(1)}%</td>
-                  <td>{s.total}</td>
+                  <td data-label="Source">{s.source}</td>
+                  <td data-label="Taux conversion">{Number(s.conversion_rate || 0).toFixed(1)}%</td>
+                  <td data-label="Total prospects">{s.total}</td>
                 </tr>
               ))}
             </tbody>

@@ -485,7 +485,7 @@ export default function InvoicesPage() {
       </div>
 
       <div className="table-wrap">
-        <table>
+        <table className="mobile-cards-table">
           <thead>
             <tr>
               <th>Numero</th>
@@ -506,17 +506,17 @@ export default function InvoicesPage() {
               const due = Math.max(0, Number(i.total || 0) - Number(i.amount_received || 0));
               return (
                 <tr key={i.id}>
-                  <td>{i.invoice_number}</td>
-                  <td>{i.company_name}</td>
-                  <td>{i.invoice_date}</td>
-                  <td>{i.due_date}</td>
-                  <td>{statusBadge(i.status)}</td>
-                  <td>{Number(i.total || 0).toFixed(2)} {i.currency}</td>
-                  <td>{Number(i.acompte_montant || 0).toFixed(2)} {i.currency}</td>
-                  <td>{Number(i.amount_received || 0).toFixed(2)} {i.currency}</td>
-                  <td>{due.toFixed(2)} {i.currency}</td>
-                  <td>{i.nombre_relances || 0}</td>
-                  <td className="actions-cell">
+                  <td data-label="Numero">{i.invoice_number}</td>
+                  <td data-label="Client">{i.company_name}</td>
+                  <td data-label="Date">{i.invoice_date}</td>
+                  <td data-label="Echeance">{i.due_date}</td>
+                  <td data-label="Statut">{statusBadge(i.status)}</td>
+                  <td data-label="Total">{Number(i.total || 0).toFixed(2)} {i.currency}</td>
+                  <td data-label="Acompte">{Number(i.acompte_montant || 0).toFixed(2)} {i.currency}</td>
+                  <td data-label="Recu">{Number(i.amount_received || 0).toFixed(2)} {i.currency}</td>
+                  <td data-label="Reste">{due.toFixed(2)} {i.currency}</td>
+                  <td data-label="Relances">{i.nombre_relances || 0}</td>
+                  <td data-label="Actions" className="actions-cell">
                     <button className="secondary" onClick={() => downloadInvoicePdf(i)}>PDF</button>
                     <button className="secondary" onClick={() => loadInvoiceDetails(i.id)}>Paiement</button>
                     {i.status !== "paid" && (
@@ -603,7 +603,7 @@ export default function InvoicesPage() {
           </form>
 
           <div className="table-wrap" style={{ marginTop: 10 }}>
-            <table>
+            <table className="mobile-cards-table">
               <thead>
                 <tr>
                   <th>Date</th>
@@ -616,11 +616,11 @@ export default function InvoicesPage() {
               <tbody>
                 {(selectedInvoice?.payments || []).map((p) => (
                   <tr key={p.id}>
-                    <td>{p.payment_date}</td>
-                    <td>{Number(p.amount || 0).toFixed(2)} {selectedInvoice?.currency || "EUR"}</td>
-                    <td>{p.method || "-"}</td>
-                    <td>{p.reference || "-"}</td>
-                    <td>
+                    <td data-label="Date">{p.payment_date}</td>
+                    <td data-label="Montant">{Number(p.amount || 0).toFixed(2)} {selectedInvoice?.currency || "EUR"}</td>
+                    <td data-label="Mode">{p.method || "-"}</td>
+                    <td data-label="Reference">{p.reference || "-"}</td>
+                    <td data-label="Actions">
                       <button className="secondary" onClick={() => downloadReceiptPdf(selectedInvoiceId, p)}>Recu PDF</button>
                     </td>
                   </tr>
