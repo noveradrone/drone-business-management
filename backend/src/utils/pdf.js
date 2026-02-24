@@ -31,6 +31,66 @@ function drawBox(doc, x, y, w, h) {
   doc.rect(x, y, w, h).lineWidth(1).stroke("#222222");
 }
 
+function generateInvoiceTable(doc, invoice, items, left, right, startY) {
+  const tableX = left;
+  const tableW = right - left;
+  const c1 = tableX;
+  const c2 = tableX + tableW * 0.36;
+  const c3 = tableX + tableW * 0.49;
+  const c4 = tableX + tableW * 0.63;
+  const c5 = tableX + tableW * 0.79;
+  const pageBottom = doc.page.height - 70;
+  const vatRate = Number(invoice.tax_rate || 0);
+  const dataRows = Array.isArray(items) && items.length ? items : [];
+  let currentY = startY;
+
+  function drawHeader() {
+    const headerHeight = 26;
+    doc
+      .rect(tableX, currentY, tableW, headerHeight)
+      .fillAndStroke("#fafcff", "#222222");
+    doc.fillColor("#000000").font("Helvetica-Bold").fontSize(10);
+    doc.text("DESIGNATION", c1 + 8, currentY + 8, { width: c2 - c1 - 12, align: "center" });
+    doc.text("QUANTITE", c2 + 4, currentY + 8, { width: c3 - c2 - 8, align: "center" });
+    doc.text("PRIX", c3 + 4, currentY + 8, { width: c4 - c3 - 8, align: "center" });
+    doc.text("TOTAL", c4 + 4, currentY + 8, { width: c5 - c4 - 8, align: "center" });
+    doc.text("TVA", c5 + 4, currentY + 8, { width: tableX + tableW - c5 - 8, align: "center" });
+    currentY += headerHeight + 6;
+  }
+
+  drawHeader();
+  doc.font("Helvetica").fontSize(10.5).fillColor("#000000");
+
+  dataRows.forEach((item) => {
+    const description = safe(item.description, "-");
+    const qtyText = `${Number(item.quantity || 0).toFixed(2)}`;
+    const lineTotal = Number(item.total || 0);
+    const vatText = `${moneyFr((lineTotal * vatRate) / 100, invoice.currency)} (${vatRate.toFixed(0)}%)`;
+
+    const descHeight = doc.heightOfString(description, { width: c2 - c1 - 12 });
+    const vatHeight = doc.heightOfString(vatText, { width: tableX + tableW - c5 - 12 });
+    const rowHeight = Math.max(22, descHeight + 4, vatHeight + 4);
+
+    if (currentY + rowHeight > pageBottom) {
+      doc.addPage();
+      currentY = 50;
+      drawHeader();
+      doc.font("Helvetica").fontSize(10.5).fillColor("#000000");
+    }
+
+    doc.text(description, c1 + 8, currentY + 2, { width: c2 - c1 - 12 });
+    doc.text(qtyText, c2 + 6, currentY + 2, { width: c3 - c2 - 12 });
+    doc.text(moneyFr(item.unit_price, invoice.currency), c3 + 6, currentY + 2, { width: c4 - c3 - 12 });
+    doc.text(moneyFr(lineTotal, invoice.currency), c4 + 6, currentY + 2, { width: c5 - c4 - 12 });
+    doc.text(vatText, c5 + 6, currentY + 2, { width: tableX + tableW - c5 - 12 });
+
+    currentY += rowHeight;
+    doc.moveTo(tableX, currentY).lineTo(tableX + tableW, currentY).stroke("#e5e7eb");
+  });
+
+  return { y: currentY + 14, vatRate };
+}
+
 function drawInvoiceLikeTemplate(doc, invoice, items, client, settings, profitability = null) {
   const pageW = doc.page.width;
   const left = 50;
@@ -91,50 +151,14 @@ function drawInvoiceLikeTemplate(doc, invoice, items, client, settings, profitab
     align: "center"
   });
 
-  const tableX = left;
-  const tableY = 360;
-  const tableW = right - left;
-  const tableH = 280;
-
-  const c1 = tableX;
-  const c2 = tableX + tableW * 0.36;
-  const c3 = tableX + tableW * 0.49;
-  const c4 = tableX + tableW * 0.63;
-  const c5 = tableX + tableW * 0.79;
-
-  drawBox(doc, tableX, tableY, tableW, tableH);
-  doc.moveTo(tableX, tableY + 30).lineTo(tableX + tableW, tableY + 30).stroke("#222222");
-  [c2, c3, c4, c5].forEach((x) => doc.moveTo(x, tableY).lineTo(x, tableY + tableH).stroke("#222222"));
-
-  doc.font("Helvetica-Bold").fontSize(11);
-  doc.text("DESIGNATION", c1 + 8, tableY + 9, { width: c2 - c1 - 12, align: "center" });
-  doc.text("QUANTITE", c2 + 4, tableY + 9, { width: c3 - c2 - 8, align: "center" });
-  doc.text("PRIX", c3 + 4, tableY + 9, { width: c4 - c3 - 8, align: "center" });
-  doc.text("TOTAL", c4 + 4, tableY + 9, { width: c5 - c4 - 8, align: "center" });
-  doc.text("TVA", c5 + 4, tableY + 9, { width: tableX + tableW - c5 - 8, align: "center" });
-
-  const vatRate = Number(invoice.tax_rate || 0);
-  const maxRows = Math.max(1, Math.floor((tableH - 46) / 22));
-  let rowY = tableY + 38;
-  doc.font("Helvetica").fontSize(11);
-
-  (items || []).slice(0, maxRows).forEach((item) => {
-    const lineTotal = Number(item.total || 0);
-    const vatValue = (lineTotal * vatRate) / 100;
-
-    doc.text(safe(item.description, "-"), c1 + 8, rowY, { width: c2 - c1 - 12 });
-    doc.text(`${Number(item.quantity || 0).toFixed(2)}`, c2 + 6, rowY, { width: c3 - c2 - 12 });
-    doc.text(moneyFr(item.unit_price, invoice.currency), c3 + 6, rowY, { width: c4 - c3 - 12 });
-    doc.text(moneyFr(lineTotal, invoice.currency), c4 + 6, rowY, { width: c5 - c4 - 12 });
-    doc.text(`${moneyFr(vatValue, invoice.currency)} (${vatRate.toFixed(0)}%)`, c5 + 6, rowY, {
-      width: tableX + tableW - c5 - 12
-    });
-
-    rowY += 22;
-  });
-
-  const taxValue = (Number(invoice.subtotal || 0) * vatRate) / 100;
-  const totalY = tableY + tableH + 22;
+  const tableResult = generateInvoiceTable(doc, invoice, items, left, right, 368);
+  const taxValue = (Number(invoice.subtotal || 0) * tableResult.vatRate) / 100;
+  let totalY = tableResult.y;
+  const totalsBlockHeight = profitability ? 240 : 210;
+  if (totalY + totalsBlockHeight > doc.page.height - 50) {
+    doc.addPage();
+    totalY = 60;
+  }
   const labelX = right - 190;
   const valueX = right - 10;
 
@@ -181,7 +205,7 @@ function drawInvoiceLikeTemplate(doc, invoice, items, client, settings, profitab
     { width: right - left }
   );
 
-  if (vatRate === 0 && settings.vat_exemption_mention) {
+  if (tableResult.vatRate === 0 && settings.vat_exemption_mention) {
     doc.text(`TVA non applicable: ${settings.vat_exemption_mention}`, left, legalY + 36, {
       width: right - left
     });

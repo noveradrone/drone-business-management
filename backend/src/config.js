@@ -2,6 +2,7 @@ module.exports = {
   port: process.env.PORT || 4000,
   jwtSecret: process.env.JWT_SECRET || "change-me-in-production",
   dbPath: process.env.DB_PATH || "./drone-business.db",
+  uploadsDir: process.env.UPLOADS_DIR || "./uploads",
   googleReviewLink: process.env.GOOGLE_REVIEW_LINK || "",
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || "",
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN || "",

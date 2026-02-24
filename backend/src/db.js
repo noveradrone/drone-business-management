@@ -174,6 +174,20 @@ CREATE TABLE IF NOT EXISTS invoice_relances (
   FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nom_document TEXT NOT NULL,
+  type_document TEXT NOT NULL DEFAULT 'autre',
+  date_upload TEXT NOT NULL DEFAULT (datetime('now')),
+  chemin_fichier TEXT NOT NULL,
+  file_size INTEGER NOT NULL DEFAULT 0,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_by INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS payments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   invoice_id INTEGER NOT NULL,
