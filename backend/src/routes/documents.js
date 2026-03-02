@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const db = require("../db");
 const { authRequired } = require("../middleware/auth");
-const { uploadsDir } = require("../config");
+const { uploadsDir, documentsMaxBytes } = require("../config");
 
 const router = express.Router();
 const documentsDir = path.resolve(process.cwd(), uploadsDir, "documents");
@@ -27,6 +27,12 @@ function parsePdfDataUrl(dataUrl) {
   } catch {
     return null;
   }
+}
+
+function isLikelyPdf(buffer) {
+  if (!buffer || buffer.length < 5) return false;
+  // PDF files start with "%PDF-"
+  return buffer.slice(0, 5).toString("utf8") === "%PDF-";
 }
 
 function getAbsoluteDocumentPath(storedPath) {
@@ -64,6 +70,12 @@ router.post("/", authRequired, (req, res) => {
   const pdfBuffer = parsePdfDataUrl(file_data_url);
   if (!pdfBuffer || !pdfBuffer.length) {
     return res.status(400).json({ message: "Format PDF invalide (data URL attendue)" });
+  }
+  if (pdfBuffer.length > documentsMaxBytes) {
+    return res.status(413).json({ message: `Fichier trop volumineux (max ${documentsMaxBytes} octets)` });
+  }
+  if (!isLikelyPdf(pdfBuffer)) {
+    return res.status(400).json({ message: "Le fichier fourni n'est pas un PDF valide" });
   }
 
   const safeBase = sanitizeFilename(file_name || nom_document || "document");
@@ -106,6 +118,12 @@ router.put("/:id/replace", authRequired, (req, res) => {
     const pdfBuffer = parsePdfDataUrl(file_data_url);
     if (!pdfBuffer || !pdfBuffer.length) {
       return res.status(400).json({ message: "Format PDF invalide pour remplacement" });
+    }
+    if (pdfBuffer.length > documentsMaxBytes) {
+      return res.status(413).json({ message: `Fichier trop volumineux (max ${documentsMaxBytes} octets)` });
+    }
+    if (!isLikelyPdf(pdfBuffer)) {
+      return res.status(400).json({ message: "Le fichier fourni n'est pas un PDF valide" });
     }
     const safeBase = sanitizeFilename(file_name || nom_document || existing.nom_document || "document");
     newStoredName = `${Date.now()}-${safeBase || "document"}.pdf`;

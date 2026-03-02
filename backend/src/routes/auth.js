@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const db = require("../db");
 const { jwtSecret } = require("../config");
 const { authRequired } = require("../middleware/auth");
+const { authLoginLimiter } = require("../middleware/rateLimit");
 
 const router = express.Router();
 
@@ -11,6 +12,9 @@ router.post("/register", (req, res) => {
   const { name, email, password, role = "manager" } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ message: "name, email and password are required" });
+  }
+  if (String(password).length < 10) {
+    return res.status(400).json({ message: "Password must be at least 10 characters long" });
   }
 
   const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
@@ -26,7 +30,7 @@ router.post("/register", (req, res) => {
   return res.status(201).json({ id: result.lastInsertRowid, name, email, role });
 });
 
-router.post("/login", (req, res) => {
+router.post("/login", authLoginLimiter, (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ message: "email and password are required" });

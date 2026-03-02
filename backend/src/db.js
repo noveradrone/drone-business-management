@@ -1,6 +1,6 @@
 const Database = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
-const { dbPath } = require("./config");
+const { dbPath, nodeEnv, allowDefaultAdmin } = require("./config");
 
 const db = new Database(dbPath);
 db.pragma("foreign_keys = ON");
@@ -317,7 +317,7 @@ ensureColumn("invoices", "relance_j3_sent_at", "TEXT");
 ensureColumn("invoices", "relance_j7_sent_at", "TEXT");
 
 const adminExists = db.prepare("SELECT id FROM users WHERE email = ?").get("admin@drone.local");
-if (!adminExists) {
+if (!adminExists && (nodeEnv !== "production" || allowDefaultAdmin)) {
   const hash = bcrypt.hashSync("admin123", 10);
   db.prepare(
     "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)"

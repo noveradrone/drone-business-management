@@ -281,11 +281,55 @@ th {
   padding: 24px;
 }
 
-.login-card {
-  width: min(420px, 100%);
+.login-layout {
+  width: min(980px, 100%);
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.login-intro {
   border: 1px solid var(--border);
   border-radius: 24px;
-  padding: 26px;
+  padding: 30px;
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--surface-strong) 84%, #ffffff 16%),
+    color-mix(in srgb, var(--secondary-color) 20%, var(--surface-strong))
+  );
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.login-eyebrow {
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.login-intro h1 {
+  margin: 0 0 12px;
+  font-size: clamp(1.5rem, 2.7vw, 2.2rem);
+  line-height: 1.16;
+  letter-spacing: -0.02em;
+}
+
+.login-intro p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 44ch;
+}
+
+.login-card {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 30px;
   background: var(--surface);
   box-shadow: var(--shadow);
   backdrop-filter: blur(20px);
@@ -450,6 +494,14 @@ th {
 
   .documents-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .login-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .login-intro {
+    padding: 22px;
   }
 }
 
