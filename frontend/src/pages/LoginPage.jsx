@@ -45,9 +45,6 @@ export default function LoginPage({ onLogin }) {
             <button type="submit">Se connecter</button>
           </form>
           {error && <p className="error">{error}</p>}
-          <p style={{ margin: "8px 0 0", color: "#5b6473", fontSize: "0.85rem" }}>
-            API: {api.meta.base}
-          </p>
         </div>
       </div>
     </div>
