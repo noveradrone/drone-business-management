@@ -42,7 +42,14 @@ export default function SettingsPage() {
     fixed_indemnity: "",
     vat_exemption_mention: "",
     quote_validity_days: 30,
-    monthly_revenue_target: 4000
+    monthly_revenue_target: 4000,
+    show_vat: 1,
+    show_vat_exemption_mention: 1,
+    show_late_penalties: 1,
+    show_fixed_indemnity: 1,
+    show_bank_details: 1,
+    quote_show_signature_block: 1,
+    quote_show_validity_notice: 1
   });
   const [appearance, setAppearance] = useState(DEFAULT_THEME);
 
@@ -66,7 +73,14 @@ export default function SettingsPage() {
       const updated = await api.settings.updateCompany({
         ...form,
         quote_validity_days: Number(form.quote_validity_days || 30),
-        monthly_revenue_target: Number(form.monthly_revenue_target || 0)
+        monthly_revenue_target: Number(form.monthly_revenue_target || 0),
+        show_vat: Number(form.show_vat || 0),
+        show_vat_exemption_mention: Number(form.show_vat_exemption_mention || 0),
+        show_late_penalties: Number(form.show_late_penalties || 0),
+        show_fixed_indemnity: Number(form.show_fixed_indemnity || 0),
+        show_bank_details: Number(form.show_bank_details || 0),
+        quote_show_signature_block: Number(form.quote_show_signature_block || 0),
+        quote_show_validity_notice: Number(form.quote_show_validity_notice || 0)
       });
       setForm((prev) => ({ ...prev, ...updated }));
       setSavedSection(section);
@@ -196,6 +210,53 @@ export default function SettingsPage() {
             <input placeholder="Penalites retard" value={form.late_penalty_rate || ""} onChange={(e) => setForm({ ...form, late_penalty_rate: e.target.value })} />
             <input placeholder="Indemnite recouvrement" value={form.fixed_indemnity || ""} onChange={(e) => setForm({ ...form, fixed_indemnity: e.target.value })} />
             <input placeholder="Mention TVA non applicable" value={form.vat_exemption_mention || ""} onChange={(e) => setForm({ ...form, vat_exemption_mention: e.target.value })} />
+            <label>
+              Afficher TVA
+              <select value={String(Number(form.show_vat || 0))} onChange={(e) => setForm({ ...form, show_vat: Number(e.target.value) })}>
+                <option value="1">Oui</option>
+                <option value="0">Non</option>
+              </select>
+            </label>
+            <label>
+              Afficher mention TVA non applicable
+              <select
+                value={String(Number(form.show_vat_exemption_mention || 0))}
+                onChange={(e) => setForm({ ...form, show_vat_exemption_mention: Number(e.target.value) })}
+              >
+                <option value="1">Oui</option>
+                <option value="0">Non</option>
+              </select>
+            </label>
+            <label>
+              Afficher penalites de retard
+              <select
+                value={String(Number(form.show_late_penalties || 0))}
+                onChange={(e) => setForm({ ...form, show_late_penalties: Number(e.target.value) })}
+              >
+                <option value="1">Oui</option>
+                <option value="0">Non</option>
+              </select>
+            </label>
+            <label>
+              Afficher indemnite forfaitaire 40EUR
+              <select
+                value={String(Number(form.show_fixed_indemnity || 0))}
+                onChange={(e) => setForm({ ...form, show_fixed_indemnity: Number(e.target.value) })}
+              >
+                <option value="1">Oui</option>
+                <option value="0">Non</option>
+              </select>
+            </label>
+            <label>
+              Afficher coordonnees bancaires
+              <select
+                value={String(Number(form.show_bank_details || 0))}
+                onChange={(e) => setForm({ ...form, show_bank_details: Number(e.target.value) })}
+              >
+                <option value="1">Oui</option>
+                <option value="0">Non</option>
+              </select>
+            </label>
             <button type="button" onClick={() => saveCompanySection("Facturation")} disabled={saving} style={{ gridColumn: "1 / -1" }}>
               {saving ? "Enregistrement..." : "Enregistrer Facturation"}
             </button>
@@ -209,6 +270,26 @@ export default function SettingsPage() {
           <form className="form-grid" onSubmit={(e) => e.preventDefault()}>
             <input type="number" min="1" placeholder="Validite devis (jours)" value={form.quote_validity_days || 30} onChange={(e) => setForm({ ...form, quote_validity_days: e.target.value })} />
             <input type="number" min="0" step="0.01" placeholder="Objectif mensuel (EUR)" value={form.monthly_revenue_target || 0} onChange={(e) => setForm({ ...form, monthly_revenue_target: e.target.value })} />
+            <label>
+              Afficher mention validite devis
+              <select
+                value={String(Number(form.quote_show_validity_notice || 0))}
+                onChange={(e) => setForm({ ...form, quote_show_validity_notice: Number(e.target.value) })}
+              >
+                <option value="1">Oui</option>
+                <option value="0">Non</option>
+              </select>
+            </label>
+            <label>
+              Afficher bloc Bon pour accord
+              <select
+                value={String(Number(form.quote_show_signature_block || 0))}
+                onChange={(e) => setForm({ ...form, quote_show_signature_block: Number(e.target.value) })}
+              >
+                <option value="1">Oui</option>
+                <option value="0">Non</option>
+              </select>
+            </label>
             <button type="button" onClick={() => saveCompanySection("Devis")} disabled={saving} style={{ gridColumn: "1 / -1" }}>
               {saving ? "Enregistrement..." : "Enregistrer Devis"}
             </button>

@@ -15,6 +15,10 @@ function joinFilled(parts, separator = " ") {
     .join(separator);
 }
 
+function buildLines(parts) {
+  return (parts || []).map((p) => clean(p)).filter((p) => isFilled(p));
+}
+
 function formatCompanyBlock(company = {}) {
   const lines = [];
   const nameLine = joinFilled([company.company_name, company.legal_form], " - ");
@@ -51,6 +55,7 @@ function formatClientBlock(client = {}) {
 module.exports = {
   isFilled,
   clean,
+  buildLines,
   joinFilled,
   formatCompanyBlock,
   formatClientBlock

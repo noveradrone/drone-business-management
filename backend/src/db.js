@@ -304,6 +304,13 @@ ensureColumn("company_settings", "bank_name", "TEXT");
 ensureColumn("company_settings", "bank_bic", "TEXT");
 ensureColumn("company_settings", "bank_iban", "TEXT");
 ensureColumn("company_settings", "monthly_revenue_target", "REAL DEFAULT 4000");
+ensureColumn("company_settings", "show_vat", "INTEGER NOT NULL DEFAULT 1");
+ensureColumn("company_settings", "show_vat_exemption_mention", "INTEGER NOT NULL DEFAULT 1");
+ensureColumn("company_settings", "show_late_penalties", "INTEGER NOT NULL DEFAULT 1");
+ensureColumn("company_settings", "show_fixed_indemnity", "INTEGER NOT NULL DEFAULT 1");
+ensureColumn("company_settings", "show_bank_details", "INTEGER NOT NULL DEFAULT 1");
+ensureColumn("company_settings", "quote_show_signature_block", "INTEGER NOT NULL DEFAULT 1");
+ensureColumn("company_settings", "quote_show_validity_notice", "INTEGER NOT NULL DEFAULT 1");
 
 ensureColumn("invoices", "acompte_pourcentage", "REAL NOT NULL DEFAULT 0");
 ensureColumn("invoices", "acompte_montant", "REAL NOT NULL DEFAULT 0");

@@ -55,6 +55,32 @@ router.put("/company", authRequired, (req, res) => {
       payload.monthly_revenue_target === undefined
         ? Number(current.monthly_revenue_target || 4000)
         : Number(payload.monthly_revenue_target || 0),
+    show_vat:
+      payload.show_vat === undefined ? Number(current.show_vat ?? 1) : (payload.show_vat ? 1 : 0),
+    show_vat_exemption_mention:
+      payload.show_vat_exemption_mention === undefined
+        ? Number(current.show_vat_exemption_mention ?? 1)
+        : (payload.show_vat_exemption_mention ? 1 : 0),
+    show_late_penalties:
+      payload.show_late_penalties === undefined
+        ? Number(current.show_late_penalties ?? 1)
+        : (payload.show_late_penalties ? 1 : 0),
+    show_fixed_indemnity:
+      payload.show_fixed_indemnity === undefined
+        ? Number(current.show_fixed_indemnity ?? 1)
+        : (payload.show_fixed_indemnity ? 1 : 0),
+    show_bank_details:
+      payload.show_bank_details === undefined
+        ? Number(current.show_bank_details ?? 1)
+        : (payload.show_bank_details ? 1 : 0),
+    quote_show_signature_block:
+      payload.quote_show_signature_block === undefined
+        ? Number(current.quote_show_signature_block ?? 1)
+        : (payload.quote_show_signature_block ? 1 : 0),
+    quote_show_validity_notice:
+      payload.quote_show_validity_notice === undefined
+        ? Number(current.quote_show_validity_notice ?? 1)
+        : (payload.quote_show_validity_notice ? 1 : 0),
     updated_at: new Date().toISOString().slice(0, 19).replace("T", " ")
   };
 
@@ -62,8 +88,10 @@ router.put("/company", authRequired, (req, res) => {
     `INSERT INTO company_settings (
       id, company_name, legal_form, capital_amount, address_line1, zip_code, city, country,
       siret, vat_number, rcs_info, phone, email, website, bank_name, bank_bic, bank_iban, logo_data_url, payment_terms,
-      late_penalty_rate, fixed_indemnity, vat_exemption_mention, quote_validity_days, monthly_revenue_target, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      late_penalty_rate, fixed_indemnity, vat_exemption_mention, quote_validity_days, monthly_revenue_target,
+      show_vat, show_vat_exemption_mention, show_late_penalties, show_fixed_indemnity, show_bank_details,
+      quote_show_signature_block, quote_show_validity_notice, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       company_name=excluded.company_name,
       legal_form=excluded.legal_form,
@@ -88,6 +116,13 @@ router.put("/company", authRequired, (req, res) => {
       vat_exemption_mention=excluded.vat_exemption_mention,
       quote_validity_days=excluded.quote_validity_days,
       monthly_revenue_target=excluded.monthly_revenue_target,
+      show_vat=excluded.show_vat,
+      show_vat_exemption_mention=excluded.show_vat_exemption_mention,
+      show_late_penalties=excluded.show_late_penalties,
+      show_fixed_indemnity=excluded.show_fixed_indemnity,
+      show_bank_details=excluded.show_bank_details,
+      quote_show_signature_block=excluded.quote_show_signature_block,
+      quote_show_validity_notice=excluded.quote_show_validity_notice,
       updated_at=excluded.updated_at`
   ).run(
     merged.id,
@@ -114,6 +149,13 @@ router.put("/company", authRequired, (req, res) => {
     merged.vat_exemption_mention ?? "",
     merged.quote_validity_days ?? 30,
     Number(merged.monthly_revenue_target ?? 0),
+    Number(merged.show_vat ?? 1),
+    Number(merged.show_vat_exemption_mention ?? 1),
+    Number(merged.show_late_penalties ?? 1),
+    Number(merged.show_fixed_indemnity ?? 1),
+    Number(merged.show_bank_details ?? 1),
+    Number(merged.quote_show_signature_block ?? 1),
+    Number(merged.quote_show_validity_notice ?? 1),
     merged.updated_at
   );
 
