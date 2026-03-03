@@ -1,4 +1,11 @@
 const PDFDocument = require("pdfkit");
+const {
+  isFilled,
+  clean,
+  joinFilled,
+  formatCompanyBlock,
+  formatClientBlock
+} = require("./pdfHelpers");
 
 function safe(value, fallback = "") {
   return value === null || value === undefined || value === "" ? fallback : String(value);
@@ -8,6 +15,16 @@ function oneLine(value, max = 95) {
   const text = safe(value, "").replace(/\s+/g, " ").trim();
   if (!text) return "";
   return text.length > max ? `${text.slice(0, max - 1)}...` : text;
+}
+
+function writeLines(doc, lines, x, y, options = {}) {
+  const filled = (lines || []).filter((line) => isFilled(line));
+  let currentY = y;
+  filled.forEach((line) => {
+    doc.text(line, x, currentY, options);
+    currentY += options.lineGap || 16;
+  });
+  return currentY;
 }
 
 function moneyFr(value, currency = "EUR") {
@@ -111,23 +128,13 @@ function drawInvoiceLikeTemplate(doc, invoice, items, client, settings, profitab
 
   doc.font("Helvetica-Bold").fontSize(12).text("DESTINATAIRE", left, topY);
   doc.font("Helvetica").fontSize(11);
-  doc.text(safe(client.company_name, "[Nom de l'entreprise du client]"), left, topY + 22, { width: colW });
-  doc.text(safe(client.billing_address, "[Adresse de l'entreprise du client]"), left, topY + 42, { width: colW });
-  doc.text(`SIRET: ${safe(client.siret, "[SIRET du client]")}`, left, topY + 62, { width: colW });
-  doc.text(`No de TVA: ${safe(client.vat_number, "[Numero de TVA du client]")}`, left, topY + 82, { width: colW });
+  writeLines(doc, formatClientBlock(client), left, topY + 22, { width: colW, lineGap: 16 });
 
   const rightX = left + colW + colGap;
-  doc.font("Helvetica-Bold").fontSize(12).text(safe(settings.company_name, "Novera Drone"), rightX, topY, {
-    width: colW
-  });
+  const companyLines = formatCompanyBlock(settings);
+  doc.font("Helvetica-Bold").fontSize(12).text(clean(settings.company_name, "Entreprise"), rightX, topY, { width: colW });
   doc.font("Helvetica").fontSize(11);
-  const sellerAddress = [safe(settings.address_line1), `${safe(settings.zip_code)} ${safe(settings.city)}`.trim()]
-    .filter(Boolean)
-    .join(" ");
-  doc.text(safe(sellerAddress, "[Adresse]"), rightX, topY + 22, { width: colW });
-  doc.text(`SIRET: ${safe(settings.siret, "[SIRET]")}`, rightX, topY + 42, { width: colW });
-  doc.text(`No de TVA: ${safe(settings.vat_number, "[Numero de TVA]")}`, rightX, topY + 62, { width: colW });
-  doc.text(`Tel: ${safe(settings.phone, "[Telephone]")}`, rightX, topY + 82, { width: colW });
+  writeLines(doc, companyLines.slice(1), rightX, topY + 22, { width: colW, lineGap: 16 });
 
   const infoY = 250;
   doc.font("Helvetica").fontSize(11);
@@ -135,11 +142,11 @@ function drawInvoiceLikeTemplate(doc, invoice, items, client, settings, profitab
   doc.font("Helvetica-Bold").text(`Echeance: ${safe(invoice.due_date, "-")}`, left, infoY + 22);
 
   doc.font("Helvetica").fontSize(11);
-  doc.text(safe(settings.bank_name, "[Nom de la banque]"), rightX, infoY, { width: colW });
-  doc.text(`SWIFT/BIC: ${safe(settings.bank_bic, "[SWIFT/BIC]")}`, rightX, infoY + 20, { width: colW });
-  doc.text(`IBAN: ${safe(settings.bank_iban, "[Compte bancaire (IBAN)]")}`, rightX, infoY + 40, {
-    width: colW
-  });
+  const bankLines = [];
+  if (isFilled(settings.bank_name)) bankLines.push(clean(settings.bank_name));
+  if (isFilled(settings.bank_bic)) bankLines.push(`SWIFT/BIC: ${clean(settings.bank_bic)}`);
+  if (isFilled(settings.bank_iban)) bankLines.push(`IBAN: ${clean(settings.bank_iban)}`);
+  writeLines(doc, bankLines, rightX, infoY, { width: colW, lineGap: 20 });
 
   doc.font("Helvetica-Bold").fontSize(40).fillColor("#f1f1f1").text("FACTURE", left, 320, {
     width: right - left,
@@ -192,24 +199,14 @@ function drawInvoiceLikeTemplate(doc, invoice, items, client, settings, profitab
 
   doc.font("Helvetica").fontSize(9);
   const legalY = totalY + 132;
-  doc.text(`Conditions de reglement: ${oneLine(settings.payment_terms, 85) || "Paiement a 30 jours"}`, left, legalY, {
-    width: right - left
-  });
-  doc.text(`Penalites de retard: ${oneLine(settings.late_penalty_rate, 85) || "Taux BCE + 10 points"}`, left, legalY + 12, {
-    width: right - left
-  });
-  doc.text(
-    `Indemnite forfaitaire de recouvrement (B2B): ${oneLine(settings.fixed_indemnity, 65) || "40 EUR"}`,
-    left,
-    legalY + 24,
-    { width: right - left }
-  );
-
-  if (tableResult.vatRate === 0 && settings.vat_exemption_mention) {
-    doc.text(`TVA non applicable: ${settings.vat_exemption_mention}`, left, legalY + 36, {
-      width: right - left
-    });
+  const legalLines = [];
+  if (isFilled(settings.payment_terms)) legalLines.push(`Conditions de reglement: ${oneLine(settings.payment_terms, 85)}`);
+  if (isFilled(settings.late_penalty_rate)) legalLines.push(`Penalites de retard: ${oneLine(settings.late_penalty_rate, 85)}`);
+  if (isFilled(settings.fixed_indemnity)) legalLines.push(`Indemnite forfaitaire de recouvrement (B2B): ${oneLine(settings.fixed_indemnity, 65)}`);
+  if (tableResult.vatRate === 0 && isFilled(settings.vat_exemption_mention)) {
+    legalLines.push(`TVA non applicable: ${clean(settings.vat_exemption_mention)}`);
   }
+  writeLines(doc, legalLines, left, legalY, { width: right - left, lineGap: 12 });
 }
 
 function drawBasicQuote(doc, quote, items, client, settings) {
@@ -257,26 +254,11 @@ function drawBasicQuote(doc, quote, items, client, settings) {
 
   doc.fillColor(blue).font("Helvetica-Bold").fontSize(10).text("EMETTEUR", left + 12, infoY + 10);
   doc.fillColor(text).font("Helvetica").fontSize(10);
-  doc.text(safe(settings.company_name, "Novera Drone"), left + 12, infoY + 28, { width: colW - 24 });
-  doc.text(
-    [safe(settings.address_line1), `${safe(settings.zip_code)} ${safe(settings.city)}`.trim()].filter(Boolean).join(" "),
-    left + 12,
-    infoY + 44,
-    { width: colW - 24 }
-  );
-  doc.text(`SIRET: ${safe(settings.siret, "-")}`, left + 12, infoY + 60, { width: colW - 24 });
-  doc.text(`TVA: ${safe(settings.vat_number, "-")}`, left + 12, infoY + 76, { width: colW - 24 });
-  doc.text(`Tel: ${safe(settings.phone, "-")}`, left + 12, infoY + 92, { width: colW - 24 });
-  doc.text(`Email: ${safe(settings.email, "-")}`, left + 12, infoY + 108, { width: colW - 24 });
+  writeLines(doc, formatCompanyBlock(settings), left + 12, infoY + 28, { width: colW - 24, lineGap: 16 });
 
   doc.fillColor(blue).font("Helvetica-Bold").fontSize(10).text("CLIENT", left + colW + colGap + 12, infoY + 10);
   doc.fillColor(text).font("Helvetica").fontSize(10);
-  doc.text(safe(client.company_name, "-"), left + colW + colGap + 12, infoY + 28, { width: colW - 24 });
-  doc.text(safe(client.contact_name, "-"), left + colW + colGap + 12, infoY + 44, { width: colW - 24 });
-  doc.text(safe(client.billing_address, "-"), left + colW + colGap + 12, infoY + 60, { width: colW - 24 });
-  doc.text(`SIRET: ${safe(client.siret, "-")}`, left + colW + colGap + 12, infoY + 76, { width: colW - 24 });
-  doc.text(`TVA: ${safe(client.vat_number, "-")}`, left + colW + colGap + 12, infoY + 92, { width: colW - 24 });
-  doc.text(`Tel: ${safe(client.phone, "-")}`, left + colW + colGap + 12, infoY + 108, { width: colW - 24 });
+  writeLines(doc, formatClientBlock(client), left + colW + colGap + 12, infoY + 28, { width: colW - 24, lineGap: 16 });
 
   const tableY = 286;
   const rowH = 24;
@@ -314,29 +296,37 @@ function drawBasicQuote(doc, quote, items, client, settings) {
     y += 20;
   });
 
-  const taxValue = (Number(quote.subtotal || 0) * vatRate) / 100;
+  const taxValue = Number(quote.total || 0) - Number(quote.subtotal_after_discount || quote.subtotal || 0);
   const totalBoxY = 540;
   const totalBoxW = 220;
   const totalBoxX = right - totalBoxW;
   doc.roundedRect(totalBoxX, totalBoxY, totalBoxW, 92, 8).strokeColor(line).stroke();
   doc.font("Helvetica").fontSize(10).fillColor(muted);
   doc.text("Sous-total HT", totalBoxX + 10, totalBoxY + 12, { width: 110 });
-  doc.text(moneyFr(quote.subtotal, "EUR"), totalBoxX + 120, totalBoxY + 12, { width: 90, align: "right" });
-  doc.text(`TVA (${vatRate.toFixed(2)}%)`, totalBoxX + 10, totalBoxY + 34, { width: 110 });
-  doc.text(moneyFr(taxValue, "EUR"), totalBoxX + 120, totalBoxY + 34, { width: 90, align: "right" });
+  doc.text(moneyFr(quote.subtotal, quote.currency || "EUR"), totalBoxX + 120, totalBoxY + 12, { width: 90, align: "right" });
+  if (Number(quote.discount_amount || 0) > 0) {
+    doc.text("Remise", totalBoxX + 10, totalBoxY + 34, { width: 110 });
+    doc.text(`-${moneyFr(quote.discount_amount, quote.currency || "EUR")}`, totalBoxX + 120, totalBoxY + 34, { width: 90, align: "right" });
+  }
+  doc.text(`TVA (${vatRate.toFixed(2)}%)`, totalBoxX + 10, totalBoxY + 52, { width: 110 });
+  doc.text(moneyFr(taxValue, quote.currency || "EUR"), totalBoxX + 120, totalBoxY + 52, { width: 90, align: "right" });
   doc.font("Helvetica-Bold").fillColor(blue);
-  doc.text("Total TTC", totalBoxX + 10, totalBoxY + 60, { width: 110 });
-  doc.text(moneyFr(quote.total, "EUR"), totalBoxX + 120, totalBoxY + 60, { width: 90, align: "right" });
+  doc.text("Total TTC", totalBoxX + 10, totalBoxY + 72, { width: 110 });
+  doc.text(moneyFr(quote.total, quote.currency || "EUR"), totalBoxX + 120, totalBoxY + 72, { width: 90, align: "right" });
 
   doc.font("Helvetica").fontSize(9).fillColor(muted);
-  doc.text(`Conditions de paiement: ${oneLine(settings.payment_terms, 70) || "-"}`, left, 546, { width: 300 });
-  doc.text(`Validite: ${safe(quote.valid_until, "-")}`, left, 562, { width: 300 });
-  doc.text(
-    `TVA non applicable: ${safe(settings.vat_exemption_mention, "N/A")}`,
-    left,
-    578,
-    { width: 300 }
-  );
+  let legalY = 546;
+  if (isFilled(settings.payment_terms)) {
+    doc.text(`Conditions de paiement: ${oneLine(settings.payment_terms, 70)}`, left, legalY, { width: 300 });
+    legalY += 16;
+  }
+  if (isFilled(quote.valid_until)) {
+    doc.text(`Validite: ${clean(quote.valid_until)}`, left, legalY, { width: 300 });
+    legalY += 16;
+  }
+  if (Number(vatRate) === 0 && isFilled(settings.vat_exemption_mention)) {
+    doc.text(`TVA non applicable: ${clean(settings.vat_exemption_mention)}`, left, legalY, { width: 300 });
+  }
 
   doc.font("Helvetica-Bold").fontSize(10).fillColor(text).text("Bon pour accord", left, 652);
   doc.font("Helvetica").fontSize(9).fillColor(muted).text("Date, cachet et signature du client", left, 668);
@@ -383,19 +373,14 @@ function buildPaymentReceiptPdf(invoice, payment, client, companySettings = {}) 
   doc.text(`Date: ${safe(payment.payment_date)}`, { align: "right" });
 
   doc.moveDown(2.4);
-  doc.font("Helvetica-Bold").fontSize(12).text(safe(companySettings.company_name, "Novera Drone"), left);
+  doc.font("Helvetica-Bold").fontSize(12).text(clean(companySettings.company_name, "Entreprise"), left);
   doc.font("Helvetica").fontSize(10);
-  const sellerAddress = [safe(companySettings.address_line1), `${safe(companySettings.zip_code)} ${safe(companySettings.city)}`.trim()]
-    .filter(Boolean)
-    .join(" ");
-  doc.text(sellerAddress || "-");
-  doc.text(`SIRET: ${safe(companySettings.siret, "-")} | TVA: ${safe(companySettings.vat_number, "-")}`);
+  writeLines(doc, formatCompanyBlock(companySettings).slice(1), left, doc.y + 2, { lineGap: 14 });
 
   doc.moveDown(1.2);
   doc.font("Helvetica-Bold").fontSize(11).text("Client");
   doc.font("Helvetica").fontSize(10);
-  doc.text(safe(client.company_name, "-"));
-  doc.text(safe(client.billing_address, "-"));
+  writeLines(doc, formatClientBlock(client), left, doc.y + 2, { lineGap: 14 });
 
   doc.moveDown(1.4);
   drawBox(doc, left, doc.y, right - left, 145);
@@ -414,7 +399,9 @@ function buildPaymentReceiptPdf(invoice, payment, client, companySettings = {}) 
   doc.moveDown(7.4);
   doc.font("Helvetica").fontSize(10);
   doc.text("Ce recu atteste la bonne reception du paiement indique ci-dessus.");
-  doc.text(`Entreprise: ${safe(companySettings.company_name, "Novera Drone")}`);
+  if (isFilled(companySettings.company_name)) {
+    doc.text(`Entreprise: ${clean(companySettings.company_name)}`);
+  }
 
   return finalize(doc);
 }

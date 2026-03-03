@@ -91,9 +91,22 @@ export const api = {
     }
   },
   quotes: {
-    list: () => request("/quotes"),
+    list: (params = {}) => {
+      const search = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") search.set(key, value);
+      });
+      const suffix = search.toString() ? `?${search.toString()}` : "";
+      return request(`/quotes${suffix}`);
+    },
+    stats: () => request("/quotes/stats"),
+    nextNumber: (quoteDate) => request(`/quotes/next-number?date=${encodeURIComponent(quoteDate)}`),
     get: (id) => request(`/quotes/${id}`),
     create: (data) => request("/quotes", { method: "POST", body: JSON.stringify(data) }),
+    update: (id, data) => request(`/quotes/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    send: (id) => request(`/quotes/${id}/send`, { method: "POST", body: JSON.stringify({}) }),
+    convertToInvoice: (id) =>
+      request(`/quotes/${id}/convert-to-invoice`, { method: "POST", body: JSON.stringify({}) }),
     pdf: (id) => request(`/quotes/${id}/pdf`),
     remove: (id) => request(`/quotes/${id}`, { method: "DELETE" })
   },

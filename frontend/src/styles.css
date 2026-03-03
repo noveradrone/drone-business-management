@@ -536,6 +536,19 @@ form.form-grid.login-form {
   flex-wrap: wrap;
 }
 
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tab-active {
+  border-color: color-mix(in srgb, var(--primary-color) 50%, var(--border));
+  background: color-mix(in srgb, var(--primary-color) 18%, var(--surface-strong));
+  color: var(--accent);
+}
+
 :root[data-density="compact"] .topbar {
   margin-bottom: 14px;
 }
@@ -857,6 +870,10 @@ form.form-grid.login-form {
 
   .page-head .pill {
     max-width: 100%;
+  }
+
+  .settings-tabs button {
+    flex: 1 1 calc(50% - 8px);
   }
 
   .actions-cell button {

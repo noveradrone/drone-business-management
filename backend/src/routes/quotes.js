@@ -2,27 +2,55 @@ const express = require("express");
 const db = require("../db");
 const { authRequired } = require("../middleware/auth");
 const { buildQuotePdf } = require("../utils/pdf");
+const { nextInvoiceNumber } = require("../services/invoiceFinance");
+const {
+  toNumber,
+  normalizeQuoteStatus,
+  nextQuoteNumber,
+  calculateQuoteTotals
+} = require("../services/quoteFinance");
 
 const router = express.Router();
 
-function calculateTotals(items, taxRate = 0) {
-  const normalizedItems = (items || []).map((item) => {
-    const quantity = Number(item.quantity || 0);
-    const unitPrice = Number(item.unit_price || 0);
-    return {
-      description: item.description,
-      quantity,
-      unit_price: unitPrice,
-      total: quantity * unitPrice
-    };
+function syncQuoteStatuses() {
+  const rows = db.prepare("SELECT id, status, valid_until FROM quotes").all();
+  const update = db.prepare("UPDATE quotes SET status = ? WHERE id = ?");
+  rows.forEach((row) => {
+    const normalized = normalizeQuoteStatus(row.status, row.valid_until);
+    if (normalized !== row.status) update.run(normalized, row.id);
   });
-
-  const subtotal = normalizedItems.reduce((sum, item) => sum + item.total, 0);
-  const total = subtotal + (subtotal * Number(taxRate || 0)) / 100;
-  return { normalizedItems, subtotal, total };
 }
 
+router.get("/next-number", authRequired, (req, res) => {
+  const date = req.query.date || new Date().toISOString().slice(0, 10);
+  res.json({ quote_number: nextQuoteNumber(date) });
+});
+
+router.get("/stats", authRequired, (req, res) => {
+  syncQuoteStatuses();
+  const stats = db
+    .prepare(
+      `SELECT
+         COUNT(*) AS total_quotes,
+         COALESCE(SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END), 0) AS sent_quotes,
+         COALESCE(SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END), 0) AS accepted_quotes,
+         COALESCE(SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END), 0) AS expired_quotes,
+         COALESCE(SUM(total), 0) AS total_amount
+       FROM quotes`
+    )
+    .get();
+  res.json(stats);
+});
+
 router.get("/", authRequired, (req, res) => {
+  syncQuoteStatuses();
+  const query = String(req.query.q || "").trim().toLowerCase();
+  const status = String(req.query.status || "").trim();
+  const from = String(req.query.from || "").trim();
+  const to = String(req.query.to || "").trim();
+  const minAmount = req.query.min ? toNumber(req.query.min, 0) : null;
+  const maxAmount = req.query.max ? toNumber(req.query.max, 0) : null;
+
   const rows = db
     .prepare(
       `SELECT q.*, c.company_name
@@ -30,34 +58,88 @@ router.get("/", authRequired, (req, res) => {
        JOIN clients c ON c.id = q.client_id
        ORDER BY q.quote_date DESC`
     )
-    .all();
+    .all()
+    .filter((row) => {
+      if (query) {
+        const hay = `${row.quote_number} ${row.company_name}`.toLowerCase();
+        if (!hay.includes(query)) return false;
+      }
+      if (status && status !== "all" && row.status !== status) return false;
+      if (from && row.quote_date < from) return false;
+      if (to && row.quote_date > to) return false;
+      if (minAmount !== null && toNumber(row.total, 0) < minAmount) return false;
+      if (maxAmount !== null && toNumber(row.total, 0) > maxAmount) return false;
+      return true;
+    });
+
   res.json(rows);
 });
 
 router.post("/", authRequired, (req, res) => {
-  const { client_id, quote_number, quote_date, valid_until, status, tax_rate, notes, items = [] } = req.body;
-  if (!client_id || !quote_number || !quote_date) {
-    return res.status(400).json({ message: "client_id, quote_number and quote_date are required" });
+  const {
+    client_id,
+    quote_number,
+    quote_date,
+    valid_until,
+    status,
+    tax_rate,
+    currency,
+    discount_percent,
+    discount_amount,
+    acompte_percent,
+    acompte_amount,
+    notes,
+    items = []
+  } = req.body;
+
+  if (!client_id || !quote_date) {
+    return res.status(400).json({ message: "client_id and quote_date are required" });
   }
 
-  const { normalizedItems, subtotal, total } = calculateTotals(items, tax_rate);
+  const settings = db.prepare("SELECT quote_validity_days FROM company_settings WHERE id = 1").get() || {};
+  const validityDays = Number(settings.quote_validity_days || 30);
+  const autoValidUntil = new Date(new Date(quote_date).getTime() + validityDays * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const finalValidUntil = valid_until || autoValidUntil;
+  const finalStatus = normalizeQuoteStatus(status || "draft", finalValidUntil);
+  const finalNumber = quote_number || nextQuoteNumber(quote_date);
+
+  const totals = calculateQuoteTotals(
+    items,
+    tax_rate,
+    discount_percent,
+    discount_amount,
+    acompte_percent,
+    acompte_amount
+  );
 
   const tx = db.transaction(() => {
     const result = db
       .prepare(
-        `INSERT INTO quotes (client_id, quote_number, quote_date, valid_until, status, subtotal, tax_rate, total, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO quotes (
+          client_id, quote_number, quote_date, valid_until, status, subtotal, tax_rate, total, notes, currency,
+          discount_percent, discount_amount, subtotal_after_discount, acompte_percent, acompte_amount, estimated_balance, sent_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         client_id,
-        quote_number,
+        finalNumber,
         quote_date,
-        valid_until || null,
-        status || "draft",
-        subtotal,
-        Number(tax_rate || 0),
-        total,
-        notes || null
+        finalValidUntil || null,
+        finalStatus,
+        totals.subtotal,
+        toNumber(tax_rate, 0),
+        totals.total,
+        notes || null,
+        currency || "EUR",
+        totals.discount_percent,
+        totals.discount_amount,
+        totals.subtotal_after_discount,
+        totals.acompte_percent,
+        totals.acompte_amount,
+        totals.estimated_balance,
+        finalStatus === "sent" ? new Date().toISOString().slice(0, 19).replace("T", " ") : null
       );
 
     const quoteId = result.lastInsertRowid;
@@ -66,20 +148,135 @@ router.post("/", authRequired, (req, res) => {
        VALUES (?, ?, ?, ?, ?)`
     );
 
-    normalizedItems.forEach((item) => {
+    totals.normalizedItems.forEach((item) => {
       itemInsert.run(quoteId, item.description, item.quantity, item.unit_price, item.total);
     });
 
     return quoteId;
   });
 
-  const quoteId = tx();
-  const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(quoteId);
-  const quoteItems = db.prepare("SELECT * FROM quote_items WHERE quote_id = ?").all(quoteId);
-  res.status(201).json({ ...quote, items: quoteItems });
+  try {
+    const quoteId = tx();
+    const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(quoteId);
+    const quoteItems = db.prepare("SELECT * FROM quote_items WHERE quote_id = ?").all(quoteId);
+    res.status(201).json({ ...quote, items: quoteItems });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.put("/:id", authRequired, (req, res) => {
+  const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
+  if (!quote) return res.status(404).json({ message: "Quote not found" });
+
+  const payload = req.body || {};
+  const validUntil = payload.valid_until !== undefined ? payload.valid_until : quote.valid_until;
+  const finalStatus = normalizeQuoteStatus(payload.status || quote.status, validUntil);
+  const allowed = {
+    quote_date: payload.quote_date || quote.quote_date,
+    valid_until: validUntil,
+    status: finalStatus,
+    tax_rate: payload.tax_rate !== undefined ? toNumber(payload.tax_rate, 0) : quote.tax_rate,
+    currency: payload.currency || quote.currency || "EUR",
+    notes: payload.notes !== undefined ? payload.notes : quote.notes
+  };
+
+  db.prepare(
+    `UPDATE quotes
+     SET quote_date = ?, valid_until = ?, status = ?, tax_rate = ?, currency = ?, notes = ?, sent_at = CASE WHEN ? = 'sent' AND sent_at IS NULL THEN datetime('now') ELSE sent_at END
+     WHERE id = ?`
+  ).run(
+    allowed.quote_date,
+    allowed.valid_until,
+    allowed.status,
+    allowed.tax_rate,
+    allowed.currency,
+    allowed.notes,
+    allowed.status,
+    req.params.id
+  );
+
+  const updated = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
+  res.json(updated);
+});
+
+router.post("/:id/send", authRequired, (req, res) => {
+  const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
+  if (!quote) return res.status(404).json({ message: "Quote not found" });
+  const status = normalizeQuoteStatus("sent", quote.valid_until);
+  db.prepare("UPDATE quotes SET status = ?, sent_at = datetime('now') WHERE id = ?").run(status, req.params.id);
+  const updated = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
+  res.json({
+    quote: updated,
+    message: "Devis marqué comme envoyé. Branchez un provider SMTP pour l’envoi email réel."
+  });
+});
+
+router.post("/:id/convert-to-invoice", authRequired, (req, res) => {
+  const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
+  if (!quote) return res.status(404).json({ message: "Quote not found" });
+
+  const status = normalizeQuoteStatus(quote.status, quote.valid_until);
+  if (status !== "accepted") {
+    return res.status(400).json({ message: "Seul un devis accepté peut être converti en facture." });
+  }
+
+  const existingLink = db.prepare("SELECT id, invoice_number FROM invoices WHERE quote_id = ?").get(req.params.id);
+  if (existingLink) return res.status(400).json({ message: `Ce devis est déjà lié à ${existingLink.invoice_number}.` });
+
+  const items = db.prepare("SELECT * FROM quote_items WHERE quote_id = ?").all(req.params.id);
+  if (!items.length) return res.status(400).json({ message: "Impossible de convertir un devis sans ligne." });
+
+  const invoiceDate = new Date().toISOString().slice(0, 10);
+  const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const invoiceNumber = nextInvoiceNumber(invoiceDate);
+
+  const tx = db.transaction(() => {
+    const result = db
+      .prepare(
+        `INSERT INTO invoices (
+          client_id, mission_id, quote_id, invoice_number, invoice_date, due_date,
+          status, subtotal, tax_rate, total, amount_received, currency, notes,
+          acompte_pourcentage, acompte_montant, solde_restant
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        quote.client_id,
+        null,
+        quote.id,
+        invoiceNumber,
+        invoiceDate,
+        dueDate,
+        "sent",
+        quote.subtotal || 0,
+        quote.tax_rate || 0,
+        quote.total || 0,
+        0,
+        quote.currency || "EUR",
+        quote.notes || null,
+        quote.acompte_percent || 0,
+        quote.acompte_amount || 0,
+        quote.estimated_balance || quote.total || 0
+      );
+
+    const invoiceId = result.lastInsertRowid;
+    const itemInsert = db.prepare(
+      `INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, total)
+       VALUES (?, ?, ?, ?, ?)`
+    );
+    items.forEach((item) => {
+      itemInsert.run(invoiceId, item.description, item.quantity, item.unit_price, item.total);
+    });
+    return invoiceId;
+  });
+
+  const invoiceId = tx();
+  const invoice = db.prepare("SELECT * FROM invoices WHERE id = ?").get(invoiceId);
+  res.status(201).json({ invoice });
 });
 
 router.get("/:id", authRequired, (req, res) => {
+  syncQuoteStatuses();
   const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
   if (!quote) return res.status(404).json({ message: "Quote not found" });
   const items = db.prepare("SELECT * FROM quote_items WHERE quote_id = ?").all(req.params.id);
@@ -87,6 +284,7 @@ router.get("/:id", authRequired, (req, res) => {
 });
 
 router.get("/:id/pdf", authRequired, async (req, res) => {
+  syncQuoteStatuses();
   const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
   if (!quote) return res.status(404).json({ message: "Quote not found" });
   const items = db.prepare("SELECT * FROM quote_items WHERE quote_id = ?").all(req.params.id);

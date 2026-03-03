@@ -316,6 +316,15 @@ ensureColumn("invoices", "last_relance_date", "TEXT");
 ensureColumn("invoices", "relance_j3_sent_at", "TEXT");
 ensureColumn("invoices", "relance_j7_sent_at", "TEXT");
 
+ensureColumn("quotes", "currency", "TEXT NOT NULL DEFAULT 'EUR'");
+ensureColumn("quotes", "discount_percent", "REAL NOT NULL DEFAULT 0");
+ensureColumn("quotes", "discount_amount", "REAL NOT NULL DEFAULT 0");
+ensureColumn("quotes", "subtotal_after_discount", "REAL NOT NULL DEFAULT 0");
+ensureColumn("quotes", "acompte_percent", "REAL NOT NULL DEFAULT 0");
+ensureColumn("quotes", "acompte_amount", "REAL NOT NULL DEFAULT 0");
+ensureColumn("quotes", "estimated_balance", "REAL NOT NULL DEFAULT 0");
+ensureColumn("quotes", "sent_at", "TEXT");
+
 const adminExists = db.prepare("SELECT id FROM users WHERE email = ?").get("admin@drone.local");
 if (!adminExists && (nodeEnv !== "production" || allowDefaultAdmin)) {
   const hash = bcrypt.hashSync("admin123", 10);
