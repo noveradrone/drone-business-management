@@ -5,20 +5,24 @@ const { authRequired } = require("../middleware/auth");
 const router = express.Router();
 
 const DEFAULT_THEME = {
+  theme_id: "ocean",
   primary_color: "#0a84ff",
   secondary_color: "#93c5fd",
   button_color: "#0a84ff",
   background_color: "#f3f6fb",
   sidebar_color: "rgba(255,255,255,0.84)",
   mode: "light",
+  density: "comfortable",
   radius_style: "rounded",
   shadows_enabled: 1
 };
 
 function sanitizeTheme(payload = {}) {
+  const validThemeIds = new Set(["ocean", "forest", "sunset", "graphite", "violet"]);
   const hexColor = /^#[0-9a-fA-F]{6}$/;
   const validRgba = /^rgba?\(.+\)$/;
   const theme = {
+    theme_id: validThemeIds.has(String(payload.theme_id || "")) ? String(payload.theme_id) : DEFAULT_THEME.theme_id,
     primary_color: hexColor.test(String(payload.primary_color || "")) ? payload.primary_color : DEFAULT_THEME.primary_color,
     secondary_color: hexColor.test(String(payload.secondary_color || "")) ? payload.secondary_color : DEFAULT_THEME.secondary_color,
     button_color: hexColor.test(String(payload.button_color || "")) ? payload.button_color : DEFAULT_THEME.button_color,
@@ -28,6 +32,7 @@ function sanitizeTheme(payload = {}) {
         ? payload.sidebar_color
         : DEFAULT_THEME.sidebar_color,
     mode: payload.mode === "dark" ? "dark" : "light",
+    density: payload.density === "compact" ? "compact" : "comfortable",
     radius_style: ["normal", "rounded", "pill"].includes(payload.radius_style) ? payload.radius_style : "rounded",
     shadows_enabled: payload.shadows_enabled ? 1 : 0
   };
@@ -180,27 +185,31 @@ router.put("/theme", authRequired, (req, res) => {
   const theme = sanitizeTheme(req.body || {});
   db.prepare(
     `INSERT INTO user_theme_preferences (
-      user_id, primary_color, secondary_color, button_color, background_color, sidebar_color,
-      mode, radius_style, shadows_enabled, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      user_id, theme_id, primary_color, secondary_color, button_color, background_color, sidebar_color,
+      mode, density, radius_style, shadows_enabled, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(user_id) DO UPDATE SET
+      theme_id=excluded.theme_id,
       primary_color=excluded.primary_color,
       secondary_color=excluded.secondary_color,
       button_color=excluded.button_color,
       background_color=excluded.background_color,
       sidebar_color=excluded.sidebar_color,
       mode=excluded.mode,
+      density=excluded.density,
       radius_style=excluded.radius_style,
       shadows_enabled=excluded.shadows_enabled,
       updated_at=datetime('now')`
   ).run(
     req.user.id,
+    theme.theme_id,
     theme.primary_color,
     theme.secondary_color,
     theme.button_color,
     theme.background_color,
     theme.sidebar_color,
     theme.mode,
+    theme.density,
     theme.radius_style,
     theme.shadows_enabled
   );

@@ -3,7 +3,6 @@ const {
   isFilled,
   clean,
   buildLines,
-  joinFilled,
   formatCompanyBlock,
   formatClientBlock
 } = require("./pdfHelpers");
@@ -85,8 +84,8 @@ function drawHeader(doc, options) {
   const right = doc.page.width - PAGE.marginX;
   const width = right - left;
   const topY = PAGE.marginTop;
-  const logoW = 110;
-  const logoH = 78;
+  const logoW = 126;
+  const logoH = 94;
   const logo = decodeDataUrl(logoDataUrl);
   const companyX = left + logoW + 18;
   const companyW = right - companyX;
@@ -132,12 +131,12 @@ function drawTableHeader(doc, y, columns) {
   const left = PAGE.marginX;
   const right = doc.page.width - PAGE.marginX;
   const width = right - left;
-  doc.rect(left, y, width, 24).fillAndStroke("#f8fbff", "#d8e0ef");
+  doc.rect(left, y, width, 28).fillAndStroke("#f8fbff", "#d8e0ef");
   doc.fillColor("#111827").font("Helvetica-Bold").fontSize(9.8);
   columns.forEach((col) => {
-    doc.text(col.label, col.x + 6, y + 7, { width: col.w - 12, align: col.align || "left" });
+    doc.text(col.label, col.x + 6, y + 9, { width: col.w - 12, align: col.align || "left" });
   });
-  return y + 24;
+  return y + 28;
 }
 
 function drawItemsTable(doc, items, options = {}) {
@@ -182,9 +181,9 @@ function drawItemsTable(doc, items, options = {}) {
     const lineTotal = Number(item.total || qty * unitPrice);
     const vatText = showVat ? `${moneyFr((lineTotal * taxRate) / 100, options.currency)} (${taxRate.toFixed(0)}%)` : "";
     const descHeight = doc.heightOfString(desc, { width: columns[0].w - 12 });
-    const rowHeight = Math.max(20, descHeight + 6);
+    const rowHeight = Math.max(24, descHeight + 8);
 
-    y = ensurePageSpace(doc, y, rowHeight + 6);
+    y = ensurePageSpace(doc, y, rowHeight + 8);
     if (y === PAGE.marginTop) {
       y = drawTableHeader(doc, y, columns);
       doc.font("Helvetica").fontSize(9.8).fillColor("#111827");
@@ -204,7 +203,7 @@ function drawItemsTable(doc, items, options = {}) {
       doc.text(vatText, columns[4].x + 6, y + 3, { width: columns[4].w - 12, align: "right" });
     }
 
-    y += rowHeight;
+    y += rowHeight + 2;
     doc.moveTo(left, y).lineTo(right, y).strokeColor("#e6edf8").stroke();
   });
 
@@ -250,6 +249,15 @@ function drawTotals(doc, y, totals, options = {}) {
   return y + boxH + 10;
 }
 
+function estimateTotalsHeight(totals, options = {}) {
+  const showVat = options.showVat !== false && Number(options.taxRate || 0) > 0;
+  let lineCount = 2; // subtotal + total ttc
+  if (Number(totals.discountAmount || 0) > 0) lineCount += 1;
+  if (showVat) lineCount += 1;
+  if (Number(totals.acompteAmount || 0) > 0) lineCount += 2;
+  return 14 + lineCount * 18 + 8 + 10;
+}
+
 function drawFooterText(doc, y, footerLines) {
   const left = PAGE.marginX;
   const right = doc.page.width - PAGE.marginX;
@@ -265,6 +273,12 @@ function drawFooterText(doc, y, footerLines) {
     lineY += 12;
   });
   return lineY + 3;
+}
+
+function estimateFooterHeight(footerLines) {
+  const lines = buildLines(footerLines);
+  if (!lines.length) return 0;
+  return lines.length * 12 + 9;
 }
 
 function applyPageNumbers(doc) {
@@ -290,7 +304,6 @@ function finalize(doc) {
 
 function computeTotalsFromInvoice(invoice) {
   const subtotal = Number(invoice.subtotal || 0);
-  const taxRate = Number(invoice.tax_rate || 0);
   const total = Number(invoice.total || 0);
   const taxAmount = Math.max(0, total - subtotal);
   const acompteAmount = Number(invoice.acompte_montant || 0);
@@ -348,6 +361,7 @@ function drawInvoicePdfLayout(doc, invoice, items, client, settings, profitabili
   });
 
   const showVat = Number(settings.show_vat ?? 1) === 1 && Number(invoice.tax_rate || 0) > 0;
+  const pageCountBeforeTable = doc.bufferedPageRange().count;
   const table = drawItemsTable(doc, items, {
     startY: y,
     showVat,
@@ -355,23 +369,7 @@ function drawInvoicePdfLayout(doc, invoice, items, client, settings, profitabili
     currency: invoice.currency || "EUR"
   });
   y = table.y;
-
-  y = drawTotals(doc, y, computeTotalsFromInvoice(invoice), {
-    taxRate: invoice.tax_rate,
-    showVat,
-    currency: invoice.currency || "EUR"
-  });
-
-  if (profitability) {
-    const lines = buildLines([
-      `Rentabilite mission`,
-      `Cout estime: ${moneyFr(profitability.cost_estimated, invoice.currency || "EUR")}`,
-      `Marge brute: ${moneyFr(profitability.gross_margin, invoice.currency || "EUR")}`,
-      `% marge: ${Number(profitability.margin_percent || 0).toFixed(2)}%`
-    ]);
-    y = drawFooterText(doc, y, lines);
-  }
-
+  const totalsData = computeTotalsFromInvoice(invoice);
   const footerLines = buildLines([
     Number(settings.show_late_penalties ?? 1) === 1 && isFilled(settings.payment_terms)
       ? `Conditions de paiement: ${clean(settings.payment_terms)}`
@@ -388,6 +386,30 @@ function drawInvoicePdfLayout(doc, invoice, items, client, settings, profitabili
       ? clean(settings.vat_exemption_mention)
       : null
   ]);
+  const pageCountAfterTable = doc.bufferedPageRange().count;
+  if (pageCountAfterTable === pageCountBeforeTable) {
+    const totalsHeight = estimateTotalsHeight(totalsData, { taxRate: invoice.tax_rate, showVat });
+    const footerHeight = estimateFooterHeight(footerLines);
+    const minTotalsY = doc.page.height - PAGE.marginBottom - footerHeight - totalsHeight - 8;
+    if (minTotalsY > y) y = minTotalsY;
+  }
+
+  y = drawTotals(doc, y, totalsData, {
+    taxRate: invoice.tax_rate,
+    showVat,
+    currency: invoice.currency || "EUR"
+  });
+
+  if (profitability) {
+    const lines = buildLines([
+      `Rentabilite mission`,
+      `Cout estime: ${moneyFr(profitability.cost_estimated, invoice.currency || "EUR")}`,
+      `Marge brute: ${moneyFr(profitability.gross_margin, invoice.currency || "EUR")}`,
+      `% marge: ${Number(profitability.margin_percent || 0).toFixed(2)}%`
+    ]);
+    y = drawFooterText(doc, y, lines);
+  }
+
   drawFooterText(doc, y, footerLines);
 }
 
@@ -419,6 +441,7 @@ function drawQuotePdfLayout(doc, quote, items, client, settings) {
   });
 
   const showVat = Number(settings.show_vat ?? 1) === 1 && Number(quote.tax_rate || 0) > 0;
+  const pageCountBeforeTable = doc.bufferedPageRange().count;
   const table = drawItemsTable(doc, items, {
     startY: y,
     showVat,
@@ -426,13 +449,7 @@ function drawQuotePdfLayout(doc, quote, items, client, settings) {
     currency: quote.currency || "EUR"
   });
   y = table.y;
-
-  y = drawTotals(doc, y, computeTotalsFromQuote(quote), {
-    taxRate: quote.tax_rate,
-    showVat,
-    currency: quote.currency || "EUR"
-  });
-
+  const totalsData = computeTotalsFromQuote(quote);
   const quoteValidityDays = Number(settings.quote_validity_days || 0);
   const quoteFooter = buildLines([
     Number(settings.quote_show_validity_notice ?? 1) === 1 && quoteValidityDays > 0
@@ -450,6 +467,21 @@ function drawQuotePdfLayout(doc, quote, items, client, settings) {
       ? clean(settings.vat_exemption_mention)
       : null
   ]);
+  const signatureHeight = Number(settings.quote_show_signature_block ?? 1) === 1 ? 58 : 0;
+  const pageCountAfterTable = doc.bufferedPageRange().count;
+  if (pageCountAfterTable === pageCountBeforeTable) {
+    const totalsHeight = estimateTotalsHeight(totalsData, { taxRate: quote.tax_rate, showVat });
+    const footerHeight = estimateFooterHeight(quoteFooter);
+    const minTotalsY = doc.page.height - PAGE.marginBottom - signatureHeight - footerHeight - totalsHeight - 8;
+    if (minTotalsY > y) y = minTotalsY;
+  }
+
+  y = drawTotals(doc, y, totalsData, {
+    taxRate: quote.tax_rate,
+    showVat,
+    currency: quote.currency || "EUR"
+  });
+
   y = drawFooterText(doc, y, quoteFooter);
 
   if (Number(settings.quote_show_signature_block ?? 1) === 1) {

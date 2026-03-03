@@ -254,12 +254,14 @@ CREATE TABLE IF NOT EXISTS company_settings (
 
 CREATE TABLE IF NOT EXISTS user_theme_preferences (
   user_id INTEGER PRIMARY KEY,
+  theme_id TEXT NOT NULL DEFAULT 'ocean',
   primary_color TEXT NOT NULL DEFAULT '#0a84ff',
   secondary_color TEXT NOT NULL DEFAULT '#93c5fd',
   button_color TEXT NOT NULL DEFAULT '#0a84ff',
   background_color TEXT NOT NULL DEFAULT '#f3f6fb',
   sidebar_color TEXT NOT NULL DEFAULT 'rgba(255,255,255,0.84)',
   mode TEXT NOT NULL CHECK(mode IN ('light','dark')) DEFAULT 'light',
+  density TEXT NOT NULL CHECK(density IN ('comfortable','compact')) DEFAULT 'comfortable',
   radius_style TEXT NOT NULL CHECK(radius_style IN ('normal','rounded','pill')) DEFAULT 'rounded',
   shadows_enabled INTEGER NOT NULL DEFAULT 1,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -311,6 +313,8 @@ ensureColumn("company_settings", "show_fixed_indemnity", "INTEGER NOT NULL DEFAU
 ensureColumn("company_settings", "show_bank_details", "INTEGER NOT NULL DEFAULT 1");
 ensureColumn("company_settings", "quote_show_signature_block", "INTEGER NOT NULL DEFAULT 1");
 ensureColumn("company_settings", "quote_show_validity_notice", "INTEGER NOT NULL DEFAULT 1");
+ensureColumn("user_theme_preferences", "theme_id", "TEXT NOT NULL DEFAULT 'ocean'");
+ensureColumn("user_theme_preferences", "density", "TEXT NOT NULL DEFAULT 'comfortable'");
 
 ensureColumn("invoices", "acompte_pourcentage", "REAL NOT NULL DEFAULT 0");
 ensureColumn("invoices", "acompte_montant", "REAL NOT NULL DEFAULT 0");

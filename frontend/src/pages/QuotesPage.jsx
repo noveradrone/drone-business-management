@@ -18,12 +18,6 @@ function download(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-function openPreview(blob) {
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank", "noopener,noreferrer");
-  setTimeout(() => URL.revokeObjectURL(url), 15000);
-}
-
 function statusBadge(status) {
   const meta = STATUS_META[status] || { label: status || "-", color: "#6b7280" };
   return (
@@ -58,6 +52,10 @@ export default function QuotesPage() {
   const [periodTo, setPeriodTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewName, setPreviewName] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const [form, setForm] = useState({
     client_id: "",
@@ -118,6 +116,12 @@ export default function QuotesPage() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, statusFilter, periodFrom, periodTo, amountMin, amountMax]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   function updateItem(index, key, value) {
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)));
@@ -240,11 +244,30 @@ export default function QuotesPage() {
 
   async function previewPdf(quote) {
     try {
+      setPreviewLoading(true);
+      setError("");
       const blob = await api.quotes.pdf(quote.id);
-      openPreview(blob);
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl((previous) => {
+        if (previous) URL.revokeObjectURL(previous);
+        return url;
+      });
+      setPreviewName(`devis-${quote.quote_number}.pdf`);
+      setPreviewOpen(true);
     } catch (e) {
       setError(e.message);
+    } finally {
+      setPreviewLoading(false);
     }
+  }
+
+  function closePreview() {
+    setPreviewOpen(false);
+    setPreviewName("");
+    setPreviewUrl((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return "";
+    });
   }
 
   async function sendQuote(quote) {
@@ -449,7 +472,9 @@ export default function QuotesPage() {
                 <td data-label="Statut">{statusBadge(q.status)}</td>
                 <td data-label="Total">{Number(q.total || 0).toFixed(2)} {q.currency || "EUR"}</td>
                 <td data-label="Actions" className="actions-cell">
-                  <button className="secondary" onClick={() => previewPdf(q)}>Previsualiser PDF</button>
+                  <button className="secondary" onClick={() => previewPdf(q)} disabled={previewLoading}>
+                    {previewLoading ? "Ouverture..." : "Previsualiser PDF"}
+                  </button>
                   <button className="secondary" onClick={() => downloadPdf(q)}>Telecharger PDF</button>
                   <button className="secondary" onClick={() => sendQuote(q)}>Envoyer</button>
                   <button
@@ -469,6 +494,31 @@ export default function QuotesPage() {
           </tbody>
         </table>
       </div>
+
+      {previewOpen && (
+        <div className="modal-backdrop" onClick={closePreview}>
+          <div className="modal-card modal-card-pdf" onClick={(e) => e.stopPropagation()}>
+            <div className="page-head" style={{ marginBottom: 12 }}>
+              <h2 style={{ fontSize: "1rem" }}>Previsualisation devis</h2>
+              <div className="actions-cell">
+                {previewUrl ? (
+                  <a className="secondary" href={previewUrl} download={previewName}>
+                    Telecharger PDF
+                  </a>
+                ) : null}
+                <button className="secondary" onClick={closePreview}>
+                  Fermer
+                </button>
+              </div>
+            </div>
+            {previewUrl ? (
+              <iframe title="Previsualisation du devis" src={previewUrl} className="pdf-preview-frame" />
+            ) : (
+              <p>Aucune previsualisation disponible.</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

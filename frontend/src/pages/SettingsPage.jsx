@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
-import { applyTheme, DEFAULT_THEME } from "../theme";
+import { applyTheme, DEFAULT_THEME, THEME_PRESETS, getThemeTokens } from "../theme";
 
 const tabs = [
   { key: "entreprise", label: "Entreprise", desc: "Identité et coordonnées publiques." },
@@ -14,23 +14,11 @@ const tabs = [
 const DENSITY_KEY = "drone_business_density";
 const SHADOW_LEVEL_KEY = "drone_business_shadow_level";
 
-const COLOR_FIELDS = [
-  { key: "primary_color", label: "Couleur principale", hint: "Actions principales" },
-  { key: "secondary_color", label: "Couleur secondaire", hint: "Éléments secondaires" },
-  { key: "button_color", label: "Couleur boutons", hint: "Boutons CTA" },
-  { key: "background_color", label: "Couleur fond", hint: "Arrière-plan global" },
-  { key: "sidebar_color", label: "Couleur sidebar", hint: "Menu latéral" }
-];
-
 const SHADOWS = {
   off: "none",
   subtle: "0 8px 20px rgba(15, 23, 42, 0.10)",
   strong: "0 18px 42px rgba(15, 23, 42, 0.18)"
 };
-
-function isHex(value) {
-  return /^#[0-9a-fA-F]{6}$/.test(String(value || ""));
-}
 
 function SegmentedControl({ options, value, onChange }) {
   return (
@@ -45,22 +33,6 @@ function SegmentedControl({ options, value, onChange }) {
           {opt.label}
         </button>
       ))}
-    </div>
-  );
-}
-
-function ToggleRow({ label, checked, onChange }) {
-  return (
-    <div className="toggle-row">
-      <span>{label}</span>
-      <button
-        type="button"
-        className={checked ? "toggle-switch on" : "toggle-switch"}
-        onClick={() => onChange(!checked)}
-        aria-pressed={checked}
-      >
-        <span className="toggle-dot" />
-      </button>
     </div>
   );
 }
@@ -108,16 +80,9 @@ export default function SettingsPage() {
     quote_show_validity_notice: 1
   });
   const [appearance, setAppearance] = useState(DEFAULT_THEME);
-  const [colorDrafts, setColorDrafts] = useState({
-    primary_color: DEFAULT_THEME.primary_color,
-    secondary_color: DEFAULT_THEME.secondary_color,
-    button_color: DEFAULT_THEME.button_color,
-    background_color: DEFAULT_THEME.background_color,
-    sidebar_color: DEFAULT_THEME.sidebar_color
-  });
 
   function applyAppearanceLive(theme, shadow, compact) {
-    applyTheme(theme);
+    applyTheme({ ...theme, density: compact ? "compact" : "comfortable" });
     document.documentElement.style.setProperty("--shadow", theme.shadows_enabled ? SHADOWS[shadow] || SHADOWS.subtle : "none");
     document.documentElement.setAttribute("data-density", compact ? "compact" : "comfortable");
     localStorage.setItem(DENSITY_KEY, compact ? "compact" : "comfortable");
@@ -128,21 +93,16 @@ export default function SettingsPage() {
     Promise.all([api.settings.company(), api.settings.theme()])
       .then(([company, theme]) => {
         const mergedTheme = { ...DEFAULT_THEME, ...(theme || {}) };
+        const compactFromTheme = (theme?.density || mergedTheme.density) === "compact";
         setForm((prev) => ({ ...prev, ...company }));
         setAppearance(mergedTheme);
-        setColorDrafts({
-          primary_color: mergedTheme.primary_color,
-          secondary_color: mergedTheme.secondary_color,
-          button_color: mergedTheme.button_color,
-          background_color: mergedTheme.background_color,
-          sidebar_color: mergedTheme.sidebar_color
-        });
+        setCompactMode(compactFromTheme);
 
         if (!mergedTheme.shadows_enabled) {
           setShadowLevel("off");
         }
 
-        applyAppearanceLive(mergedTheme, !mergedTheme.shadows_enabled ? "off" : shadowLevel, compactMode);
+        applyAppearanceLive(mergedTheme, !mergedTheme.shadows_enabled ? "off" : shadowLevel, compactFromTheme);
       })
       .catch((e) => setError(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -195,13 +155,12 @@ export default function SettingsPage() {
     setThemeSaved(false);
   }
 
-  function onColorTextChange(key, value) {
-    setColorDrafts((prev) => ({ ...prev, [key]: value }));
-    if (isHex(value)) onThemeChange(key, value);
-  }
-
   function setMode(mode) {
     onThemeChange("mode", mode);
+  }
+
+  function setThemeId(themeId) {
+    onThemeChange("theme_id", themeId);
   }
 
   function setRadius(radiusValue) {
@@ -219,7 +178,13 @@ export default function SettingsPage() {
     setThemeSaved(false);
     setThemeSaving(true);
     try {
-      const payload = { ...appearance, shadows_enabled: shadowLevel === "off" ? 0 : 1 };
+      const payload = {
+        ...appearance,
+        theme_id: appearance.theme_id || DEFAULT_THEME.theme_id,
+        mode: appearance.mode || "light",
+        density: compactMode ? "compact" : "comfortable",
+        shadows_enabled: shadowLevel === "off" ? 0 : 1
+      };
       const updated = await api.settings.updateTheme(payload);
       const merged = { ...appearance, ...(updated || {}) };
       setAppearance(merged);
@@ -239,13 +204,6 @@ export default function SettingsPage() {
       const reset = await api.settings.resetTheme();
       const merged = { ...DEFAULT_THEME, ...(reset || {}) };
       setAppearance(merged);
-      setColorDrafts({
-        primary_color: merged.primary_color,
-        secondary_color: merged.secondary_color,
-        button_color: merged.button_color,
-        background_color: merged.background_color,
-        sidebar_color: merged.sidebar_color
-      });
       setShadowLevel("subtle");
       setCompactMode(false);
       setThemeSaved(true);
@@ -256,12 +214,17 @@ export default function SettingsPage() {
     }
   }
 
+  const previewTokens = getThemeTokens(appearance.theme_id, appearance.mode);
   const previewStyle = {
-    "--p-primary": appearance.primary_color,
-    "--p-secondary": appearance.secondary_color,
-    "--p-button": appearance.button_color,
-    "--p-bg": appearance.background_color,
-    "--p-sidebar": appearance.sidebar_color,
+    "--p-primary": previewTokens.primary,
+    "--p-secondary": previewTokens.secondary,
+    "--p-button": previewTokens.primary,
+    "--p-bg": previewTokens.bg,
+    "--p-sidebar": previewTokens.sidebar,
+    "--p-surface": previewTokens.surfaceStrong,
+    "--p-text": previewTokens.text,
+    "--p-muted": previewTokens.textMuted,
+    "--p-border": previewTokens.border,
     "--p-radius": appearance.radius_style === "normal" ? "10px" : appearance.radius_style === "pill" ? "22px" : "14px",
     "--p-shadow": appearance.shadows_enabled ? SHADOWS[shadowLevel] : "none"
   };
@@ -277,7 +240,7 @@ export default function SettingsPage() {
       <p className="page-summary">{activeMeta?.desc}</p>
 
       {error && <p className="error">{error}</p>}
-      {savedSection && <p style={{ color: "#106c2f", marginBottom: 10 }}>Section {savedSection} enregistree.</p>}
+      {savedSection && <p style={{ color: "var(--success)", marginBottom: 10 }}>Section {savedSection} enregistree.</p>}
 
       <div className="settings-tabs">
         {tabs.map((tab) => (
@@ -430,7 +393,7 @@ export default function SettingsPage() {
         <div className="appearance-modern">
           <div className="appearance-headline">
             <h3>Apparence</h3>
-            <p>Personnalise ton interface en direct. Les changements sont visibles immédiatement.</p>
+            <p>Selectionne un theme professionnel, puis ajuste mode, densite et style.</p>
           </div>
 
           <div className="appearance-preview" style={previewStyle}>
@@ -456,9 +419,43 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          <div className="card appearance-card">
+            <h4>Choisir un theme</h4>
+            <div className="theme-grid">
+              {Object.entries(THEME_PRESETS).map(([themeId, def]) => {
+                const light = def.light;
+                const dark = def.dark;
+                const isActive = (appearance.theme_id || DEFAULT_THEME.theme_id) === themeId;
+                return (
+                  <button
+                    key={themeId}
+                    type="button"
+                    className={`theme-tile ${isActive ? "active" : ""}`}
+                    onClick={() => setThemeId(themeId)}
+                  >
+                    <div className="theme-tile-head">
+                      <strong>{def.label}</strong>
+                      {isActive ? <span className="pill">Actif</span> : null}
+                    </div>
+                    <div className="theme-swatches">
+                      <span style={{ background: light.primary }} />
+                      <span style={{ background: light.secondary }} />
+                      <span style={{ background: light.bg }} />
+                      <span style={{ background: dark.bg }} />
+                      <span style={{ background: dark.primary }} />
+                    </div>
+                    <div className="theme-mini-btn" style={{ background: light.primary, color: light.buttonText }}>
+                      Bouton
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="appearance-grid">
             <div className="card appearance-card">
-              <h4>🌗 Theme general</h4>
+              <h4>Mode</h4>
               <SegmentedControl
                 value={appearance.mode}
                 onChange={setMode}
@@ -467,11 +464,19 @@ export default function SettingsPage() {
                   { value: "dark", label: "Sombre" }
                 ]}
               />
-              <ToggleRow label="Mode compact" checked={compactMode} onChange={setCompactMode} />
+              <p className="appearance-hint">Densite</p>
+              <SegmentedControl
+                value={compactMode ? "compact" : "comfortable"}
+                onChange={(v) => setCompactMode(v === "compact")}
+                options={[
+                  { value: "comfortable", label: "Standard" },
+                  { value: "compact", label: "Compact" }
+                ]}
+              />
             </div>
 
             <div className="card appearance-card">
-              <h4>◼︎ Style interface</h4>
+              <h4>Style</h4>
               <p className="appearance-hint">Arrondis</p>
               <SegmentedControl
                 value={radiusMode}
@@ -492,39 +497,6 @@ export default function SettingsPage() {
                   { value: "strong", label: "Prononcees" }
                 ]}
               />
-            </div>
-          </div>
-
-          <div className="card appearance-card">
-            <h4>🎨 Couleurs principales</h4>
-            <div className="appearance-colors-grid">
-              {COLOR_FIELDS.map((field) => (
-                <div className="color-field-card" key={field.key}>
-                  <div className="color-field-top">
-                    <div className="color-meta">
-                      <strong>{field.label}</strong>
-                      <small>{field.hint}</small>
-                    </div>
-                    <span className="color-swatch" style={{ background: appearance[field.key] }} />
-                  </div>
-                  {field.key !== "sidebar_color" ? (
-                    <input
-                      type="color"
-                      value={isHex(appearance[field.key]) ? appearance[field.key] : "#ffffff"}
-                      onChange={(e) => {
-                        setColorDrafts((prev) => ({ ...prev, [field.key]: e.target.value }));
-                        onThemeChange(field.key, e.target.value);
-                      }}
-                    />
-                  ) : null}
-                  <input
-                    type="text"
-                    value={colorDrafts[field.key] || ""}
-                    onChange={(e) => onColorTextChange(field.key, e.target.value)}
-                    placeholder="#RRGGBB"
-                  />
-                </div>
-              ))}
             </div>
           </div>
 

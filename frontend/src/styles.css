@@ -4,31 +4,32 @@
   --primary-color: #0a84ff;
   --secondary-color: #93c5fd;
   --button-color: #0a84ff;
+  --accent: #0a84ff;
   --sidebar-color: rgba(255, 255, 255, 0.84);
   --surface: rgba(255, 255, 255, 0.72);
   --surface-strong: #ffffff;
   --border: rgba(15, 23, 42, 0.12);
   --text: #0f172a;
   --muted: #5b6473;
-  --accent: var(--primary-color);
   --accent-strong: #0064d6;
+  --success: #1f9d55;
+  --warning: #c37b07;
   --danger: #c62828;
+  --focus-ring: rgba(10, 132, 255, 0.28);
+  --input-bg: rgba(255, 255, 255, 0.94);
+  --input-text: #0f172a;
+  --input-placeholder: #75839b;
+  --table-header-bg: #f5f8ff;
+  --table-row-hover: #f1f6ff;
+  --overlay-color: rgba(15, 23, 42, 0.35);
   --shadow: 0 12px 34px rgba(15, 23, 42, 0.1);
   --radius-xl: 20px;
   --radius-md: 14px;
   --button-text: #ffffff;
 }
 
-:root[data-theme="dark"] {
+:root[data-mode="dark"] {
   color-scheme: dark;
-  --surface: rgba(18, 25, 38, 0.82);
-  --surface-strong: #172033;
-  --border: rgba(147, 168, 199, 0.22);
-  --text: #e6eef8;
-  --muted: #9fb0c8;
-  --danger: #ff6b6b;
-  --accent-strong: #2d8cff;
-  --button-text: #0b1220;
 }
 
 * {
@@ -42,7 +43,7 @@ body {
   background:
     radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--primary-color) 18%, transparent), transparent 36%),
     radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--secondary-color) 18%, transparent), transparent 34%),
-    linear-gradient(180deg, color-mix(in srgb, #ffffff 70%, var(--bg-color) 30%) 0%, var(--bg-color) 62%);
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 70%, var(--bg-color) 30%) 0%, var(--bg-color) 62%);
   min-height: 100vh;
   transition: background 180ms ease, color 160ms ease;
 }
@@ -189,7 +190,7 @@ body {
   border-radius: var(--radius-md);
   padding: 14px;
   text-align: left;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  box-shadow: var(--shadow);
 }
 
 .card-label {
@@ -219,7 +220,7 @@ body {
   margin: 0 0 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-strong) 96%, #ffffff 4%);
+  background: color-mix(in srgb, var(--surface-strong) 96%, var(--bg-color) 4%);
   padding: 10px 12px;
 }
 
@@ -286,16 +287,21 @@ textarea {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
-  background: color-mix(in srgb, var(--surface-strong) 94%, #ffffff 6%);
-  color: var(--text);
+  background: var(--input-bg);
+  color: var(--input-text);
   transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   border-color: color-mix(in srgb, var(--primary-color) 45%, var(--border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 17%, transparent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
   outline: none;
 }
 
@@ -325,7 +331,7 @@ button.secondary {
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: #fff;
+  background: var(--surface-strong);
   -webkit-overflow-scrolling: touch;
   margin-left: auto;
   margin-right: auto;
@@ -340,14 +346,18 @@ th,
 td {
   text-align: left;
   padding: 10px;
-  border-bottom: 1px solid #eff2f8;
+  border-bottom: 1px solid var(--border);
   font-size: 0.93rem;
 }
 
 th {
   color: var(--muted);
   font-weight: 600;
-  background: color-mix(in srgb, var(--surface-strong) 95%, #ffffff 5%);
+  background: var(--table-header-bg);
+}
+
+tbody tr:hover {
+  background: var(--table-row-hover);
 }
 
 .error {
@@ -376,7 +386,7 @@ th {
   padding: 30px;
   background: linear-gradient(
     155deg,
-    color-mix(in srgb, var(--surface-strong) 84%, #ffffff 16%),
+    color-mix(in srgb, var(--surface-strong) 84%, var(--bg-color) 16%),
     color-mix(in srgb, var(--secondary-color) 20%, var(--surface-strong))
   );
   box-shadow: var(--shadow);
@@ -461,11 +471,11 @@ form.form-grid.login-form {
 }
 
 .document-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 255, 0.96));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 97%, var(--bg-color) 3%), var(--surface-strong));
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 14px;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -485,12 +495,12 @@ form.form-grid.login-form {
   min-width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: #ffefef;
-  color: #c62828;
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface-strong));
+  color: var(--danger);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  border: 1px solid rgba(198, 40, 40, 0.2);
+  border: 1px solid color-mix(in srgb, var(--danger) 28%, var(--border));
 }
 
 .document-card h3 {
@@ -539,7 +549,7 @@ form.form-grid.login-form {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.35);
+  background: var(--overlay-color);
   backdrop-filter: blur(3px);
   display: grid;
   place-items: center;
@@ -556,6 +566,18 @@ form.form-grid.login-form {
   border-radius: 16px;
   box-shadow: var(--shadow);
   padding: 16px;
+}
+
+.modal-card-pdf {
+  width: min(1120px, 100%);
+}
+
+.pdf-preview-frame {
+  width: 100%;
+  min-height: 72vh;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-strong);
 }
 
 .settings-tabs {
@@ -644,7 +666,7 @@ form.form-grid.login-form {
     position: fixed;
     inset: 0;
     z-index: 20;
-    background: rgba(15, 23, 42, 0.2);
+    background: color-mix(in srgb, var(--overlay-color) 70%, transparent);
     border: 0;
     padding: 0;
   }
@@ -855,7 +877,7 @@ form.form-grid.login-form {
     position: sticky;
     bottom: 8px;
     z-index: 5;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.16);
+    box-shadow: var(--shadow);
   }
 }
 
@@ -933,7 +955,7 @@ form.form-grid.login-form {
 .appearance-preview {
   border: 1px solid var(--border);
   border-radius: 18px;
-  background: linear-gradient(155deg, color-mix(in srgb, var(--p-bg, #f3f6fb) 92%, #fff 8%), #ffffff);
+  background: linear-gradient(155deg, color-mix(in srgb, var(--p-bg, var(--bg-color)) 92%, var(--p-surface, var(--surface-strong)) 8%), var(--p-surface, var(--surface-strong)));
   box-shadow: var(--p-shadow, var(--shadow));
   padding: 14px;
 }
@@ -953,7 +975,7 @@ form.form-grid.login-form {
 }
 
 .preview-topbar span {
-  color: #4b5563;
+  color: var(--p-muted, var(--muted));
   font-size: 0.84rem;
   flex: 1;
 }
@@ -963,7 +985,7 @@ form.form-grid.login-form {
   min-height: 34px;
   border-radius: 10px;
   background: var(--p-button, var(--button-color));
-  color: #fff;
+  color: var(--button-text);
   font-size: 0.84rem;
   padding: 7px 12px;
 }
@@ -976,9 +998,9 @@ form.form-grid.login-form {
 
 .preview-body aside,
 .preview-body section {
-  border: 1px solid color-mix(in srgb, var(--p-secondary, var(--secondary-color)) 30%, #dbe4f0);
+  border: 1px solid var(--p-border, var(--border));
   border-radius: var(--p-radius, 14px);
-  background: #ffffffdd;
+  background: color-mix(in srgb, var(--p-surface, var(--surface-strong)) 92%, transparent);
   box-shadow: var(--p-shadow, var(--shadow));
   padding: 10px;
 }
@@ -986,7 +1008,7 @@ form.form-grid.login-form {
 .preview-nav {
   height: 10px;
   border-radius: 999px;
-  background: #d9e3ef;
+  background: color-mix(in srgb, var(--p-secondary, var(--secondary-color)) 34%, var(--p-surface, var(--surface-strong)));
   margin-bottom: 8px;
 }
 
@@ -1004,13 +1026,17 @@ form.form-grid.login-form {
 .preview-card {
   height: 38px;
   border-radius: calc(var(--p-radius, 14px) - 4px);
-  background: color-mix(in srgb, var(--p-secondary, var(--secondary-color)) 22%, #eff5ff);
+  background: color-mix(in srgb, var(--p-secondary, var(--secondary-color)) 22%, var(--p-surface, var(--surface-strong)));
 }
 
 .preview-chart {
   height: 66px;
   border-radius: calc(var(--p-radius, 14px) - 4px);
-  background: linear-gradient(135deg, #edf4ff, color-mix(in srgb, var(--p-primary, var(--primary-color)) 18%, #edf4ff));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--p-surface, var(--surface-strong)) 86%, var(--p-bg, var(--bg-color))),
+    color-mix(in srgb, var(--p-primary, var(--primary-color)) 26%, var(--p-surface, var(--surface-strong)))
+  );
 }
 
 .appearance-grid {
@@ -1028,6 +1054,62 @@ form.form-grid.login-form {
   font-size: 1rem;
 }
 
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.theme-tile {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--surface-strong);
+  color: var(--text);
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.theme-tile.active {
+  border-color: color-mix(in srgb, var(--primary-color) 46%, var(--border));
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.theme-tile-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-tile-head .pill {
+  padding: 3px 8px;
+  font-size: 0.72rem;
+}
+
+.theme-swatches {
+  display: flex;
+  gap: 6px;
+}
+
+.theme-swatches span {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.theme-mini-btn {
+  border-radius: 9px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
 .appearance-hint {
   margin: 12px 0 8px;
   color: var(--muted);
@@ -1042,7 +1124,7 @@ form.form-grid.login-form {
   border-radius: 12px;
   border: 1px solid var(--border);
   padding: 4px;
-  background: color-mix(in srgb, var(--surface-strong) 70%, #f4f7fc);
+  background: color-mix(in srgb, var(--surface-strong) 70%, var(--bg-color));
   gap: 4px;
 }
 
@@ -1057,9 +1139,9 @@ form.form-grid.login-form {
 }
 
 .seg-item.active {
-  background: color-mix(in srgb, var(--primary-color) 18%, #fff);
+  background: color-mix(in srgb, var(--primary-color) 18%, var(--surface-strong));
   color: var(--accent);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow);
 }
 
 .toggle-row {
@@ -1080,8 +1162,8 @@ form.form-grid.login-form {
   width: 56px;
   min-height: 30px;
   border-radius: 999px;
-  border: 1px solid #ccd6e5;
-  background: #e7edf7;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-strong) 74%, var(--bg-color));
   padding: 3px;
   display: inline-flex;
   align-items: center;
@@ -1089,8 +1171,8 @@ form.form-grid.login-form {
 }
 
 .toggle-switch.on {
-  background: color-mix(in srgb, var(--primary-color) 70%, #fff);
-  border-color: color-mix(in srgb, var(--primary-color) 48%, #ccd6e5);
+  background: color-mix(in srgb, var(--primary-color) 70%, var(--surface-strong));
+  border-color: color-mix(in srgb, var(--primary-color) 48%, var(--border));
   justify-content: flex-end;
 }
 
@@ -1098,8 +1180,8 @@ form.form-grid.login-form {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
 }
 
 .appearance-colors-grid {
@@ -1112,7 +1194,7 @@ form.form-grid.login-form {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 12px;
-  background: color-mix(in srgb, var(--surface-strong) 82%, #f8fbff);
+  background: color-mix(in srgb, var(--surface-strong) 82%, var(--bg-color));
 }
 
 .color-field-top {
@@ -1137,8 +1219,8 @@ form.form-grid.login-form {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.16);
+  border: 2px solid var(--surface-strong);
+  box-shadow: 0 0 0 1px var(--border);
 }
 
 .color-field-card input[type="color"] {
@@ -1166,6 +1248,10 @@ form.form-grid.login-form {
     grid-template-columns: 1fr;
   }
 
+  .theme-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .preview-body {
     grid-template-columns: 1fr;
   }
@@ -1186,5 +1272,9 @@ form.form-grid.login-form {
 
   .appearance-actions button {
     width: 100%;
+  }
+
+  .theme-grid {
+    grid-template-columns: 1fr;
   }
 }
