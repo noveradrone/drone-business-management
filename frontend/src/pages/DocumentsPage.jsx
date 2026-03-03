@@ -1,7 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
-
-const typeOptions = ["MANEX", "KBIS", "Assurance", "Autre"];
 
 function formatBytes(bytes) {
   const size = Number(bytes || 0);
@@ -38,16 +36,16 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState([]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [uploadForm, setUploadForm] = useState({
-    nom_document: "",
-    type_document: "Autre",
-    file: null
-  });
+  const [query, setQuery] = useState("");
+  const [sortBy, setSortBy] = useState("recent");
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState("");
+  const [uploadForm, setUploadForm] = useState({ nom_document: "", file: null });
   const replaceInputRefs = useRef({});
 
   async function load() {
     try {
-      setDocuments(await api.documents.list());
+      setDocuments(await api.documents.list({ q: query }));
     } catch (e) {
       setError(e.message);
     }
@@ -55,7 +53,20 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  const visibleDocuments = useMemo(() => {
+    const rows = [...documents];
+    if (sortBy === "recent") {
+      rows.sort((a, b) => new Date(b.date_upload || 0).getTime() - new Date(a.date_upload || 0).getTime());
+    } else if (sortBy === "oldest") {
+      rows.sort((a, b) => new Date(a.date_upload || 0).getTime() - new Date(b.date_upload || 0).getTime());
+    } else if (sortBy === "name") {
+      rows.sort((a, b) => String(a.nom_document || "").localeCompare(String(b.nom_document || ""), "fr"));
+    }
+    return rows;
+  }, [documents, sortBy]);
 
   async function uploadDocument(e) {
     e.preventDefault();
@@ -74,11 +85,10 @@ export default function DocumentsPage() {
       const dataUrl = await fileToDataUrl(uploadForm.file);
       await api.documents.upload({
         nom_document: uploadForm.nom_document || uploadForm.file.name.replace(/\.pdf$/i, ""),
-        type_document: uploadForm.type_document,
         file_name: uploadForm.file.name,
         file_data_url: dataUrl
       });
-      setUploadForm({ nom_document: "", type_document: "Autre", file: null });
+      setUploadForm({ nom_document: "", file: null });
       await load();
     } catch (err) {
       setError(err.message);
@@ -125,10 +135,33 @@ export default function DocumentsPage() {
       const dataUrl = await fileToDataUrl(file);
       await api.documents.replace(doc.id, {
         nom_document: doc.nom_document,
-        type_document: doc.type_document,
         file_name: file.name,
         file_data_url: dataUrl
       });
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function startRename(doc) {
+    setEditingId(doc.id);
+    setEditingName(doc.nom_document || "");
+  }
+
+  async function saveRename(doc) {
+    setError("");
+    if (!editingName.trim()) {
+      setError("Le nom du document est requis.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.documents.replace(doc.id, { nom_document: editingName.trim() });
+      setEditingId(null);
+      setEditingName("");
       await load();
     } catch (e) {
       setError(e.message);
@@ -142,9 +175,7 @@ export default function DocumentsPage() {
       <div className="page-head">
         <h2>Documents officiels</h2>
       </div>
-      <p className="documents-intro">
-        Retrouvez ici les documents reglementaires et administratifs de l'entreprise.
-      </p>
+      <p className="documents-intro">Retrouvez ici les documents reglementaires et administratifs de l'entreprise.</p>
 
       {error && <p className="error">{error}</p>}
 
@@ -155,16 +186,6 @@ export default function DocumentsPage() {
           onChange={(e) => setUploadForm((prev) => ({ ...prev, nom_document: e.target.value }))}
           required
         />
-        <select
-          value={uploadForm.type_document}
-          onChange={(e) => setUploadForm((prev) => ({ ...prev, type_document: e.target.value }))}
-        >
-          {typeOptions.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
         <input
           type="file"
           accept="application/pdf,.pdf"
@@ -176,31 +197,46 @@ export default function DocumentsPage() {
         </button>
       </form>
 
+      <div className="card" style={{ marginBottom: 12 }}>
+        <div className="filter-row">
+          <input placeholder="Rechercher par nom" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <option value="recent">Plus recents</option>
+            <option value="oldest">Plus anciens</option>
+            <option value="name">Nom A-Z</option>
+          </select>
+        </div>
+      </div>
+
       <div className="documents-grid">
-        {documents.map((doc) => (
+        {visibleDocuments.map((doc) => (
           <article key={doc.id} className="document-card">
             <div className="document-top">
-              <span className="pdf-badge" aria-hidden="true">
-                PDF
-              </span>
+              <span className="pdf-badge" aria-hidden="true">PDF</span>
               <div>
-                <h3>{doc.nom_document}</h3>
-                <p>Type: {doc.type_document || "Autre"}</p>
-                <p>Upload: {toIsoDate(doc.date_upload)}</p>
-                <p>Taille: {formatBytes(doc.file_size)}</p>
-                <p>Version: v{doc.version || 1}</p>
+                {editingId === doc.id ? (
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <input value={editingName} onChange={(e) => setEditingName(e.target.value)} />
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button type="button" className="secondary" onClick={() => saveRename(doc)} disabled={saving}>Enregistrer nom</button>
+                      <button type="button" className="secondary" onClick={() => setEditingId(null)}>Annuler</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h3>{doc.nom_document}</h3>
+                    <p>Upload: {toIsoDate(doc.date_upload)}</p>
+                    <p>Taille: {formatBytes(doc.file_size)}</p>
+                    <p>Version: v{doc.version || 1}</p>
+                  </>
+                )}
               </div>
             </div>
             <div style={{ display: "grid", gap: 8 }}>
-              <button className="document-download" onClick={() => downloadDocument(doc)}>
-                Telecharger
-              </button>
-              <button type="button" className="secondary" onClick={() => triggerReplace(doc.id)}>
-                Remplacer
-              </button>
-              <button type="button" className="secondary" onClick={() => removeDocument(doc)}>
-                Supprimer
-              </button>
+              <button className="document-download" onClick={() => downloadDocument(doc)}>Telecharger</button>
+              <button type="button" className="secondary" onClick={() => triggerReplace(doc.id)}>Remplacer</button>
+              <button type="button" className="secondary" onClick={() => startRename(doc)}>Renommer</button>
+              <button type="button" className="secondary" onClick={() => removeDocument(doc)}>Supprimer</button>
               <input
                 ref={(el) => {
                   replaceInputRefs.current[doc.id] = el;

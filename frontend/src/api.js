@@ -75,7 +75,14 @@ export const api = {
     summary: () => request("/forecast/summary")
   },
   documents: {
-    list: () => request("/documents"),
+    list: (params = {}) => {
+      const search = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") search.set(key, value);
+      });
+      const suffix = search.toString() ? `?${search.toString()}` : "";
+      return request(`/documents${suffix}`);
+    },
     upload: (data) => request("/documents", { method: "POST", body: JSON.stringify(data) }),
     replace: (id, data) => request(`/documents/${id}/replace`, { method: "PUT", body: JSON.stringify(data) }),
     remove: (id) => request(`/documents/${id}`, { method: "DELETE" }),

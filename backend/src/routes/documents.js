@@ -41,12 +41,12 @@ function getAbsoluteDocumentPath(storedPath) {
 }
 
 router.get("/", authRequired, (req, res) => {
+  const q = String(req.query.q || "").trim().toLowerCase();
   const rows = db
     .prepare(
       `SELECT
          id,
          nom_document,
-         type_document,
          date_upload,
          chemin_fichier,
          file_size,
@@ -57,12 +57,13 @@ router.get("/", authRequired, (req, res) => {
        FROM documents
        ORDER BY date_upload DESC, id DESC`
     )
-    .all();
+    .all()
+    .filter((row) => (q ? String(row.nom_document || "").toLowerCase().includes(q) : true));
   res.json(rows);
 });
 
 router.post("/", authRequired, (req, res) => {
-  const { nom_document, type_document = "autre", file_name, file_data_url } = req.body || {};
+  const { nom_document, file_name, file_data_url } = req.body || {};
   if (!nom_document || !file_data_url) {
     return res.status(400).json({ message: "nom_document et file_data_url sont requis" });
   }
@@ -92,7 +93,7 @@ router.post("/", authRequired, (req, res) => {
       )
       .run(
         String(nom_document),
-        String(type_document || "autre"),
+        "autre",
         finalName,
         pdfBuffer.length,
         req.user.id
@@ -106,7 +107,7 @@ router.post("/", authRequired, (req, res) => {
 });
 
 router.put("/:id/replace", authRequired, (req, res) => {
-  const { nom_document, type_document, file_name, file_data_url } = req.body || {};
+  const { nom_document, file_name, file_data_url } = req.body || {};
   const existing = db.prepare("SELECT * FROM documents WHERE id = ?").get(req.params.id);
   if (!existing) return res.status(404).json({ message: "Document introuvable" });
 
@@ -136,7 +137,6 @@ router.put("/:id/replace", authRequired, (req, res) => {
   db.prepare(
     `UPDATE documents
      SET nom_document = COALESCE(?, nom_document),
-         type_document = COALESCE(?, type_document),
          chemin_fichier = ?,
          file_size = ?,
          version = version + ?,
@@ -145,7 +145,6 @@ router.put("/:id/replace", authRequired, (req, res) => {
      WHERE id = ?`
   ).run(
     nom_document || null,
-    type_document || null,
     newStoredName,
     newSize,
     hasNewFile ? 1 : 0,
