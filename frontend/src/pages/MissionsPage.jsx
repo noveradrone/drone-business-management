@@ -111,8 +111,9 @@ export default function MissionsPage() {
     <div className="missions-page">
       <div className="page-head">
         <h2>Missions</h2>
-        <span className="pill">ERP evenementiel</span>
+        <span className="pill">Pilotage terrain</span>
       </div>
+      <p className="page-summary">Crée la mission rapidement puis complète les champs avancés seulement si nécessaire.</p>
 
       {error && <p className="error">{error}</p>}
 
@@ -136,14 +137,6 @@ export default function MissionsPage() {
         <input type="date" value={form.mission_date} onChange={(e) => setForm({ ...form, mission_date: e.target.value })} required />
         <input placeholder="Lieu" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} required />
         <input type="number" min="1" placeholder="Duree (min)" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} required />
-        <input type="number" min="0" step="0.1" placeholder="Heures log" value={form.flight_hours_logged} onChange={(e) => setForm({ ...form, flight_hours_logged: e.target.value })} required />
-        <input type="number" min="0" step="1" placeholder="Cycles" value={form.cycles_logged} onChange={(e) => setForm({ ...form, cycles_logged: e.target.value })} required />
-        <input type="number" min="0" step="0.1" placeholder="Temps preparation (h)" value={form.preparation_hours} onChange={(e) => setForm({ ...form, preparation_hours: e.target.value })} />
-        <input type="number" min="0" step="0.1" placeholder="Temps vol (h)" value={form.flight_time_hours} onChange={(e) => setForm({ ...form, flight_time_hours: e.target.value })} />
-        <input type="number" min="0" step="0.1" placeholder="Temps montage (h)" value={form.montage_hours} onChange={(e) => setForm({ ...form, montage_hours: e.target.value })} />
-        <input type="number" min="0" step="0.1" placeholder="Kilometrage" value={form.mileage_km} onChange={(e) => setForm({ ...form, mileage_km: e.target.value })} />
-        <input type="number" min="0" step="0.01" placeholder="Couts variables" value={form.variable_costs} onChange={(e) => setForm({ ...form, variable_costs: e.target.value })} />
-        <input placeholder="Departement" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
         <select value={form.selected_pack} onChange={(e) => setForm({ ...form, selected_pack: e.target.value })}>
           {packOptions.map((pack) => (
             <option key={pack} value={pack}>
@@ -158,8 +151,22 @@ export default function MissionsPage() {
             </option>
           ))}
         </select>
-        <input placeholder="URL photo (optionnel)" value={form.photo_url} onChange={(e) => setForm({ ...form, photo_url: e.target.value })} />
-        <input placeholder="Notes (optionnel)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+
+        <details className="details-panel" style={{ gridColumn: "1 / -1" }}>
+          <summary>Options avancées</summary>
+          <div className="nested-grid">
+            <input type="number" min="0" step="0.1" placeholder="Heures log" value={form.flight_hours_logged} onChange={(e) => setForm({ ...form, flight_hours_logged: e.target.value })} required />
+            <input type="number" min="0" step="1" placeholder="Cycles" value={form.cycles_logged} onChange={(e) => setForm({ ...form, cycles_logged: e.target.value })} required />
+            <input type="number" min="0" step="0.1" placeholder="Temps preparation (h)" value={form.preparation_hours} onChange={(e) => setForm({ ...form, preparation_hours: e.target.value })} />
+            <input type="number" min="0" step="0.1" placeholder="Temps vol (h)" value={form.flight_time_hours} onChange={(e) => setForm({ ...form, flight_time_hours: e.target.value })} />
+            <input type="number" min="0" step="0.1" placeholder="Temps montage (h)" value={form.montage_hours} onChange={(e) => setForm({ ...form, montage_hours: e.target.value })} />
+            <input type="number" min="0" step="0.1" placeholder="Kilometrage" value={form.mileage_km} onChange={(e) => setForm({ ...form, mileage_km: e.target.value })} />
+            <input type="number" min="0" step="0.01" placeholder="Couts variables" value={form.variable_costs} onChange={(e) => setForm({ ...form, variable_costs: e.target.value })} />
+            <input placeholder="Departement" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+            <input placeholder="URL photo (optionnel)" value={form.photo_url} onChange={(e) => setForm({ ...form, photo_url: e.target.value })} />
+            <input placeholder="Notes (optionnel)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+        </details>
         <button className="primary-action" style={{ gridColumn: "1 / -1" }} disabled={submitting}>
           {submitting ? "Creation..." : "Creer la mission"}
         </button>

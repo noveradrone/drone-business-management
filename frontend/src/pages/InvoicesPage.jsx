@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 
 function download(blob, filename) {
@@ -40,6 +40,7 @@ function statusBadge(status) {
 }
 
 export default function InvoicesPage() {
+  const createSectionRef = useRef(null);
   const [invoices, setInvoices] = useState([]);
   const [clients, setClients] = useState([]);
   const [articles, setArticles] = useState([]);
@@ -333,17 +334,20 @@ export default function InvoicesPage() {
     <div className="invoices-page">
       <div className="page-head">
         <h2>Factures</h2>
-        <span className="pill">Automatisation + rentabilite</span>
+        <button
+          className="secondary"
+          type="button"
+          onClick={() => createSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        >
+          Créer une facture
+        </button>
       </div>
+      <p className="page-summary">Suivi simple des factures, paiements et retards.</p>
 
-      <div className="card-grid">
+      <div className="card-grid metrics-row">
         <div className="card">
           <p className="card-label">Total facture</p>
           <p className="card-value">{Number(stats?.total_facture || 0).toFixed(2)} EUR</p>
-        </div>
-        <div className="card">
-          <p className="card-label">Total encaisse</p>
-          <p className="card-value">{Number(stats?.total_encaisse || 0).toFixed(2)} EUR</p>
         </div>
         <div className="card">
           <p className="card-label">Total restant</p>
@@ -355,121 +359,134 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <div className="card-grid">
-        <div className="card">
-          <p className="card-label">Delai moyen paiement</p>
-          <p className="card-value">{Number(stats?.delai_moyen_paiement || 0).toFixed(1)} jours</p>
+      <details className="details-panel">
+        <summary>Détails statistiques</summary>
+        <div className="card-grid compact-grid">
+          <div className="card">
+            <p className="card-label">Total encaissé</p>
+            <p className="card-value">{Number(stats?.total_encaisse || 0).toFixed(2)} EUR</p>
+          </div>
+          <div className="card">
+            <p className="card-label">Délai moyen paiement</p>
+            <p className="card-value">{Number(stats?.delai_moyen_paiement || 0).toFixed(1)} jours</p>
+          </div>
         </div>
-      </div>
+      </details>
 
       {error && <p className="error">{error}</p>}
 
-      <form className="form-grid" onSubmit={submit}>
-        <select value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })} required>
-          <option value="">Client</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.company_name}
-            </option>
-          ))}
-        </select>
-        <input
-          placeholder="Numero facture"
-          value={form.invoice_number}
-          onChange={(e) => setForm({ ...form, invoice_number: e.target.value })}
-          required
-        />
-        <input
-          type="date"
-          value={form.invoice_date}
-          onChange={async (e) => {
-            const v = e.target.value;
-            setForm((prev) => ({ ...prev, invoice_date: v }));
-            await refreshNextNumber(v);
-          }}
-          required
-        />
-        <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required />
-        <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-          <option value="draft">Brouillon</option>
-          <option value="sent">Envoyee</option>
-        </select>
-        <input type="number" min="0" step="0.01" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: e.target.value })} placeholder="TVA %" />
-        <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
-          <option value="EUR">EUR</option>
-          <option value="USD">USD</option>
-          <option value="GBP">GBP</option>
-        </select>
-        <input placeholder="Acompte %" type="number" min="0" step="0.01" value={form.acompte_pourcentage} onChange={(e) => setForm({ ...form, acompte_pourcentage: e.target.value })} />
-        <input placeholder="Acompte montant" type="number" min="0" step="0.01" value={form.acompte_montant} onChange={(e) => setForm({ ...form, acompte_montant: e.target.value })} />
-        <input placeholder="Notes (PDF)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-        {isAdmin && (
-          <input placeholder="Note interne (admin)" value={form.note_interne} onChange={(e) => setForm({ ...form, note_interne: e.target.value })} />
-        )}
+      <details className="details-panel" open ref={createSectionRef}>
+        <summary>Création facture</summary>
+        <form className="form-grid" onSubmit={submit}>
+          <select value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })} required>
+            <option value="">Client</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.company_name}
+              </option>
+            ))}
+          </select>
+          <input
+            placeholder="Numero facture"
+            value={form.invoice_number}
+            onChange={(e) => setForm({ ...form, invoice_number: e.target.value })}
+            required
+          />
+          <input
+            type="date"
+            value={form.invoice_date}
+            onChange={async (e) => {
+              const v = e.target.value;
+              setForm((prev) => ({ ...prev, invoice_date: v }));
+              await refreshNextNumber(v);
+            }}
+            required
+          />
+          <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required />
+          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+            <option value="draft">Brouillon</option>
+            <option value="sent">Envoyee</option>
+          </select>
+          <input type="number" min="0" step="0.01" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: e.target.value })} placeholder="TVA %" />
+          <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
+            <option value="EUR">EUR</option>
+            <option value="USD">USD</option>
+            <option value="GBP">GBP</option>
+          </select>
+          <input placeholder="Acompte %" type="number" min="0" step="0.01" value={form.acompte_pourcentage} onChange={(e) => setForm({ ...form, acompte_pourcentage: e.target.value })} />
+          <input placeholder="Acompte montant" type="number" min="0" step="0.01" value={form.acompte_montant} onChange={(e) => setForm({ ...form, acompte_montant: e.target.value })} />
+          <input placeholder="Notes (PDF)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          {isAdmin && (
+            <input placeholder="Note interne (admin)" value={form.note_interne} onChange={(e) => setForm({ ...form, note_interne: e.target.value })} />
+          )}
 
-        <div style={{ gridColumn: "1 / -1" }} className="card">
-          <div className="page-head" style={{ marginBottom: 8 }}>
-            <h2 style={{ fontSize: "1rem" }}>Articles facture</h2>
-            <button type="button" className="secondary" onClick={addItem}>
-              Ajouter une ligne
-            </button>
-          </div>
-          {items.map((item, index) => (
-            <div key={index} className="line-item-row">
-              <input
-                list="invoice-articles"
-                placeholder="Article ou description"
-                value={item.description}
-                onChange={(e) => applyArticle(index, e.target.value)}
-                required={index === 0}
-              />
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="Qte"
-                value={item.quantity}
-                onChange={(e) => updateItem(index, "quantity", e.target.value)}
-              />
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="Prix unitaire"
-                value={item.unit_price}
-                onChange={(e) => updateItem(index, "unit_price", e.target.value)}
-              />
-              <button type="button" className="secondary" onClick={() => removeItem(index)} disabled={items.length === 1}>
-                Suppr.
+          <div style={{ gridColumn: "1 / -1" }} className="card">
+            <div className="page-head" style={{ marginBottom: 8 }}>
+              <h2 style={{ fontSize: "1rem" }}>Articles facture</h2>
+              <button type="button" className="secondary" onClick={addItem}>
+                Ajouter une ligne
               </button>
             </div>
-          ))}
-          <datalist id="invoice-articles">
-            {articles.map((a) => (
-              <option key={a.id} value={a.name} />
+            {items.map((item, index) => (
+              <div key={index} className="line-item-row">
+                <input
+                  list="invoice-articles"
+                  placeholder="Article ou description"
+                  value={item.description}
+                  onChange={(e) => applyArticle(index, e.target.value)}
+                  required={index === 0}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Qte"
+                  value={item.quantity}
+                  onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Prix unitaire"
+                  value={item.unit_price}
+                  onChange={(e) => updateItem(index, "unit_price", e.target.value)}
+                />
+                <button type="button" className="secondary" onClick={() => removeItem(index)} disabled={items.length === 1}>
+                  Suppr.
+                </button>
+              </div>
             ))}
-          </datalist>
-          <p style={{ margin: "8px 0 0", color: "#5b6473" }}>
-            Brouillon: total {draftTotals.total.toFixed(2)} EUR, acompte {draftTotals.acompte.toFixed(2)} EUR, solde {draftTotals.solde.toFixed(2)} EUR
-          </p>
-        </div>
+            <datalist id="invoice-articles">
+              {articles.map((a) => (
+                <option key={a.id} value={a.name} />
+              ))}
+            </datalist>
+            <p style={{ margin: "8px 0 0", color: "#5b6473" }}>
+              Brouillon: total {draftTotals.total.toFixed(2)} EUR, acompte {draftTotals.acompte.toFixed(2)} EUR, solde {draftTotals.solde.toFixed(2)} EUR
+            </p>
+          </div>
 
-        <button className="primary-action" style={{ gridColumn: "1 / -1" }} disabled={submitting}>
-          {submitting ? "Creation..." : "Creer la facture"}
-        </button>
-      </form>
+          <button className="primary-action" style={{ gridColumn: "1 / -1" }} disabled={submitting}>
+            {submitting ? "Creation..." : "Creer la facture"}
+          </button>
+        </form>
+      </details>
 
-      <form className="form-grid" onSubmit={createArticle}>
-        <input placeholder="Article: nom" value={articleForm.name} onChange={(e) => setArticleForm({ ...articleForm, name: e.target.value })} required />
-        <input placeholder="Article: description" value={articleForm.description} onChange={(e) => setArticleForm({ ...articleForm, description: e.target.value })} />
-        <input type="number" min="0" step="0.01" placeholder="Article: prix" value={articleForm.price} onChange={(e) => setArticleForm({ ...articleForm, price: e.target.value })} required />
-        <input type="number" min="0" step="0.01" placeholder="Article: TVA %" value={articleForm.tax_rate} onChange={(e) => setArticleForm({ ...articleForm, tax_rate: e.target.value })} />
-        <button style={{ gridColumn: "1 / -1" }}>Ajouter article predefini</button>
-      </form>
+      <details className="details-panel">
+        <summary>Articles prédéfinis (base)</summary>
+        <form className="form-grid" onSubmit={createArticle}>
+          <input placeholder="Article: nom" value={articleForm.name} onChange={(e) => setArticleForm({ ...articleForm, name: e.target.value })} required />
+          <input placeholder="Article: description" value={articleForm.description} onChange={(e) => setArticleForm({ ...articleForm, description: e.target.value })} />
+          <input type="number" min="0" step="0.01" placeholder="Article: prix" value={articleForm.price} onChange={(e) => setArticleForm({ ...articleForm, price: e.target.value })} required />
+          <input type="number" min="0" step="0.01" placeholder="Article: TVA %" value={articleForm.tax_rate} onChange={(e) => setArticleForm({ ...articleForm, tax_rate: e.target.value })} />
+          <button style={{ gridColumn: "1 / -1" }}>Ajouter article predefini</button>
+        </form>
+      </details>
 
       <div className="card" style={{ margin: "14px 0" }}>
         <div className="page-head" style={{ marginBottom: 8 }}>
-          <h2 style={{ fontSize: "1rem" }}>Recherche factures</h2>
+          <h2 style={{ fontSize: "1rem" }}>Liste des factures</h2>
         </div>
         <div className="filter-row">
           <input placeholder="Recherche numero / client" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -535,36 +552,39 @@ export default function InvoicesPage() {
         </table>
       </div>
 
-      <div className="card-grid" style={{ marginTop: 12 }}>
-        <div className="card">
-          <p className="card-label">Encaissements mensuels</p>
-          <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
-            {(stats?.encaissements_mensuels || []).slice(0, 6).map((row) => (
-              <div key={`enc-${row.month}`} style={{ display: "grid", gridTemplateColumns: "86px 1fr auto", gap: 8, alignItems: "center" }}>
-                <span>{row.month}</span>
-                <div style={{ height: 8, borderRadius: 99, background: "#e6eef8", overflow: "hidden" }}>
-                  <div style={{ width: `${Math.min(100, Number(row.amount || 0) / 100)}%`, height: "100%", background: "#0071e3" }} />
+      <details className="details-panel">
+        <summary>Détails encaissements et impayés</summary>
+        <div className="card-grid compact-grid" style={{ marginTop: 12 }}>
+          <div className="card">
+            <p className="card-label">Encaissements mensuels</p>
+            <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
+              {(stats?.encaissements_mensuels || []).slice(0, 6).map((row) => (
+                <div key={`enc-${row.month}`} style={{ display: "grid", gridTemplateColumns: "86px 1fr auto", gap: 8, alignItems: "center" }}>
+                  <span>{row.month}</span>
+                  <div style={{ height: 8, borderRadius: 99, background: "#e6eef8", overflow: "hidden" }}>
+                    <div style={{ width: `${Math.min(100, Number(row.amount || 0) / 100)}%`, height: "100%", background: "#0071e3" }} />
+                  </div>
+                  <span>{Number(row.amount || 0).toFixed(0)}€</span>
                 </div>
-                <span>{Number(row.amount || 0).toFixed(0)}€</span>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <p className="card-label">Factures impayees</p>
+            <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
+              {(stats?.impayes_mensuels || []).slice(0, 6).map((row) => (
+                <div key={`imp-${row.month}`} style={{ display: "grid", gridTemplateColumns: "86px 1fr auto", gap: 8, alignItems: "center" }}>
+                  <span>{row.month}</span>
+                  <div style={{ height: 8, borderRadius: 99, background: "#fde8e8", overflow: "hidden" }}>
+                    <div style={{ width: `${Math.min(100, Number(row.unpaid || 0) / 100)}%`, height: "100%", background: "#dc2626" }} />
+                  </div>
+                  <span>{Number(row.unpaid || 0).toFixed(0)}€</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-        <div className="card">
-          <p className="card-label">Factures impayees</p>
-          <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
-            {(stats?.impayes_mensuels || []).slice(0, 6).map((row) => (
-              <div key={`imp-${row.month}`} style={{ display: "grid", gridTemplateColumns: "86px 1fr auto", gap: 8, alignItems: "center" }}>
-                <span>{row.month}</span>
-                <div style={{ height: 8, borderRadius: 99, background: "#fde8e8", overflow: "hidden" }}>
-                  <div style={{ width: `${Math.min(100, Number(row.unpaid || 0) / 100)}%`, height: "100%", background: "#dc2626" }} />
-                </div>
-                <span>{Number(row.unpaid || 0).toFixed(0)}€</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      </details>
 
       {selectedInvoiceId && (
         <div className="card" style={{ marginTop: 14 }}>

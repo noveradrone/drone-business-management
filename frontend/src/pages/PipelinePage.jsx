@@ -61,6 +61,7 @@ export default function PipelinePage() {
       <div className="page-head">
         <h2>Pipeline commercial</h2>
       </div>
+      <p className="page-summary">Garde une vue claire des prospects et concentre les relances prioritaires.</p>
       {error && <p className="error">{error}</p>}
 
       {stats && (
@@ -127,26 +128,29 @@ export default function PipelinePage() {
       </div>
 
       {stats && (
-        <div className="table-wrap" style={{ marginTop: 12 }}>
-          <table className="mobile-cards-table">
-            <thead>
-              <tr>
-                <th>Source</th>
-                <th>Taux conversion</th>
-                <th>Total prospects</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(stats.conversion_by_source || []).map((s) => (
-                <tr key={s.source}>
-                  <td data-label="Source">{s.source}</td>
-                  <td data-label="Taux conversion">{Number(s.conversion_rate || 0).toFixed(1)}%</td>
-                  <td data-label="Total prospects">{s.total}</td>
+        <details className="details-panel">
+          <summary>Détails conversions par source</summary>
+          <div className="table-wrap" style={{ marginTop: 12 }}>
+            <table className="mobile-cards-table">
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Taux conversion</th>
+                  <th>Total prospects</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {(stats.conversion_by_source || []).map((s) => (
+                  <tr key={s.source}>
+                    <td data-label="Source">{s.source}</td>
+                    <td data-label="Taux conversion">{Number(s.conversion_rate || 0).toFixed(1)}%</td>
+                    <td data-label="Total prospects">{s.total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
       )}
     </div>
   );

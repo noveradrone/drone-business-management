@@ -106,6 +106,26 @@ body {
   background: var(--sidebar-color);
 }
 
+.nav-group {
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.nav-group-title {
+  margin: 0 0 6px;
+  padding: 0 10px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.nav-link-main {
+  margin-bottom: 4px;
+}
+
 .nav-link {
   display: block;
   border-radius: 10px;
@@ -120,6 +140,7 @@ body {
 .nav-link.active {
   background: color-mix(in srgb, var(--primary-color) 14%, transparent);
   color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent);
 }
 
 .main-panel {
@@ -145,6 +166,14 @@ body {
   margin: 0;
   letter-spacing: -0.02em;
   text-align: left;
+  font-size: clamp(1.55rem, 2.4vw, 1.95rem);
+}
+
+.page-summary {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  max-width: 62ch;
 }
 
 .card-grid {
@@ -160,19 +189,52 @@ body {
   border-radius: var(--radius-md);
   padding: 14px;
   text-align: left;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
 }
 
 .card-label {
   margin: 0;
   color: var(--muted);
-  font-size: 0.86rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .card-value {
   margin: 6px 0 0;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 680;
   letter-spacing: -0.02em;
+}
+
+.metrics-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.compact-grid {
+  margin-top: 10px;
+}
+
+.details-panel {
+  margin: 0 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-strong) 96%, #ffffff 4%);
+  padding: 10px 12px;
+}
+
+.details-panel > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.details-panel > summary::marker {
+  color: var(--accent);
+}
+
+.details-panel[open] > summary {
+  margin-bottom: 10px;
 }
 
 form.form-grid {
@@ -198,6 +260,12 @@ form.form-grid {
   display: grid;
   gap: 8px;
   grid-template-columns: 2fr 1fr;
+}
+
+.nested-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .export-grid {
@@ -468,6 +536,46 @@ form.form-grid.login-form {
   flex-wrap: wrap;
 }
 
+:root[data-density="compact"] .topbar {
+  margin-bottom: 14px;
+}
+
+:root[data-density="compact"] .shell-grid {
+  gap: 12px;
+}
+
+:root[data-density="compact"] .main-panel {
+  padding: 14px;
+}
+
+:root[data-density="compact"] .card-grid {
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+:root[data-density="compact"] .card {
+  padding: 10px;
+  border-radius: 12px;
+}
+
+:root[data-density="compact"] .card-value {
+  font-size: 1.08rem;
+}
+
+:root[data-density="compact"] form.form-grid {
+  gap: 8px;
+}
+
+:root[data-density="compact"] .nav-link {
+  padding: 8px 10px;
+}
+
+:root[data-density="compact"] th,
+:root[data-density="compact"] td {
+  padding: 8px;
+  font-size: 0.88rem;
+}
+
 @media (max-width: 960px) {
   .shell-grid {
     grid-template-columns: 1fr;
@@ -513,6 +621,10 @@ form.form-grid.login-form {
 
   .card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metrics-row {
+    grid-template-columns: 1fr;
   }
 
   form.form-grid {
@@ -584,6 +696,10 @@ form.form-grid.login-form {
     gap: 8px;
   }
 
+  .page-summary {
+    font-size: 0.88rem;
+  }
+
   .card-grid {
     grid-template-columns: 1fr;
     gap: 10px;
@@ -596,7 +712,8 @@ form.form-grid.login-form {
 
   .line-item-row,
   .filter-row,
-  .export-grid {
+  .export-grid,
+  .nested-grid {
     grid-template-columns: 1fr;
   }
 
