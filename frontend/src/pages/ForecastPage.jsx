@@ -33,7 +33,7 @@ export default function ForecastPage() {
       </div>
 
       <div className="table-wrap" style={{ marginBottom: 12 }}>
-        <table>
+        <table className="mobile-cards-table">
           <thead>
             <tr>
               <th>Mois</th>
@@ -43,8 +43,8 @@ export default function ForecastPage() {
           <tbody>
             {(summary.historical_revenue || []).map((item) => (
               <tr key={item.month}>
-                <td>{item.month}</td>
-                <td>{Number(item.revenue || 0).toFixed(2)} EUR</td>
+                <td data-label="Mois">{item.month}</td>
+                <td data-label="Revenus historiques">{Number(item.revenue || 0).toFixed(2)} EUR</td>
               </tr>
             ))}
           </tbody>
@@ -52,7 +52,7 @@ export default function ForecastPage() {
       </div>
 
       <div className="table-wrap" style={{ marginBottom: 12 }}>
-        <table>
+        <table className="mobile-cards-table">
           <thead>
             <tr>
               <th>Mois (saisonnalite)</th>
@@ -62,8 +62,8 @@ export default function ForecastPage() {
           <tbody>
             {(summary.seasonality || []).map((item) => (
               <tr key={item.month}>
-                <td>{item.month}</td>
-                <td>{item.missions}</td>
+                <td data-label="Mois (saisonnalite)">{item.month}</td>
+                <td data-label="Nb missions">{item.missions}</td>
               </tr>
             ))}
           </tbody>
@@ -71,7 +71,7 @@ export default function ForecastPage() {
       </div>
 
       <div className="table-wrap">
-        <table>
+        <table className="mobile-cards-table">
           <thead>
             <tr>
               <th>Departement</th>
@@ -81,8 +81,8 @@ export default function ForecastPage() {
           <tbody>
             {(summary.missions_by_department || []).map((item) => (
               <tr key={item.department}>
-                <td>{item.department}</td>
-                <td>{item.missions}</td>
+                <td data-label="Departement">{item.department}</td>
+                <td data-label="Missions">{item.missions}</td>
               </tr>
             ))}
           </tbody>

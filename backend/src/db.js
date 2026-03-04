@@ -210,6 +210,79 @@ CREATE TABLE IF NOT EXISTS reminders (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS regulatory_preparations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  mission_id INTEGER NOT NULL UNIQUE,
+  category_type TEXT NOT NULL CHECK(category_type IN ('open','specific','certified')) DEFAULT 'open',
+  open_subcategory TEXT CHECK(open_subcategory IN ('A1','A2','A3')),
+  specific_type TEXT CHECK(specific_type IN ('STS-01','STS-02','PDRA','SORA','OTHER')),
+  pdra_type TEXT CHECK(pdra_type IN ('PDRA-S01','PDRA-S02')),
+  sora_required INTEGER NOT NULL DEFAULT 0,
+  sts_declaration_required INTEGER NOT NULL DEFAULT 0,
+  operational_authorization_required INTEGER NOT NULL DEFAULT 0,
+  validation_manuel INTEGER NOT NULL DEFAULT 0,
+  location_address TEXT,
+  location_lat REAL,
+  location_lng REAL,
+  operation_date TEXT,
+  start_time TEXT,
+  end_time TEXT,
+  altitude_max_m REAL,
+  distance_to_people_m REAL,
+  over_assemblies INTEGER NOT NULL DEFAULT 0,
+  in_urban_area INTEGER NOT NULL DEFAULT 0,
+  night_operation INTEGER NOT NULL DEFAULT 0,
+  near_airport_or_ctr INTEGER NOT NULL DEFAULT 0,
+  near_airport_details TEXT,
+  restricted_zone INTEGER NOT NULL DEFAULT 0,
+  restricted_zone_details TEXT,
+  aircraft_class TEXT,
+  mtom_kg REAL,
+  remote_id INTEGER NOT NULL DEFAULT 0,
+  observers_needed INTEGER NOT NULL DEFAULT 0,
+  flyby_status TEXT NOT NULL CHECK(flyby_status IN ('todo','in_progress','done')) DEFAULT 'todo',
+  alphatango_status TEXT NOT NULL CHECK(alphatango_status IN ('todo','in_progress','done')) DEFAULT 'todo',
+  municipality_status TEXT NOT NULL CHECK(municipality_status IN ('todo','in_progress','done')) DEFAULT 'todo',
+  landowner_status TEXT NOT NULL CHECK(landowner_status IN ('todo','in_progress','done')) DEFAULT 'todo',
+  military_status TEXT NOT NULL CHECK(military_status IN ('todo','in_progress','done')) DEFAULT 'todo',
+  doc_pack_zip_url TEXT,
+  risk_assessment_pdf_url TEXT,
+  ops_manual_extract_pdf_url TEXT,
+  sts_declaration_pdf_url TEXT,
+  sora_pack_pdf_url TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS regulatory_checklist_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  preparation_id INTEGER NOT NULL,
+  item_key TEXT NOT NULL,
+  label TEXT NOT NULL,
+  description TEXT,
+  obligatoire INTEGER NOT NULL DEFAULT 1,
+  state TEXT NOT NULL CHECK(state IN ('todo','done')) DEFAULT 'todo',
+  link_url TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(preparation_id, item_key),
+  FOREIGN KEY (preparation_id) REFERENCES regulatory_preparations(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS regulatory_attachments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  preparation_id INTEGER NOT NULL,
+  original_name TEXT NOT NULL,
+  stored_name TEXT NOT NULL,
+  mime_type TEXT,
+  file_size INTEGER NOT NULL DEFAULT 0,
+  kind TEXT NOT NULL DEFAULT 'proof',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (preparation_id) REFERENCES regulatory_preparations(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS insurances (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   provider TEXT NOT NULL,

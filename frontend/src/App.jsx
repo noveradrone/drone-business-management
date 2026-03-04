@@ -16,30 +16,52 @@ import DocumentsPage from "./pages/DocumentsPage";
 import PipelinePage from "./pages/PipelinePage";
 import ReviewsPage from "./pages/ReviewsPage";
 import ForecastPage from "./pages/ForecastPage";
-import { applyTheme, DEFAULT_THEME } from "./theme";
+import {
+  applyTheme,
+  DEFAULT_THEME,
+  persistAppearanceSettings,
+  getAppearanceSettingsFromLocal,
+  fromAppearanceSettings
+} from "./theme";
 
 export default function App() {
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
 
+  async function hydrateTheme(userId = null) {
+    const localSettings = getAppearanceSettingsFromLocal(userId);
+    if (localSettings) {
+      const localTheme = fromAppearanceSettings(localSettings);
+      if (localTheme) applyTheme(localTheme);
+    }
+
+    try {
+      const remoteTheme = await api.settings.theme();
+      applyTheme(remoteTheme);
+      persistAppearanceSettings(remoteTheme, remoteTheme?.user_id || userId || null);
+    } catch {
+      if (!localSettings) applyTheme(DEFAULT_THEME);
+    }
+  }
+
   useEffect(() => {
+    const localSettings = getAppearanceSettingsFromLocal();
+    const localTheme = fromAppearanceSettings(localSettings);
+    if (localTheme) applyTheme(localTheme);
+
     api.auth
       .me()
-      .then(async () => {
+      .then(async (me) => {
         setAuthenticated(true);
-        try {
-          const theme = await api.settings.theme();
-          applyTheme(theme);
-        } catch {
-          applyTheme(DEFAULT_THEME);
-        }
+        await hydrateTheme(me?.id || null);
       })
       .catch(() => {
         setToken("");
         setAuthenticated(false);
-        applyTheme(DEFAULT_THEME);
+        if (!localTheme) applyTheme(DEFAULT_THEME);
       })
       .finally(() => setReady(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function logout() {
@@ -47,8 +69,13 @@ export default function App() {
     setAuthenticated(false);
   }
 
+  async function handleLogin(user = null) {
+    setAuthenticated(true);
+    await hydrateTheme(user?.id || null);
+  }
+
   if (!ready) return <div className="loading">Initialisation...</div>;
-  if (!authenticated) return <LoginPage onLogin={() => setAuthenticated(true)} />;
+  if (!authenticated) return <LoginPage onLogin={handleLogin} />;
 
   return (
     <BrowserRouter>

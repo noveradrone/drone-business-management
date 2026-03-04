@@ -164,7 +164,7 @@ export default function DronesPage() {
                   <button type="button" className="secondary" onClick={() => startEdit(d)}>
                     ✏️ Modifier
                   </button>
-                  <button type="button" className="secondary" onClick={() => removeDrone(d)}>
+                  <button type="button" className="danger" onClick={() => removeDrone(d)}>
                     Supprimer
                   </button>
                 </td>

@@ -53,7 +53,7 @@ export default function ReviewsPage() {
       {error && <p className="error">{error}</p>}
 
       <div className="table-wrap">
-        <table>
+        <table className="mobile-cards-table">
           <thead>
             <tr>
               <th>Nom</th>
@@ -66,11 +66,11 @@ export default function ReviewsPage() {
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
-                <td>{r.contact_name || r.company_name}</td>
-                <td>{r.phone || "-"}</td>
-                <td>{r.mission_date}</td>
-                <td>{r.compteur_relances}</td>
-                <td>
+                <td data-label="Nom">{r.contact_name || r.company_name}</td>
+                <td data-label="Telephone">{r.phone || "-"}</td>
+                <td data-label="Date mission">{r.mission_date}</td>
+                <td data-label="Compteur relances">{r.compteur_relances}</td>
+                <td data-label="Actions" className="actions-cell">
                   <button className="secondary" onClick={() => sendReviewRequest(r)}>
                     Envoyer demande d'avis
                   </button>
@@ -79,7 +79,7 @@ export default function ReviewsPage() {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan="5">Aucun client a relancer actuellement.</td>
+                <td data-label="Information" colSpan="5">Aucun client a relancer actuellement.</td>
               </tr>
             )}
           </tbody>

@@ -541,7 +541,7 @@ export default function InvoicesPage() {
                         Marquer payee
                       </button>
                     )}
-                    <button type="button" className="secondary" onClick={() => removeInvoice(i)}>
+                    <button type="button" className="danger" onClick={() => removeInvoice(i)}>
                       Supprimer
                     </button>
                   </td>
@@ -647,7 +647,7 @@ export default function InvoicesPage() {
                 ))}
                 {selectedInvoice && selectedInvoice.payments && selectedInvoice.payments.length === 0 && (
                   <tr>
-                    <td colSpan="5">Aucun paiement enregistre.</td>
+                    <td data-label="Information" colSpan="5">Aucun paiement enregistre.</td>
                   </tr>
                 )}
               </tbody>

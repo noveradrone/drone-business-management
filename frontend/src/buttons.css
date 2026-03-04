@@ -1,0 +1,195 @@
+:root {
+  --btn-height-sm: 34px;
+  --btn-height-md: 40px;
+  --btn-height-lg: 46px;
+  --btn-padding-x: 14px;
+  --btn-font-size: 0.92rem;
+  --btn-font-weight: 600;
+  --btn-min-width: 88px;
+  --btn-border-width: 1px;
+  --btn-focus-ring: var(--focus-ring);
+
+  --btn-primary-bg: var(--button-color);
+  --btn-primary-text: var(--button-text);
+  --btn-primary-border: color-mix(in srgb, var(--button-color) 72%, var(--border));
+
+  --btn-secondary-bg: color-mix(in srgb, var(--secondary-color) 22%, var(--surface-strong));
+  --btn-secondary-text: var(--text);
+  --btn-secondary-border: color-mix(in srgb, var(--secondary-color) 36%, var(--border));
+
+  --btn-ghost-bg: transparent;
+  --btn-ghost-text: var(--text);
+  --btn-ghost-border: var(--border);
+
+  --btn-danger-bg: color-mix(in srgb, var(--danger) 88%, var(--surface-strong));
+  --btn-danger-text: var(--button-text);
+  --btn-danger-border: color-mix(in srgb, var(--danger) 65%, var(--border));
+
+  --btn-success-bg: color-mix(in srgb, var(--success) 84%, var(--surface-strong));
+  --btn-success-text: var(--button-text);
+  --btn-success-border: color-mix(in srgb, var(--success) 62%, var(--border));
+}
+
+.btn,
+button:not(.seg-item):not(.theme-tile):not(.toggle-switch),
+a.secondary,
+a.action-link-btn,
+.document-download {
+  appearance: none;
+  border: var(--btn-border-width) solid var(--btn-primary-border);
+  border-radius: var(--radius-md);
+  min-height: var(--btn-height-md);
+  min-width: var(--btn-min-width);
+  max-width: 100%;
+  padding: 0 var(--btn-padding-x);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+}
+
+.btn:hover,
+button:not(.seg-item):not(.theme-tile):not(.toggle-switch):hover,
+a.secondary:hover,
+a.action-link-btn:hover,
+.document-download:hover {
+  filter: brightness(0.97);
+  transform: translateY(-1px);
+}
+
+.btn:active,
+button:not(.seg-item):not(.theme-tile):not(.toggle-switch):active,
+a.secondary:active,
+a.action-link-btn:active,
+.document-download:active {
+  transform: translateY(0);
+}
+
+.btn:focus-visible,
+button:not(.seg-item):not(.theme-tile):not(.toggle-switch):focus-visible,
+a.secondary:focus-visible,
+a.action-link-btn:focus-visible,
+.document-download:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--btn-focus-ring);
+}
+
+.btn:disabled,
+button:not(.seg-item):not(.theme-tile):not(.toggle-switch):disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.58;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+.btn-secondary,
+button.secondary,
+a.secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border-color: var(--btn-secondary-border);
+}
+
+.btn-ghost,
+button.ghost {
+  background: var(--btn-ghost-bg);
+  color: var(--btn-ghost-text);
+  border-color: var(--btn-ghost-border);
+}
+
+.btn-danger,
+button.danger {
+  background: var(--btn-danger-bg);
+  color: var(--btn-danger-text);
+  border-color: var(--btn-danger-border);
+}
+
+.btn-success,
+button.success {
+  background: var(--btn-success-bg);
+  color: var(--btn-success-text);
+  border-color: var(--btn-success-border);
+}
+
+.btn-sm {
+  min-height: var(--btn-height-sm);
+  min-width: 76px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+}
+
+.btn-md {
+  min-height: var(--btn-height-md);
+}
+
+.btn-lg,
+button.primary-action {
+  min-height: var(--btn-height-lg);
+  font-size: 0.96rem;
+  padding: 0 18px;
+}
+
+.btn-icon {
+  min-width: var(--btn-height-md);
+  width: var(--btn-height-md);
+  padding: 0;
+}
+
+.actions-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.actions-cell button,
+.actions-cell a {
+  min-height: var(--btn-height-sm);
+  min-width: 88px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+}
+
+.table-wrap .actions-cell {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .btn,
+  button:not(.seg-item):not(.theme-tile):not(.toggle-switch),
+  a.secondary,
+  a.action-link-btn,
+  .document-download {
+    min-height: 44px;
+  }
+
+  .actions-cell {
+    justify-content: flex-start;
+  }
+
+  .actions-cell button,
+  .actions-cell a {
+    min-height: 44px;
+    min-width: 120px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .actions-cell button,
+  .actions-cell a {
+    width: 100%;
+    min-width: 0;
+  }
+}

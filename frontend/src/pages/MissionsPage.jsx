@@ -3,6 +3,58 @@ import { api } from "../api";
 
 const packOptions = ["Essentiel", "Premium", "Instagram"];
 const statusOptions = ["planned", "in_progress", "completed", "cancelled"];
+const prepStatuses = ["todo", "in_progress", "done"];
+const categoryTypes = ["open", "specific", "certified"];
+const openSubCategories = ["A1", "A2", "A3"];
+const specificTypes = ["STS-01", "STS-02", "PDRA", "SORA", "OTHER"];
+const pdraTypes = ["PDRA-S01", "PDRA-S02"];
+
+function boolToChecked(value) {
+  return value === 1 || value === true;
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Impossible de lire le fichier"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function download(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function statusPill(status) {
+  const colors = {
+    todo: "#b7791f",
+    in_progress: "#2563eb",
+    done: "#1f9d55"
+  };
+  const color = colors[status] || "#596476";
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "3px 8px",
+        borderRadius: 999,
+        border: `1px solid ${color}55`,
+        color,
+        background: `${color}18`,
+        fontSize: 12,
+        fontWeight: 700
+      }}
+    >
+      {status}
+    </span>
+  );
+}
 
 export default function MissionsPage() {
   const [missions, setMissions] = useState([]);
@@ -10,6 +62,20 @@ export default function MissionsPage() {
   const [drones, setDrones] = useState([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [prepError, setPrepError] = useState("");
+  const [prepSuccess, setPrepSuccess] = useState("");
+  const [prepLoading, setPrepLoading] = useState(false);
+  const [prepSaving, setPrepSaving] = useState(false);
+  const [prepGenerating, setPrepGenerating] = useState(false);
+  const [prepUploading, setPrepUploading] = useState(false);
+  const [selectedMission, setSelectedMission] = useState(null);
+  const [preparation, setPreparation] = useState(null);
+  const [recommendation, setRecommendation] = useState(null);
+  const [checklist, setChecklist] = useState([]);
+  const [attachments, setAttachments] = useState([]);
+  const [copySummary, setCopySummary] = useState("");
+  const [links, setLinks] = useState({});
+
   const [form, setForm] = useState({
     drone_id: "",
     client_id: "",
@@ -102,9 +168,154 @@ export default function MissionsPage() {
     try {
       await api.missions.remove(mission.id);
       await load();
+      if (selectedMission?.id === mission.id) {
+        closePreparation();
+      }
     } catch (e) {
       setError(e.message);
     }
+  }
+
+  function applyPreparationPayload(payload) {
+    setPreparation(payload.preparation || null);
+    setRecommendation(payload.recommendation || null);
+    setChecklist(payload.checklist || []);
+    setAttachments(payload.attachments || []);
+    setCopySummary(payload.copy_summary || "");
+    setLinks(payload.links || {});
+  }
+
+  async function openPreparation(mission) {
+    setPrepError("");
+    setPrepSuccess("");
+    setSelectedMission(mission);
+    setPrepLoading(true);
+    try {
+      const payload = await api.missions.preparation(mission.id);
+      applyPreparationPayload(payload);
+    } catch (e) {
+      setPrepError(e.message);
+    } finally {
+      setPrepLoading(false);
+    }
+  }
+
+  function closePreparation() {
+    setSelectedMission(null);
+    setPreparation(null);
+    setRecommendation(null);
+    setChecklist([]);
+    setAttachments([]);
+    setCopySummary("");
+    setPrepError("");
+    setPrepSuccess("");
+    setLinks({});
+  }
+
+  function updatePreparationField(key, value) {
+    setPreparation((prev) => ({ ...(prev || {}), [key]: value }));
+    setPrepSuccess("");
+  }
+
+  async function savePreparation() {
+    if (!selectedMission || !preparation) return;
+    setPrepError("");
+    setPrepSuccess("");
+    setPrepSaving(true);
+    try {
+      const payload = await api.missions.updatePreparation(selectedMission.id, preparation);
+      applyPreparationPayload(payload);
+      setPrepSuccess("Preparation enregistree.");
+    } catch (e) {
+      setPrepError(e.message);
+    } finally {
+      setPrepSaving(false);
+    }
+  }
+
+  async function toggleChecklist(item, checked) {
+    if (!selectedMission) return;
+    setPrepError("");
+    try {
+      await api.missions.updatePreparationChecklist(selectedMission.id, item.id, checked ? "done" : "todo");
+      setChecklist((prev) => prev.map((row) => (row.id === item.id ? { ...row, state: checked ? "done" : "todo" } : row)));
+    } catch (e) {
+      setPrepError(e.message);
+    }
+  }
+
+  async function copyMissionSummary() {
+    try {
+      await navigator.clipboard.writeText(copySummary || "");
+      setPrepSuccess("Resume copie.");
+    } catch {
+      setPrepError("Copie impossible depuis ce navigateur.");
+    }
+  }
+
+  async function generatePack() {
+    if (!selectedMission) return;
+    setPrepError("");
+    setPrepSuccess("");
+    setPrepGenerating(true);
+    try {
+      const generated = await api.missions.generatePreparationDocs(selectedMission.id);
+      setPreparation((prev) => ({ ...(prev || {}), ...generated }));
+      setPrepSuccess("Dossier mission genere.");
+    } catch (e) {
+      setPrepError(e.message);
+    } finally {
+      setPrepGenerating(false);
+    }
+  }
+
+  async function downloadPack() {
+    if (!selectedMission) return;
+    setPrepError("");
+    try {
+      const blob = await api.missions.preparationPackPdf(selectedMission.id);
+      download(blob, `preparation-mission-${selectedMission.id}.pdf`);
+    } catch (e) {
+      setPrepError(e.message);
+    }
+  }
+
+  async function uploadAttachment(file) {
+    if (!selectedMission || !file) return;
+    setPrepError("");
+    setPrepSuccess("");
+    setPrepUploading(true);
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const created = await api.missions.uploadPreparationAttachment(selectedMission.id, {
+        file_name: file.name,
+        file_data_url: dataUrl,
+        kind: "proof"
+      });
+      setAttachments((prev) => [created, ...prev]);
+      setPrepSuccess("Piece ajoutee.");
+    } catch (e) {
+      setPrepError(e.message);
+    } finally {
+      setPrepUploading(false);
+    }
+  }
+
+  async function removeAttachment(attachment) {
+    if (!selectedMission) return;
+    if (!window.confirm(`Supprimer la piece ${attachment.original_name} ?`)) return;
+    setPrepError("");
+    try {
+      await api.missions.removePreparationAttachment(selectedMission.id, attachment.id);
+      setAttachments((prev) => prev.filter((a) => a.id !== attachment.id));
+    } catch (e) {
+      setPrepError(e.message);
+    }
+  }
+
+  function openExternal(url) {
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -200,8 +411,11 @@ export default function MissionsPage() {
                 <td data-label="Cout total">{Number(m.total_cost || 0).toFixed(2)} EUR</td>
                 <td data-label="Marge brute">{Number(m.gross_margin || 0).toFixed(2)} EUR</td>
                 <td data-label="Taux horaire">{Number(m.effective_hourly_rate || 0).toFixed(2)} EUR/h</td>
-                <td data-label="Actions">
-                  <button type="button" className="secondary" onClick={() => removeMission(m)}>
+                <td data-label="Actions" className="actions-cell">
+                  <button type="button" className="secondary" onClick={() => openPreparation(m)}>
+                    Preparation de vol
+                  </button>
+                  <button type="button" className="danger" onClick={() => removeMission(m)}>
                     Supprimer
                   </button>
                 </td>
@@ -210,6 +424,240 @@ export default function MissionsPage() {
           </tbody>
         </table>
       </div>
+
+      {selectedMission && (
+        <div className="modal-backdrop" onClick={closePreparation}>
+          <div className="modal-card prep-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="page-head" style={{ marginBottom: 8 }}>
+              <h2 style={{ fontSize: "1.15rem" }}>Preparation de vol - Mission #{selectedMission.id}</h2>
+              <div className="actions-cell">
+                <button type="button" className="secondary" onClick={closePreparation}>
+                  Fermer
+                </button>
+              </div>
+            </div>
+
+            {prepError && <p className="error">{prepError}</p>}
+            {prepSuccess && <p style={{ color: "var(--success)", marginBottom: 8 }}>{prepSuccess}</p>}
+            {prepLoading || !preparation ? (
+              <p>Chargement de la preparation...</p>
+            ) : (
+              <div className="prep-grid">
+                <div className="card">
+                  <h3>Classification mission</h3>
+                  <div className="form-grid prep-form-grid">
+                    <select value={preparation.category_type || "open"} onChange={(e) => updatePreparationField("category_type", e.target.value)}>
+                      {categoryTypes.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    {preparation.category_type === "open" ? (
+                      <select value={preparation.open_subcategory || "A3"} onChange={(e) => updatePreparationField("open_subcategory", e.target.value)}>
+                        {openSubCategories.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                    {preparation.category_type === "specific" ? (
+                      <select value={preparation.specific_type || "STS-01"} onChange={(e) => updatePreparationField("specific_type", e.target.value)}>
+                        {specificTypes.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                    {preparation.category_type === "specific" && preparation.specific_type === "PDRA" ? (
+                      <select value={preparation.pdra_type || "PDRA-S01"} onChange={(e) => updatePreparationField("pdra_type", e.target.value)}>
+                        {pdraTypes.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                    <input placeholder="Adresse operation" value={preparation.location_address || ""} onChange={(e) => updatePreparationField("location_address", e.target.value)} />
+                    <input type="number" step="0.000001" placeholder="Latitude" value={preparation.location_lat ?? ""} onChange={(e) => updatePreparationField("location_lat", e.target.value)} />
+                    <input type="number" step="0.000001" placeholder="Longitude" value={preparation.location_lng ?? ""} onChange={(e) => updatePreparationField("location_lng", e.target.value)} />
+                    <input type="date" value={preparation.operation_date || ""} onChange={(e) => updatePreparationField("operation_date", e.target.value)} />
+                    <input type="time" value={preparation.start_time || ""} onChange={(e) => updatePreparationField("start_time", e.target.value)} />
+                    <input type="time" value={preparation.end_time || ""} onChange={(e) => updatePreparationField("end_time", e.target.value)} />
+                    <input type="number" min="0" step="1" placeholder="Altitude max (m)" value={preparation.altitude_max_m ?? ""} onChange={(e) => updatePreparationField("altitude_max_m", e.target.value)} />
+                    <input type="number" min="0" step="1" placeholder="Distance personnes (m)" value={preparation.distance_to_people_m ?? ""} onChange={(e) => updatePreparationField("distance_to_people_m", e.target.value)} />
+                    <input placeholder="Classe drone (C0/C1/C2...)" value={preparation.aircraft_class || ""} onChange={(e) => updatePreparationField("aircraft_class", e.target.value)} />
+                    <input type="number" min="0" step="0.01" placeholder="MTOM (kg)" value={preparation.mtom_kg ?? ""} onChange={(e) => updatePreparationField("mtom_kg", e.target.value)} />
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.over_assemblies)} onChange={(e) => updatePreparationField("over_assemblies", e.target.checked ? 1 : 0)} /> Survol rassemblement</label>
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.in_urban_area)} onChange={(e) => updatePreparationField("in_urban_area", e.target.checked ? 1 : 0)} /> Zone urbaine</label>
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.night_operation)} onChange={(e) => updatePreparationField("night_operation", e.target.checked ? 1 : 0)} /> Operation de nuit</label>
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.near_airport_or_ctr)} onChange={(e) => updatePreparationField("near_airport_or_ctr", e.target.checked ? 1 : 0)} /> Proche aeroport/CTR</label>
+                    <input placeholder="Details aeroport/CTR" value={preparation.near_airport_details || ""} onChange={(e) => updatePreparationField("near_airport_details", e.target.value)} />
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.restricted_zone)} onChange={(e) => updatePreparationField("restricted_zone", e.target.checked ? 1 : 0)} /> Zone restreinte</label>
+                    <input placeholder="Details zone restreinte" value={preparation.restricted_zone_details || ""} onChange={(e) => updatePreparationField("restricted_zone_details", e.target.value)} />
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.remote_id)} onChange={(e) => updatePreparationField("remote_id", e.target.checked ? 1 : 0)} /> Remote ID</label>
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.observers_needed)} onChange={(e) => updatePreparationField("observers_needed", e.target.checked ? 1 : 0)} /> Observateur requis</label>
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.sora_required)} onChange={(e) => updatePreparationField("sora_required", e.target.checked ? 1 : 0)} /> SORA requise</label>
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.sts_declaration_required)} onChange={(e) => updatePreparationField("sts_declaration_required", e.target.checked ? 1 : 0)} /> Declaration STS requise</label>
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.operational_authorization_required)} onChange={(e) => updatePreparationField("operational_authorization_required", e.target.checked ? 1 : 0)} /> Autorisation operationnelle</label>
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.validation_manuel)} onChange={(e) => updatePreparationField("validation_manuel", e.target.checked ? 1 : 0)} /> Validation manuelle</label>
+                  </div>
+                  <div className="actions-cell" style={{ marginTop: 10 }}>
+                    <button type="button" onClick={savePreparation} disabled={prepSaving}>
+                      {prepSaving ? "Enregistrement..." : "Enregistrer preparation"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h3>Obligations guidees</h3>
+                  <p className="documents-intro">Guidage indicatif uniquement, verification manuelle obligatoire.</p>
+                  <div className="prep-obligations">
+                    {(recommendation?.obligations || []).map((item, idx) => (
+                      <div key={`${item.text}-${idx}`} className="prep-obligation-row">
+                        <strong>{String(item.level || "").replace("_", " ")}</strong>
+                        <span>{item.text}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <h4 style={{ margin: "12px 0 8px" }}>Statuts des demarches</h4>
+                  <div className="form-grid prep-status-grid">
+                    <label>
+                      FlyBy
+                      <select value={preparation.flyby_status || "todo"} onChange={(e) => updatePreparationField("flyby_status", e.target.value)}>
+                        {prepStatuses.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      AlphaTango
+                      <select value={preparation.alphatango_status || "todo"} onChange={(e) => updatePreparationField("alphatango_status", e.target.value)}>
+                        {prepStatuses.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Mairie
+                      <select value={preparation.municipality_status || "todo"} onChange={(e) => updatePreparationField("municipality_status", e.target.value)}>
+                        {prepStatuses.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Proprietaire
+                      <select value={preparation.landowner_status || "todo"} onChange={(e) => updatePreparationField("landowner_status", e.target.value)}>
+                        {prepStatuses.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Militaire
+                      <select value={preparation.military_status || "todo"} onChange={(e) => updatePreparationField("military_status", e.target.value)}>
+                        {prepStatuses.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="actions-cell" style={{ marginTop: 10 }}>
+                    <button type="button" className="secondary" onClick={() => openExternal(links.flyby)}>
+                      Ouvrir FlyBy
+                    </button>
+                    <button type="button" className="secondary" onClick={() => openExternal(links.alphaTango)}>
+                      Ouvrir AlphaTango
+                    </button>
+                    <button type="button" className="secondary" onClick={() => openExternal(links.sia)}>
+                      Ouvrir SIA
+                    </button>
+                    <button type="button" className="secondary" onClick={() => openExternal(links.geoportail)}>
+                      Ouvrir Geoportail
+                    </button>
+                  </div>
+                </div>
+
+                <div className="card" style={{ gridColumn: "1 / -1" }}>
+                  <h3>Checklist dynamique</h3>
+                  <div className="prep-checklist">
+                    {checklist.map((item) => (
+                      <label key={item.id} className="prep-check-item">
+                        <input type="checkbox" checked={item.state === "done"} onChange={(e) => toggleChecklist(item, e.target.checked)} />
+                        <div>
+                          <div className="prep-check-head">
+                            <strong>{item.label}</strong> {statusPill(item.state)}
+                          </div>
+                          {item.description ? <p>{item.description}</p> : null}
+                          {item.link_url ? (
+                            <a href={item.link_url} target="_blank" rel="noreferrer">
+                              {item.link_url}
+                            </a>
+                          ) : null}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="card" style={{ gridColumn: "1 / -1" }}>
+                  <h3>Dossier mission</h3>
+                  <p className="documents-intro">Generation de fiche mission + checklist + analyse risques template.</p>
+                  <div className="actions-cell">
+                    <button type="button" onClick={generatePack} disabled={prepGenerating}>
+                      {prepGenerating ? "Generation..." : "Generer dossier mission"}
+                    </button>
+                    <button type="button" className="secondary" onClick={downloadPack}>
+                      Telecharger dossier PDF
+                    </button>
+                    <button type="button" className="secondary" onClick={copyMissionSummary}>
+                      Copier le resume mission
+                    </button>
+                  </div>
+                  <textarea value={copySummary} rows={6} readOnly style={{ marginTop: 10 }} />
+                </div>
+
+                <div className="card" style={{ gridColumn: "1 / -1" }}>
+                  <h3>Pieces justificatives</h3>
+                  <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,.txt,.json"
+                    onChange={(e) => uploadAttachment(e.target.files?.[0])}
+                    disabled={prepUploading}
+                  />
+                  <div className="prep-attachments">
+                    {attachments.map((att) => (
+                      <div key={att.id} className="prep-attachment-row">
+                        <span>
+                          {att.original_name} ({Number(att.file_size || 0)} o)
+                        </span>
+                        <button type="button" className="danger" onClick={() => removeAttachment(att)}>
+                          Supprimer
+                        </button>
+                      </div>
+                    ))}
+                    {!attachments.length ? <p style={{ margin: "8px 0 0" }}>Aucune piece chargee.</p> : null}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

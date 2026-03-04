@@ -10,9 +10,9 @@ export default function LoginPage({ onLogin }) {
     e.preventDefault();
     setError("");
     try {
-      const { token } = await api.auth.login({ email, password });
+      const { token, user } = await api.auth.login({ email, password });
       setToken(token);
-      onLogin();
+      await onLogin(user);
     } catch (err) {
       setError(err.message);
     }

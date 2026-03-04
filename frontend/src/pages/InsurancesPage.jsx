@@ -102,6 +102,7 @@ export default function InsurancesPage() {
         <input
           type="number"
           min="1"
+          inputMode="numeric"
           placeholder="ID entité (optionnel)"
           value={form.insured_entity_id}
           onChange={(e) => setForm({ ...form, insured_entity_id: e.target.value })}
@@ -122,6 +123,7 @@ export default function InsurancesPage() {
           type="number"
           min="0"
           step="0.01"
+          inputMode="decimal"
           placeholder="Prime (optionnel)"
           value={form.premium_amount}
           onChange={(e) => setForm({ ...form, premium_amount: e.target.value })}
@@ -142,7 +144,7 @@ export default function InsurancesPage() {
       </form>
 
       <div className="table-wrap">
-        <table>
+        <table className="mobile-cards-table">
           <thead>
             <tr>
               <th>Assureur</th>
@@ -157,14 +159,14 @@ export default function InsurancesPage() {
           <tbody>
             {insurances.map((i) => (
               <tr key={i.id}>
-                <td>{i.provider}</td>
-                <td>{i.policy_number}</td>
-                <td>{i.insured_entity_type}</td>
-                <td>{i.valid_from}</td>
-                <td>{i.valid_until}</td>
-                <td>{i.premium_amount ? `${Number(i.premium_amount).toFixed(2)} €` : "-"}</td>
-                <td>
-                  <button type="button" className="secondary" onClick={() => removeInsurance(i)}>
+                <td data-label="Assureur">{i.provider}</td>
+                <td data-label="Police">{i.policy_number}</td>
+                <td data-label="Type">{i.insured_entity_type}</td>
+                <td data-label="Debut">{i.valid_from}</td>
+                <td data-label="Fin">{i.valid_until}</td>
+                <td data-label="Prime">{i.premium_amount ? `${Number(i.premium_amount).toFixed(2)} €` : "-"}</td>
+                <td data-label="Actions" className="actions-cell">
+                  <button type="button" className="danger" onClick={() => removeInsurance(i)}>
                     Supprimer
                   </button>
                 </td>

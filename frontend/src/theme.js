@@ -1,4 +1,6 @@
 const THEME_IDS = ["ocean", "forest", "sunset", "graphite", "violet"];
+const APPEARANCE_STORAGE_PREFIX = "appearance_settings_v1";
+const APPEARANCE_LAST_USER_KEY = "appearance_settings_last_user";
 
 export const THEME_PRESETS = {
   ocean: {
@@ -292,6 +294,101 @@ function mergeTheme(theme) {
   }
 
   return merged;
+}
+
+function storageKey(userId) {
+  return `${APPEARANCE_STORAGE_PREFIX}:${userId || "guest"}`;
+}
+
+export function toAppearanceSettings(themeInput, userId = null) {
+  const theme = mergeTheme(themeInput);
+  const tokens = getThemeTokens(theme.theme_id, theme.mode);
+  const radiusMap = {
+    normal: "compact",
+    rounded: "standard",
+    pill: "tres_arrondi"
+  };
+  const shadowStyle = theme.shadows_enabled ? "subtiles" : "desactivees";
+  return {
+    user_id: userId || theme.user_id || null,
+    theme_id: theme.theme_id,
+    theme_mode: theme.mode === "dark" ? "sombre" : "clair",
+    compact_mode: theme.density === "compact",
+    border_radius_style: radiusMap[theme.radius_style] || "standard",
+    shadow_style: shadowStyle,
+    primary_color: tokens.primary,
+    secondary_color: tokens.secondary,
+    button_color: tokens.primary,
+    background_color: tokens.bg,
+    sidebar_color: tokens.sidebar,
+    density: theme.density,
+    radius_style: theme.radius_style,
+    shadows_enabled: theme.shadows_enabled ? 1 : 0,
+    saved_at: new Date().toISOString()
+  };
+}
+
+export function persistAppearanceSettings(themeInput, userId = null) {
+  try {
+    const settings = toAppearanceSettings(themeInput, userId);
+    const key = storageKey(settings.user_id || userId);
+    localStorage.setItem(key, JSON.stringify(settings));
+    if (settings.user_id) {
+      localStorage.setItem(APPEARANCE_LAST_USER_KEY, String(settings.user_id));
+    }
+  } catch {
+    // Ignore storage errors silently.
+  }
+}
+
+export function getAppearanceSettingsFromLocal(userId = null) {
+  try {
+    const explicitKey = storageKey(userId || null);
+    const explicitRaw = localStorage.getItem(explicitKey);
+    if (explicitRaw) return JSON.parse(explicitRaw);
+
+    const lastUser = localStorage.getItem(APPEARANCE_LAST_USER_KEY);
+    if (lastUser) {
+      const lastRaw = localStorage.getItem(storageKey(lastUser));
+      if (lastRaw) return JSON.parse(lastRaw);
+    }
+
+    // Backward compatibility with older generic local key.
+    const legacyRaw = localStorage.getItem("appearance_settings");
+    if (legacyRaw) return JSON.parse(legacyRaw);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function fromAppearanceSettings(settings) {
+  if (!settings || typeof settings !== "object") return null;
+  const themeMode = settings.theme_mode === "sombre" ? "dark" : settings.theme_mode === "clair" ? "light" : settings.mode;
+  const radiusStyle =
+    settings.border_radius_style === "compact"
+      ? "normal"
+      : settings.border_radius_style === "tres_arrondi"
+        ? "pill"
+        : settings.radius_style || "rounded";
+  const density = settings.compact_mode ? "compact" : settings.density || "comfortable";
+  const shadowsEnabled =
+    settings.shadow_style === "desactivees"
+      ? 0
+      : settings.shadow_style
+        ? 1
+        : settings.shadows_enabled !== undefined
+          ? Number(settings.shadows_enabled ? 1 : 0)
+          : 1;
+
+  return mergeTheme({
+    ...settings,
+    mode: themeMode || "light",
+    theme_id: settings.theme_id || DEFAULT_THEME.theme_id,
+    radius_style: radiusStyle,
+    density,
+    shadows_enabled: shadowsEnabled
+  });
 }
 
 function shadowValue(enabled) {

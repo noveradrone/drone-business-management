@@ -59,7 +59,25 @@ export const api = {
   missions: {
     list: () => request("/missions"),
     create: (data) => request("/missions", { method: "POST", body: JSON.stringify(data) }),
-    remove: (id) => request(`/missions/${id}`, { method: "DELETE" })
+    remove: (id) => request(`/missions/${id}`, { method: "DELETE" }),
+    preparation: (missionId) => request(`/flight-preparation/missions/${missionId}`),
+    updatePreparation: (missionId, data) =>
+      request(`/flight-preparation/missions/${missionId}`, { method: "PUT", body: JSON.stringify(data) }),
+    updatePreparationChecklist: (missionId, itemId, state) =>
+      request(`/flight-preparation/missions/${missionId}/checklist/${itemId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ state })
+      }),
+    uploadPreparationAttachment: (missionId, data) =>
+      request(`/flight-preparation/missions/${missionId}/attachments`, {
+        method: "POST",
+        body: JSON.stringify(data)
+      }),
+    removePreparationAttachment: (missionId, attachmentId) =>
+      request(`/flight-preparation/missions/${missionId}/attachments/${attachmentId}`, { method: "DELETE" }),
+    generatePreparationDocs: (missionId) =>
+      request(`/flight-preparation/missions/${missionId}/generate-docs`, { method: "POST", body: JSON.stringify({}) }),
+    preparationPackPdf: (missionId) => request(`/flight-preparation/missions/${missionId}/pack.pdf`)
   },
   pipeline: {
     list: () => request("/pipeline"),

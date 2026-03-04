@@ -485,7 +485,7 @@ export default function QuotesPage() {
                   >
                     Convertir facture
                   </button>
-                  <button type="button" className="secondary" onClick={() => removeQuote(q)}>
+                  <button type="button" className="danger" onClick={() => removeQuote(q)}>
                     Supprimer
                   </button>
                 </td>

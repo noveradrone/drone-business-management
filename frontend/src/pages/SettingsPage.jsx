@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
-import { applyTheme, DEFAULT_THEME, THEME_PRESETS, getThemeTokens } from "../theme";
+import {
+  applyTheme,
+  DEFAULT_THEME,
+  THEME_PRESETS,
+  getThemeTokens,
+  persistAppearanceSettings,
+  getAppearanceSettingsFromLocal,
+  fromAppearanceSettings
+} from "../theme";
 
 const tabs = [
   { key: "entreprise", label: "Entreprise", desc: "Identité et coordonnées publiques." },
@@ -103,8 +111,20 @@ export default function SettingsPage() {
         }
 
         applyAppearanceLive(mergedTheme, !mergedTheme.shadows_enabled ? "off" : shadowLevel, compactFromTheme);
+        persistAppearanceSettings(mergedTheme, mergedTheme?.user_id || null);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => {
+        const localSettings = getAppearanceSettingsFromLocal();
+        const localTheme = fromAppearanceSettings(localSettings);
+        if (localTheme) {
+          setAppearance(localTheme);
+          setCompactMode(localTheme.density === "compact");
+          setShadowLevel(localTheme.shadows_enabled ? "subtle" : "off");
+          applyAppearanceLive(localTheme, localTheme.shadows_enabled ? "subtle" : "off", localTheme.density === "compact");
+        } else {
+          setError(e.message);
+        }
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -188,6 +208,8 @@ export default function SettingsPage() {
       const updated = await api.settings.updateTheme(payload);
       const merged = { ...appearance, ...(updated || {}) };
       setAppearance(merged);
+      persistAppearanceSettings(merged, merged?.user_id || null);
+      localStorage.setItem("appearance_settings", JSON.stringify(payload));
       setThemeSaved(true);
     } catch (err) {
       setError(err.message);
@@ -206,6 +228,13 @@ export default function SettingsPage() {
       setAppearance(merged);
       setShadowLevel("subtle");
       setCompactMode(false);
+      persistAppearanceSettings(merged, merged?.user_id || null);
+      localStorage.setItem("appearance_settings", JSON.stringify({
+        theme_mode: "clair",
+        compact_mode: false,
+        border_radius_style: "standard",
+        shadow_style: "subtiles"
+      }));
       setThemeSaved(true);
     } catch (err) {
       setError(err.message);

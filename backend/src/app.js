@@ -23,6 +23,7 @@ const reviewsRoutes = require("./routes/reviews");
 const forecastRoutes = require("./routes/forecast");
 const articlesRoutes = require("./routes/articles");
 const documentsRoutes = require("./routes/documents");
+const flightPreparationRoutes = require("./routes/flightPreparation");
 
 const app = express();
 if (nodeEnv === "production" && (!jwtSecret || jwtSecret.length < 32 || jwtSecret === "change-me-in-production")) {
@@ -65,6 +66,7 @@ app.use("/api/reviews", reviewsRoutes);
 app.use("/api/forecast", forecastRoutes);
 app.use("/api/articles", articlesRoutes);
 app.use("/api/documents", documentsRoutes);
+app.use("/api/flight-preparation", flightPreparationRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
