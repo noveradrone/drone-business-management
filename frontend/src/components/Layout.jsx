@@ -44,11 +44,13 @@ export default function Layout({ onLogout }) {
   }, [compactMode]);
 
   useEffect(() => {
-    if (!mobileMenuOpen) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (mobileMenuOpen) {
+      document.body.classList.add("no-scroll");
+    } else {
+      document.body.classList.remove("no-scroll");
+    }
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.body.classList.remove("no-scroll");
     };
   }, [mobileMenuOpen]);
 
@@ -57,7 +59,7 @@ export default function Layout({ onLogout }) {
       <header className="topbar">
         <div className="brand">Drone Business</div>
         <div className="topbar-actions">
-          <button className="secondary mobile-menu-btn" onClick={() => setMobileMenuOpen((v) => !v)}>
+          <button className="secondary menu-toggle" onClick={() => setMobileMenuOpen((v) => !v)}>
             ☰ Menu
           </button>
           <button className="secondary" type="button" onClick={() => setCompactMode((v) => !v)}>
