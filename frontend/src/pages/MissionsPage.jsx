@@ -548,64 +548,91 @@ export default function MissionsPage() {
                 <div className="prep-grid">
                 <div className="card">
                   <h3>Classification mission</h3>
-                  <div className="form-grid prep-form-grid">
-                    <select value={preparation.category_type || "open"} onChange={(e) => updatePreparationField("category_type", e.target.value)}>
-                      {categoryTypes.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                    {preparation.category_type === "open" ? (
-                      <select value={preparation.open_subcategory || "A3"} onChange={(e) => updatePreparationField("open_subcategory", e.target.value)}>
-                        {openSubCategories.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
+                  <div className="form-stack prep-form-stack">
+                    <div className="form-grid-2">
+                      <select value={preparation.category_type || "open"} onChange={(e) => updatePreparationField("category_type", e.target.value)}>
+                        {categoryTypes.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
                           </option>
                         ))}
                       </select>
-                    ) : null}
-                    {preparation.category_type === "specific" ? (
-                      <select value={preparation.specific_type || "STS-01"} onChange={(e) => updatePreparationField("specific_type", e.target.value)}>
-                        {specificTypes.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    ) : null}
+                      {preparation.category_type === "open" ? (
+                        <select value={preparation.open_subcategory || "A3"} onChange={(e) => updatePreparationField("open_subcategory", e.target.value)}>
+                          {openSubCategories.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      ) : preparation.category_type === "specific" ? (
+                        <select value={preparation.specific_type || "STS-01"} onChange={(e) => updatePreparationField("specific_type", e.target.value)}>
+                          {specificTypes.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input placeholder="Sous-categorie/scenario" disabled />
+                      )}
+                    </div>
+
                     {preparation.category_type === "specific" && preparation.specific_type === "PDRA" ? (
-                      <select value={preparation.pdra_type || "PDRA-S01"} onChange={(e) => updatePreparationField("pdra_type", e.target.value)}>
-                        {pdraTypes.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="form-grid-2">
+                        <select value={preparation.pdra_type || "PDRA-S01"} onChange={(e) => updatePreparationField("pdra_type", e.target.value)}>
+                          {pdraTypes.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     ) : null}
-                    <input placeholder="Adresse operation" value={preparation.location_address || ""} onChange={(e) => updatePreparationField("location_address", e.target.value)} />
-                    <input type="number" step="0.000001" placeholder="Latitude" value={preparation.location_lat ?? ""} onChange={(e) => updatePreparationField("location_lat", e.target.value)} />
-                    <input type="number" step="0.000001" placeholder="Longitude" value={preparation.location_lng ?? ""} onChange={(e) => updatePreparationField("location_lng", e.target.value)} />
-                    <input type="date" value={preparation.operation_date || ""} onChange={(e) => updatePreparationField("operation_date", e.target.value)} />
-                    <input type="time" value={preparation.start_time || ""} onChange={(e) => updatePreparationField("start_time", e.target.value)} />
-                    <input type="time" value={preparation.end_time || ""} onChange={(e) => updatePreparationField("end_time", e.target.value)} />
-                    <input type="number" min="0" step="1" placeholder="Altitude max (m)" value={preparation.altitude_max_m ?? ""} onChange={(e) => updatePreparationField("altitude_max_m", e.target.value)} />
-                    <input type="number" min="0" step="1" placeholder="Distance personnes (m)" value={preparation.distance_to_people_m ?? ""} onChange={(e) => updatePreparationField("distance_to_people_m", e.target.value)} />
-                    <input placeholder="Classe drone (C0/C1/C2...)" value={preparation.aircraft_class || ""} onChange={(e) => updatePreparationField("aircraft_class", e.target.value)} />
-                    <input type="number" min="0" step="0.01" placeholder="MTOM (kg)" value={preparation.mtom_kg ?? ""} onChange={(e) => updatePreparationField("mtom_kg", e.target.value)} />
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.over_assemblies)} onChange={(e) => updatePreparationField("over_assemblies", e.target.checked ? 1 : 0)} /> Survol rassemblement</label>
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.in_urban_area)} onChange={(e) => updatePreparationField("in_urban_area", e.target.checked ? 1 : 0)} /> Zone urbaine</label>
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.night_operation)} onChange={(e) => updatePreparationField("night_operation", e.target.checked ? 1 : 0)} /> Opération de nuit</label>
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.near_airport_or_ctr)} onChange={(e) => updatePreparationField("near_airport_or_ctr", e.target.checked ? 1 : 0)} /> Proche aeroport/CTR</label>
-                    <input placeholder="Details aeroport/CTR" value={preparation.near_airport_details || ""} onChange={(e) => updatePreparationField("near_airport_details", e.target.value)} />
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.restricted_zone)} onChange={(e) => updatePreparationField("restricted_zone", e.target.checked ? 1 : 0)} /> Zone restreinte</label>
-                    <input placeholder="Details zone restreinte" value={preparation.restricted_zone_details || ""} onChange={(e) => updatePreparationField("restricted_zone_details", e.target.value)} />
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.remote_id)} onChange={(e) => updatePreparationField("remote_id", e.target.checked ? 1 : 0)} /> Remote ID</label>
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.observers_needed)} onChange={(e) => updatePreparationField("observers_needed", e.target.checked ? 1 : 0)} /> Observateur requis</label>
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.sora_required)} onChange={(e) => updatePreparationField("sora_required", e.target.checked ? 1 : 0)} /> SORA requise</label>
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.sts_declaration_required)} onChange={(e) => updatePreparationField("sts_declaration_required", e.target.checked ? 1 : 0)} /> Déclaration STS requise</label>
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.operational_authorization_required)} onChange={(e) => updatePreparationField("operational_authorization_required", e.target.checked ? 1 : 0)} /> Autorisation opérationnelle</label>
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.validation_manuel)} onChange={(e) => updatePreparationField("validation_manuel", e.target.checked ? 1 : 0)} /> Validation manuelle</label>
+
+                    <div className="form-grid-2">
+                      <input placeholder="Adresse operation" value={preparation.location_address || ""} onChange={(e) => updatePreparationField("location_address", e.target.value)} />
+                      <input placeholder="Classe drone (C0/C1/C2...)" value={preparation.aircraft_class || ""} onChange={(e) => updatePreparationField("aircraft_class", e.target.value)} />
+                    </div>
+
+                    <div className="form-grid-2">
+                      <input type="number" step="0.000001" placeholder="Latitude" value={preparation.location_lat ?? ""} onChange={(e) => updatePreparationField("location_lat", e.target.value)} />
+                      <input type="number" step="0.000001" placeholder="Longitude" value={preparation.location_lng ?? ""} onChange={(e) => updatePreparationField("location_lng", e.target.value)} />
+                    </div>
+
+                    <div className="form-grid-2">
+                      <input type="date" value={preparation.operation_date || ""} onChange={(e) => updatePreparationField("operation_date", e.target.value)} />
+                      <input type="number" min="0" step="0.01" placeholder="MTOM (kg)" value={preparation.mtom_kg ?? ""} onChange={(e) => updatePreparationField("mtom_kg", e.target.value)} />
+                    </div>
+
+                    <div className="form-grid-2">
+                      <input type="time" value={preparation.start_time || ""} onChange={(e) => updatePreparationField("start_time", e.target.value)} />
+                      <input type="time" value={preparation.end_time || ""} onChange={(e) => updatePreparationField("end_time", e.target.value)} />
+                    </div>
+
+                    <div className="form-grid-2">
+                      <input type="number" min="0" step="1" placeholder="Altitude max (m)" value={preparation.altitude_max_m ?? ""} onChange={(e) => updatePreparationField("altitude_max_m", e.target.value)} />
+                      <input type="number" min="0" step="1" placeholder="Distance personnes (m)" value={preparation.distance_to_people_m ?? ""} onChange={(e) => updatePreparationField("distance_to_people_m", e.target.value)} />
+                    </div>
+
+                    <div className="form-grid-2 prep-flag-grid">
+                      <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.over_assemblies)} onChange={(e) => updatePreparationField("over_assemblies", e.target.checked ? 1 : 0)} /> Survol rassemblement</label>
+                      <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.in_urban_area)} onChange={(e) => updatePreparationField("in_urban_area", e.target.checked ? 1 : 0)} /> Zone urbaine</label>
+                      <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.night_operation)} onChange={(e) => updatePreparationField("night_operation", e.target.checked ? 1 : 0)} /> Opération de nuit</label>
+                      <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.near_airport_or_ctr)} onChange={(e) => updatePreparationField("near_airport_or_ctr", e.target.checked ? 1 : 0)} /> Proche aeroport/CTR</label>
+                      <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.restricted_zone)} onChange={(e) => updatePreparationField("restricted_zone", e.target.checked ? 1 : 0)} /> Zone restreinte</label>
+                      <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.remote_id)} onChange={(e) => updatePreparationField("remote_id", e.target.checked ? 1 : 0)} /> Remote ID</label>
+                      <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.observers_needed)} onChange={(e) => updatePreparationField("observers_needed", e.target.checked ? 1 : 0)} /> Observateur requis</label>
+                      <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.sora_required)} onChange={(e) => updatePreparationField("sora_required", e.target.checked ? 1 : 0)} /> SORA requise</label>
+                      <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.sts_declaration_required)} onChange={(e) => updatePreparationField("sts_declaration_required", e.target.checked ? 1 : 0)} /> Déclaration STS requise</label>
+                      <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.operational_authorization_required)} onChange={(e) => updatePreparationField("operational_authorization_required", e.target.checked ? 1 : 0)} /> Autorisation opérationnelle</label>
+                      <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.validation_manuel)} onChange={(e) => updatePreparationField("validation_manuel", e.target.checked ? 1 : 0)} /> Validation manuelle</label>
+                    </div>
+
+                    <div className="form-grid-2">
+                      <input placeholder="Details aeroport/CTR" value={preparation.near_airport_details || ""} onChange={(e) => updatePreparationField("near_airport_details", e.target.value)} />
+                      <input placeholder="Details zone restreinte" value={preparation.restricted_zone_details || ""} onChange={(e) => updatePreparationField("restricted_zone_details", e.target.value)} />
+                    </div>
                   </div>
                   <div className="actions-cell" style={{ marginTop: 10 }}>
                     <button type="button" onClick={savePreparation} disabled={prepSaving}>
