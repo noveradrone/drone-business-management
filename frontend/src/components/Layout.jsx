@@ -43,6 +43,15 @@ export default function Layout({ onLogout }) {
     localStorage.setItem(DENSITY_KEY, density);
   }, [compactMode]);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileMenuOpen]);
+
   return (
     <div className="app-shell">
       <header className="topbar">

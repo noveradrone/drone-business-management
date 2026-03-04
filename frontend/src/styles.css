@@ -553,6 +553,14 @@ form.form-grid.login-form {
   display: none;
 }
 
+.mobile-menu-btn:focus {
+  outline: none;
+}
+
+.mobile-menu-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
 .sidebar-overlay {
   display: none;
 }
@@ -777,6 +785,8 @@ form.form-grid.login-form {
     opacity: 0;
     transition: transform 180ms ease, opacity 160ms ease;
     padding: 10px;
+    border-width: 1px;
+    box-shadow: 0 12px 26px color-mix(in srgb, var(--overlay-color) 55%, transparent);
   }
 
   .sidebar.open {
@@ -792,6 +802,7 @@ form.form-grid.login-form {
     background: color-mix(in srgb, var(--overlay-color) 70%, transparent);
     border: 0;
     padding: 0;
+    outline: none;
   }
 
   .nav-link {

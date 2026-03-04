@@ -31,7 +31,7 @@
 }
 
 .btn,
-button:not(.seg-item):not(.theme-tile):not(.toggle-switch),
+button:not(.seg-item):not(.theme-tile):not(.toggle-switch):not(.sidebar-overlay),
 a.secondary,
 a.action-link-btn,
 .document-download {
@@ -58,7 +58,7 @@ a.action-link-btn,
 }
 
 .btn:hover,
-button:not(.seg-item):not(.theme-tile):not(.toggle-switch):hover,
+button:not(.seg-item):not(.theme-tile):not(.toggle-switch):not(.sidebar-overlay):hover,
 a.secondary:hover,
 a.action-link-btn:hover,
 .document-download:hover {
@@ -67,7 +67,7 @@ a.action-link-btn:hover,
 }
 
 .btn:active,
-button:not(.seg-item):not(.theme-tile):not(.toggle-switch):active,
+button:not(.seg-item):not(.theme-tile):not(.toggle-switch):not(.sidebar-overlay):active,
 a.secondary:active,
 a.action-link-btn:active,
 .document-download:active {
@@ -75,7 +75,7 @@ a.action-link-btn:active,
 }
 
 .btn:focus-visible,
-button:not(.seg-item):not(.theme-tile):not(.toggle-switch):focus-visible,
+button:not(.seg-item):not(.theme-tile):not(.toggle-switch):not(.sidebar-overlay):focus-visible,
 a.secondary:focus-visible,
 a.action-link-btn:focus-visible,
 .document-download:focus-visible {
@@ -84,7 +84,7 @@ a.action-link-btn:focus-visible,
 }
 
 .btn:disabled,
-button:not(.seg-item):not(.theme-tile):not(.toggle-switch):disabled,
+button:not(.seg-item):not(.theme-tile):not(.toggle-switch):not(.sidebar-overlay):disabled,
 .btn[aria-disabled="true"] {
   opacity: 0.58;
   cursor: not-allowed;
@@ -165,9 +165,18 @@ button.primary-action {
   min-width: 0;
 }
 
+button.sidebar-overlay {
+  all: unset;
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--overlay-color) 70%, transparent);
+  cursor: pointer;
+}
+
 @media (max-width: 768px) {
   .btn,
-  button:not(.seg-item):not(.theme-tile):not(.toggle-switch),
+  button:not(.seg-item):not(.theme-tile):not(.toggle-switch):not(.sidebar-overlay),
   a.secondary,
   a.action-link-btn,
   .document-download {
