@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const DENSITY_KEY = "drone_business_density";
 
@@ -36,6 +36,7 @@ const navGroups = [
 export default function Layout({ onLogout }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [compactMode, setCompactMode] = useState(() => localStorage.getItem(DENSITY_KEY) === "compact");
+  const lockedScrollYRef = useRef(0);
 
   useEffect(() => {
     const density = compactMode ? "compact" : "comfortable";
@@ -45,12 +46,20 @@ export default function Layout({ onLogout }) {
 
   useEffect(() => {
     if (mobileMenuOpen) {
-      document.body.classList.add("no-scroll");
+      lockedScrollYRef.current = window.scrollY || 0;
+      document.body.classList.add("menu-open");
+      document.body.style.top = `-${lockedScrollYRef.current}px`;
     } else {
-      document.body.classList.remove("no-scroll");
+      const top = Number.parseInt(document.body.style.top || "0", 10) || 0;
+      document.body.classList.remove("menu-open");
+      document.body.style.top = "";
+      if (top) window.scrollTo(0, Math.abs(top));
     }
     return () => {
-      document.body.classList.remove("no-scroll");
+      const top = Number.parseInt(document.body.style.top || "0", 10) || 0;
+      document.body.classList.remove("menu-open");
+      document.body.style.top = "";
+      if (top) window.scrollTo(0, Math.abs(top));
     };
   }, [mobileMenuOpen]);
 
@@ -62,7 +71,7 @@ export default function Layout({ onLogout }) {
           <button className="secondary menu-toggle" onClick={() => setMobileMenuOpen((v) => !v)}>
             ☰ Menu
           </button>
-          <button className="secondary" type="button" onClick={() => setCompactMode((v) => !v)}>
+          <button className="secondary compact-toggle" type="button" onClick={() => setCompactMode((v) => !v)}>
             {compactMode ? "Mode confortable" : "Mode compact"}
           </button>
           <button className="secondary" onClick={onLogout}>
@@ -73,31 +82,34 @@ export default function Layout({ onLogout }) {
 
       <div className="shell-grid">
         <aside className={`sidebar ${mobileMenuOpen ? "open" : ""}`}>
-          <NavLink
-            key="/"
-            to="/"
-            end
-            className={({ isActive }) => `nav-link nav-link-main${isActive ? " active" : ""}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Dashboard
-          </NavLink>
+          <div className="sidebar-content">
+            <NavLink
+              key="/"
+              to="/"
+              end
+              className={({ isActive }) => `nav-link nav-link-main${isActive ? " active" : ""}`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Dashboard
+            </NavLink>
 
-          {navGroups.map((group) => (
-            <div key={group.title} className="nav-group">
-              <p className="nav-group-title">{group.title}</p>
-              {group.items.map(([path, label]) => (
-                <NavLink
-                  key={path}
-                  to={path}
-                  className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {label}
-                </NavLink>
-              ))}
-            </div>
-          ))}
+            {navGroups.map((group) => (
+              <div key={group.title} className="nav-group">
+                <p className="nav-group-title">{group.title}</p>
+                {group.items.map(([path, label]) => (
+                  <NavLink
+                    key={path}
+                    to={path}
+                    className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {label}
+                  </NavLink>
+                ))}
+              </div>
+            ))}
+            <div className="drawer-spacer" aria-hidden="true" />
+          </div>
         </aside>
         {mobileMenuOpen && (
           <button className="sidebar-overlay" onClick={() => setMobileMenuOpen(false)} aria-label="Fermer le menu" />

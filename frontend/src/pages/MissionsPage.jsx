@@ -3,7 +3,28 @@ import { api } from "../api";
 
 const packOptions = ["Essentiel", "Premium", "Instagram"];
 const statusOptions = ["planned", "in_progress", "completed", "cancelled"];
+const MISSION_STATUS_LABELS = {
+  planned: "Planifiee",
+  in_progress: "En cours",
+  completed: "Terminee",
+  cancelled: "Annulee"
+};
 const prepStatuses = ["todo", "in_progress", "done"];
+const STATUS_LABELS = {
+  todo: "À faire",
+  in_progress: "En cours",
+  done: "Terminé"
+};
+const OBLIGATION_LABELS = {
+  requis: "Requis",
+  a_verifier: "À vérifier",
+  recommande: "Recommandé"
+};
+const OBLIGATION_CLASS = {
+  requis: "requis",
+  a_verifier: "a-verifier",
+  recommande: "recommande"
+};
 const categoryTypes = ["open", "specific", "certified"];
 const openSubCategories = ["A1", "A2", "A3"];
 const specificTypes = ["STS-01", "STS-02", "PDRA", "SORA", "OTHER"];
@@ -51,9 +72,34 @@ function statusPill(status) {
         fontWeight: 700
       }}
     >
-      {status}
+      {STATUS_LABELS[status] || status}
     </span>
   );
+}
+
+function groupChecklistItems(items = []) {
+  const map = new Map();
+  items.forEach((item) => {
+    const stepKey = item.step_key || "default";
+    if (!map.has(stepKey)) {
+      map.set(stepKey, {
+        step_key: stepKey,
+        step_title: item.step_title || "Checklist",
+        step_order: Number(item.step_order || 1),
+        items: []
+      });
+    }
+    map.get(stepKey).items.push({
+      ...item,
+      links: Array.isArray(item.links) ? item.links : item.link_url ? [item.link_url] : []
+    });
+  });
+  return Array.from(map.values())
+    .sort((a, b) => a.step_order - b.step_order)
+    .map((step) => ({
+      ...step,
+      items: step.items.sort((a, b) => Number(a.item_order || 0) - Number(b.item_order || 0))
+    }));
 }
 
 export default function MissionsPage() {
@@ -72,6 +118,7 @@ export default function MissionsPage() {
   const [preparation, setPreparation] = useState(null);
   const [recommendation, setRecommendation] = useState(null);
   const [checklist, setChecklist] = useState([]);
+  const [checklistSteps, setChecklistSteps] = useState([]);
   const [attachments, setAttachments] = useState([]);
   const [copySummary, setCopySummary] = useState("");
   const [links, setLinks] = useState({});
@@ -179,7 +226,9 @@ export default function MissionsPage() {
   function applyPreparationPayload(payload) {
     setPreparation(payload.preparation || null);
     setRecommendation(payload.recommendation || null);
-    setChecklist(payload.checklist || []);
+    const rows = payload.checklist || [];
+    setChecklist(rows);
+    setChecklistSteps(payload.checklist_steps || groupChecklistItems(rows));
     setAttachments(payload.attachments || []);
     setCopySummary(payload.copy_summary || "");
     setLinks(payload.links || {});
@@ -205,6 +254,7 @@ export default function MissionsPage() {
     setPreparation(null);
     setRecommendation(null);
     setChecklist([]);
+    setChecklistSteps([]);
     setAttachments([]);
     setCopySummary("");
     setPrepError("");
@@ -238,7 +288,43 @@ export default function MissionsPage() {
     setPrepError("");
     try {
       await api.missions.updatePreparationChecklist(selectedMission.id, item.id, checked ? "done" : "todo");
-      setChecklist((prev) => prev.map((row) => (row.id === item.id ? { ...row, state: checked ? "done" : "todo" } : row)));
+      setChecklist((prev) => {
+        const updated = prev.map((row) => (row.id === item.id ? { ...row, state: checked ? "done" : "todo" } : row));
+        setChecklistSteps(groupChecklistItems(updated));
+        return updated;
+      });
+    } catch (e) {
+      setPrepError(e.message);
+    }
+  }
+
+  async function markStep(step, done) {
+    if (!selectedMission) return;
+    setPrepError("");
+    try {
+      await api.missions.markPreparationStep(selectedMission.id, step.step_key, done ? "done" : "todo");
+      setChecklist((prev) => {
+        const updated = prev.map((item) =>
+          item.step_key === step.step_key ? { ...item, state: done ? "done" : "todo" } : item
+        );
+        setChecklistSteps(groupChecklistItems(updated));
+        return updated;
+      });
+      setPrepSuccess(done ? "Etape cochee." : "Etape reinitialisee.");
+    } catch (e) {
+      setPrepError(e.message);
+    }
+  }
+
+  async function resetChecklistAll() {
+    if (!selectedMission) return;
+    setPrepError("");
+    try {
+      await Promise.all(checklist.map((item) => api.missions.updatePreparationChecklist(selectedMission.id, item.id, "todo")));
+      const updated = checklist.map((item) => ({ ...item, state: "todo" }));
+      setChecklist(updated);
+      setChecklistSteps(groupChecklistItems(updated));
+      setPrepSuccess("Checklist reinitialisee.");
     } catch (e) {
       setPrepError(e.message);
     }
@@ -358,7 +444,7 @@ export default function MissionsPage() {
         <select value={form.mission_status} onChange={(e) => setForm({ ...form, mission_status: e.target.value })}>
           {statusOptions.map((status) => (
             <option key={status} value={status}>
-              {status}
+              {MISSION_STATUS_LABELS[status] || status}
             </option>
           ))}
         </select>
@@ -406,7 +492,7 @@ export default function MissionsPage() {
                 <td data-label="Client">{m.company_name}</td>
                 <td data-label="Pack">{m.selected_pack || "-"}</td>
                 <td data-label="Departement">{m.department || "-"}</td>
-                <td data-label="Statut">{m.mission_status}</td>
+                <td data-label="Statut">{MISSION_STATUS_LABELS[m.mission_status] || m.mission_status}</td>
                 <td data-label="CA">{Number(m.mission_revenue || 0).toFixed(2)} EUR</td>
                 <td data-label="Cout total">{Number(m.total_cost || 0).toFixed(2)} EUR</td>
                 <td data-label="Marge brute">{Number(m.gross_margin || 0).toFixed(2)} EUR</td>
@@ -442,7 +528,24 @@ export default function MissionsPage() {
             {prepLoading || !preparation ? (
               <p>Chargement de la preparation...</p>
             ) : (
-              <div className="prep-grid">
+              <div className="prep-stack">
+                <div className="card prep-summary-card">
+                  <div className="page-head" style={{ marginBottom: 6 }}>
+                    <h3 style={{ margin: 0 }}>Resume mission</h3>
+                    <span className="pill">
+                      {preparation.category_type === "open"
+                        ? `Open ${preparation.open_subcategory || "A3"}`
+                        : preparation.category_type === "specific"
+                          ? `Specifique ${preparation.specific_type || "STS-01"}`
+                          : "Certifie"}
+                    </span>
+                  </div>
+                  <p className="documents-intro" style={{ marginBottom: 0 }}>
+                    Mission #{selectedMission.id} - {selectedMission.company_name} - {selectedMission.mission_date}
+                  </p>
+                </div>
+
+                <div className="prep-grid">
                 <div className="card">
                   <h3>Classification mission</h3>
                   <div className="form-grid prep-form-grid">
@@ -492,7 +595,7 @@ export default function MissionsPage() {
                     <input type="number" min="0" step="0.01" placeholder="MTOM (kg)" value={preparation.mtom_kg ?? ""} onChange={(e) => updatePreparationField("mtom_kg", e.target.value)} />
                     <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.over_assemblies)} onChange={(e) => updatePreparationField("over_assemblies", e.target.checked ? 1 : 0)} /> Survol rassemblement</label>
                     <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.in_urban_area)} onChange={(e) => updatePreparationField("in_urban_area", e.target.checked ? 1 : 0)} /> Zone urbaine</label>
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.night_operation)} onChange={(e) => updatePreparationField("night_operation", e.target.checked ? 1 : 0)} /> Operation de nuit</label>
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.night_operation)} onChange={(e) => updatePreparationField("night_operation", e.target.checked ? 1 : 0)} /> Opération de nuit</label>
                     <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.near_airport_or_ctr)} onChange={(e) => updatePreparationField("near_airport_or_ctr", e.target.checked ? 1 : 0)} /> Proche aeroport/CTR</label>
                     <input placeholder="Details aeroport/CTR" value={preparation.near_airport_details || ""} onChange={(e) => updatePreparationField("near_airport_details", e.target.value)} />
                     <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.restricted_zone)} onChange={(e) => updatePreparationField("restricted_zone", e.target.checked ? 1 : 0)} /> Zone restreinte</label>
@@ -500,8 +603,8 @@ export default function MissionsPage() {
                     <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.remote_id)} onChange={(e) => updatePreparationField("remote_id", e.target.checked ? 1 : 0)} /> Remote ID</label>
                     <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.observers_needed)} onChange={(e) => updatePreparationField("observers_needed", e.target.checked ? 1 : 0)} /> Observateur requis</label>
                     <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.sora_required)} onChange={(e) => updatePreparationField("sora_required", e.target.checked ? 1 : 0)} /> SORA requise</label>
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.sts_declaration_required)} onChange={(e) => updatePreparationField("sts_declaration_required", e.target.checked ? 1 : 0)} /> Declaration STS requise</label>
-                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.operational_authorization_required)} onChange={(e) => updatePreparationField("operational_authorization_required", e.target.checked ? 1 : 0)} /> Autorisation operationnelle</label>
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.sts_declaration_required)} onChange={(e) => updatePreparationField("sts_declaration_required", e.target.checked ? 1 : 0)} /> Déclaration STS requise</label>
+                    <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.operational_authorization_required)} onChange={(e) => updatePreparationField("operational_authorization_required", e.target.checked ? 1 : 0)} /> Autorisation opérationnelle</label>
                     <label className="checkbox-inline"><input type="checkbox" checked={boolToChecked(preparation.validation_manuel)} onChange={(e) => updatePreparationField("validation_manuel", e.target.checked ? 1 : 0)} /> Validation manuelle</label>
                   </div>
                   <div className="actions-cell" style={{ marginTop: 10 }}>
@@ -517,7 +620,9 @@ export default function MissionsPage() {
                   <div className="prep-obligations">
                     {(recommendation?.obligations || []).map((item, idx) => (
                       <div key={`${item.text}-${idx}`} className="prep-obligation-row">
-                        <strong>{String(item.level || "").replace("_", " ")}</strong>
+                        <strong className={`prep-obligation-badge ${OBLIGATION_CLASS[item.level] || "a-verifier"}`}>
+                          {OBLIGATION_LABELS[item.level] || item.level}
+                        </strong>
                         <span>{item.text}</span>
                       </div>
                     ))}
@@ -530,7 +635,7 @@ export default function MissionsPage() {
                       <select value={preparation.flyby_status || "todo"} onChange={(e) => updatePreparationField("flyby_status", e.target.value)}>
                         {prepStatuses.map((s) => (
                           <option key={s} value={s}>
-                            {s}
+                            {STATUS_LABELS[s]}
                           </option>
                         ))}
                       </select>
@@ -540,7 +645,7 @@ export default function MissionsPage() {
                       <select value={preparation.alphatango_status || "todo"} onChange={(e) => updatePreparationField("alphatango_status", e.target.value)}>
                         {prepStatuses.map((s) => (
                           <option key={s} value={s}>
-                            {s}
+                            {STATUS_LABELS[s]}
                           </option>
                         ))}
                       </select>
@@ -550,7 +655,7 @@ export default function MissionsPage() {
                       <select value={preparation.municipality_status || "todo"} onChange={(e) => updatePreparationField("municipality_status", e.target.value)}>
                         {prepStatuses.map((s) => (
                           <option key={s} value={s}>
-                            {s}
+                            {STATUS_LABELS[s]}
                           </option>
                         ))}
                       </select>
@@ -560,7 +665,7 @@ export default function MissionsPage() {
                       <select value={preparation.landowner_status || "todo"} onChange={(e) => updatePreparationField("landowner_status", e.target.value)}>
                         {prepStatuses.map((s) => (
                           <option key={s} value={s}>
-                            {s}
+                            {STATUS_LABELS[s]}
                           </option>
                         ))}
                       </select>
@@ -570,7 +675,7 @@ export default function MissionsPage() {
                       <select value={preparation.military_status || "todo"} onChange={(e) => updatePreparationField("military_status", e.target.value)}>
                         {prepStatuses.map((s) => (
                           <option key={s} value={s}>
-                            {s}
+                            {STATUS_LABELS[s]}
                           </option>
                         ))}
                       </select>
@@ -587,29 +692,57 @@ export default function MissionsPage() {
                       Ouvrir SIA
                     </button>
                     <button type="button" className="secondary" onClick={() => openExternal(links.geoportail)}>
-                      Ouvrir Geoportail
+                      Ouvrir Géoportail
                     </button>
                   </div>
                 </div>
 
-                <div className="card" style={{ gridColumn: "1 / -1" }}>
-                  <h3>Checklist dynamique</h3>
-                  <div className="prep-checklist">
-                    {checklist.map((item) => (
-                      <label key={item.id} className="prep-check-item">
-                        <input type="checkbox" checked={item.state === "done"} onChange={(e) => toggleChecklist(item, e.target.checked)} />
-                        <div>
-                          <div className="prep-check-head">
-                            <strong>{item.label}</strong> {statusPill(item.state)}
-                          </div>
-                          {item.description ? <p>{item.description}</p> : null}
-                          {item.link_url ? (
-                            <a href={item.link_url} target="_blank" rel="noreferrer">
-                              {item.link_url}
-                            </a>
-                          ) : null}
+                <div className="card prep-checklist-card" style={{ gridColumn: "1 / -1" }}>
+                  <div className="page-head" style={{ marginBottom: 8 }}>
+                    <h3 style={{ margin: 0 }}>Checklist dynamique</h3>
+                    <div className="actions-cell">
+                      <button type="button" className="secondary" onClick={resetChecklistAll}>
+                        Reinitialiser
+                      </button>
+                    </div>
+                  </div>
+                  <p className="documents-intro">Modèle: {(checklistSteps[0]?.items?.[0]?.template_type || "OPEN").toUpperCase()}</p>
+
+                  <div className="prep-checklist-steps">
+                    {checklistSteps.map((step, index) => (
+                      <details key={step.step_key} className="details-panel prep-step" open={index === 0}>
+                        <summary>{step.step_title}</summary>
+                        <div className="actions-cell" style={{ marginBottom: 8 }}>
+                          <button type="button" className="secondary" onClick={() => markStep(step, true)}>
+                            Tout cocher étape
+                          </button>
+                          <button type="button" className="secondary" onClick={() => markStep(step, false)}>
+                            Réinitialiser étape
+                          </button>
                         </div>
-                      </label>
+                        <div className="prep-checklist">
+                          {step.items.map((item) => (
+                            <label key={item.id} className="prep-check-item">
+                              <input type="checkbox" checked={item.state === "done"} onChange={(e) => toggleChecklist(item, e.target.checked)} />
+                              <div>
+                                <div className="prep-check-head">
+                                  <strong>{item.label}</strong> {statusPill(item.state)}
+                                </div>
+                                {item.description ? <p>{item.description}</p> : null}
+                                {(item.links || []).length ? (
+                                  <div className="prep-link-list">
+                                    {(item.links || []).map((link) => (
+                                      <a key={link} href={link} target="_blank" rel="noreferrer">
+                                        {link}
+                                      </a>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </details>
                     ))}
                   </div>
                 </div>
@@ -653,6 +786,7 @@ export default function MissionsPage() {
                     {!attachments.length ? <p style={{ margin: "8px 0 0" }}>Aucune piece chargee.</p> : null}
                   </div>
                 </div>
+              </div>
               </div>
             )}
           </div>

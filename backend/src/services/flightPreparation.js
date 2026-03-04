@@ -223,115 +223,240 @@ function buildObligations(prep = {}, suggested = {}) {
   return obligations;
 }
 
-function checklistTemplate(prep = {}, suggestion = {}) {
+const CHECKLIST_TEMPLATES = {
+  OPEN: {
+    title: "Checklist OPEN (A1/A2/A3)",
+    steps: [
+      {
+        id: "open-step-1",
+        title: "1. Cadre operationnel",
+        items: [
+          {
+            id: "operator-registration",
+            label: "Verifier l'enregistrement exploitant et n° operateur",
+            helpText: "Selon profil exploitant et activite.",
+            links: [LINKS.alphaTango],
+            required: true
+          },
+          {
+            id: "pilot-training",
+            label: "Verifier formation/attestation du pilote (A2 si necessaire)",
+            helpText: "Conserver justificatif a disposition.",
+            links: [LINKS.alphaTango],
+            required: true
+          }
+        ]
+      },
+      {
+        id: "open-step-2",
+        title: "2. Zone et trajectoire",
+        items: [
+          {
+            id: "airspace-check",
+            label: "Verifier CTR/zonage drone et contraintes locales",
+            helpText: "SIA + Geoportail + check FlyBy.",
+            links: [LINKS.sia, LINKS.geoportail, LINKS.flyby],
+            required: true
+          },
+          {
+            id: "distance-people",
+            label: "Confirmer distance aux personnes conforme sous-categorie",
+            helpText: "A1/A2/A3 a verifier selon drone et contexte.",
+            links: [LINKS.regulation],
+            required: true
+          }
+        ]
+      },
+      {
+        id: "open-step-3",
+        title: "3. Preparation pre-vol",
+        items: [
+          {
+            id: "mission-brief",
+            label: "Brief securite equipe/client",
+            helpText: "Perimetre, points de replis, consignes public.",
+            links: [],
+            required: true
+          },
+          {
+            id: "meteo-batterie",
+            label: "Controle meteo, batteries, firmware, failsafe",
+            helpText: "Inclure NOTAM si pertinent.",
+            links: [LINKS.notam],
+            required: true
+          }
+        ]
+      }
+    ]
+  },
+  "STS-01": {
+    title: "Checklist SPECIFIQUE STS-01",
+    steps: [
+      {
+        id: "sts01-step-1",
+        title: "1. Eligibility STS-01",
+        items: [
+          {
+            id: "sts01-prerequisites",
+            label: "Confirmer prerequis STS-01 et limites scenario",
+            helpText: "Si doute: marquer 'a verifier' et valider manuellement.",
+            links: [LINKS.regulation],
+            required: true
+          },
+          {
+            id: "sts01-zone",
+            label: "Verifier volume operationnel et environnement urbain",
+            helpText: "Inclure zones sensibles et perimetres de securite.",
+            links: [LINKS.sia, LINKS.geoportail],
+            required: true
+          }
+        ]
+      },
+      {
+        id: "sts01-step-2",
+        title: "2. Demarches administratives",
+        items: [
+          {
+            id: "sts01-declaration",
+            label: "Declaration STS prete et envoyee si applicable",
+            helpText: "Conserver accusé/recepisse.",
+            links: [LINKS.alphaTango],
+            required: true
+          },
+          {
+            id: "sts01-authorities",
+            label: "Coordination mairie/proprietaire/autorites selon site",
+            helpText: "Tracer les autorisations recues.",
+            links: [LINKS.geoportail],
+            required: false
+          }
+        ]
+      },
+      {
+        id: "sts01-step-3",
+        title: "3. Operation et securite",
+        items: [
+          {
+            id: "sts01-team-brief",
+            label: "Brief equipe + observateur (si requis)",
+            helpText: "Roles, zones d'exclusion, plan d'urgence.",
+            links: [],
+            required: true
+          },
+          {
+            id: "sts01-emergency",
+            label: "Plan urgence / lost-link valide",
+            helpText: "Procedure claire et testee.",
+            links: [],
+            required: true
+          }
+        ]
+      }
+    ]
+  },
+  "STS-02": {
+    title: "Checklist SPECIFIQUE STS-02",
+    steps: [
+      {
+        id: "sts02-step-1",
+        title: "1. Eligibility STS-02",
+        items: [
+          {
+            id: "sts02-prerequisites",
+            label: "Confirmer prerequis STS-02 et limites scenario",
+            helpText: "Verifier adequation mission/scenario.",
+            links: [LINKS.regulation],
+            required: true
+          },
+          {
+            id: "sts02-zone",
+            label: "Verifier environnement operationnel non controle",
+            helpText: "Analyser obstacles et volume operationnel.",
+            links: [LINKS.sia, LINKS.geoportail],
+            required: true
+          }
+        ]
+      },
+      {
+        id: "sts02-step-2",
+        title: "2. Demarches et conformite",
+        items: [
+          {
+            id: "sts02-declaration",
+            label: "Declaration STS traçable + accusé si applicable",
+            helpText: "Dossier a archiver dans mission.",
+            links: [LINKS.alphaTango],
+            required: true
+          },
+          {
+            id: "sts02-mitigations",
+            label: "Mesures de mitigation documentees",
+            helpText: "Inclure contraintes geographiques et public.",
+            links: [LINKS.regulation],
+            required: true
+          }
+        ]
+      },
+      {
+        id: "sts02-step-3",
+        title: "3. Execution",
+        items: [
+          {
+            id: "sts02-brief",
+            label: "Brief equipe et check pre-vol complet",
+            helpText: "Batteries, liaisons, RTH, NOTAM si necessaire.",
+            links: [LINKS.notam],
+            required: true
+          },
+          {
+            id: "sts02-contingency",
+            label: "Plan de contingence / interruption de mission",
+            helpText: "Declencheurs et roles definis.",
+            links: [],
+            required: true
+          }
+        ]
+      }
+    ]
+  }
+};
+
+function getChecklistTemplateType(prep = {}, suggestion = {}) {
   const category = prep.category_type || suggestion.category_type;
   const specificType = prep.specific_type || suggestion.specific_type;
-  const openSub = prep.open_subcategory || suggestion.open_subcategory || "A3";
+  if (category === "specific" && (specificType === "STS-01" || specificType === "STS-02")) return specificType;
+  return "OPEN";
+}
 
-  const common = [
-    {
-      item_key: "zone_check",
-      label: "Verification zone de vol",
-      description: "Verifier CTR, restrictions locales et carte drone.",
-      obligatoire: 1,
-      link_url: LINKS.sia
-    },
-    {
-      item_key: "brief_securite",
-      label: "Brief securite equipe",
-      description: "Informer equipe/client des limites et consignes.",
-      obligatoire: 1,
-      link_url: ""
-    },
-    {
-      item_key: "meteo_batterie",
-      label: "Meteo / batterie / systemes",
-      description: "Controle meteo, batteries et check pre-vol.",
-      obligatoire: 1,
-      link_url: LINKS.notam
-    }
-  ];
+function flattenChecklistTemplate(templateType, template) {
+  const rows = [];
+  let sort = 1;
+  (template.steps || []).forEach((step, stepIndex) => {
+    (step.items || []).forEach((item, itemIndex) => {
+      rows.push({
+        template_type: templateType,
+        step_key: step.id,
+        step_title: step.title,
+        step_order: stepIndex + 1,
+        item_order: itemIndex + 1,
+        item_key: `${step.id}:${item.id}`,
+        label: item.label,
+        description: item.helpText || "",
+        obligatoire: item.required ? 1 : 0,
+        link_url: (item.links || [])[0] || "",
+        links_json: JSON.stringify(item.links || []),
+        sort_order: sort++,
+        state: "todo"
+      });
+    });
+  });
+  return rows;
+}
 
-  let specificItems = [];
-  if (category === "open") {
-    specificItems = [
-      {
-        item_key: "open_registration",
-        label: "Enregistrement exploitant",
-        description: `Verifier obligation d'enregistrement exploitant pour ${openSub}.`,
-        obligatoire: 1,
-        link_url: LINKS.alphaTango
-      },
-      {
-        item_key: "open_training",
-        label: "Formation/attestation pilote",
-        description: "Verifier attestation requise (notamment A2).",
-        obligatoire: 1,
-        link_url: LINKS.alphaTango
-      },
-      {
-        item_key: "open_plan",
-        label: "Plan de vol simplifie",
-        description: "Plan previsionnel et zones sensibles identifiees.",
-        obligatoire: 0,
-        link_url: LINKS.flyby
-      }
-    ];
-  } else if (category === "specific" && (specificType === "STS-01" || specificType === "STS-02")) {
-    specificItems = [
-      {
-        item_key: "sts_prereq",
-        label: "Verification prerequis STS",
-        description: `Confirmer pre requis scenario ${specificType}.`,
-        obligatoire: 1,
-        link_url: LINKS.regulation
-      },
-      {
-        item_key: "sts_declaration",
-        label: "Declaration STS",
-        description: "Declaration STS completee si applicable.",
-        obligatoire: 1,
-        link_url: LINKS.alphaTango
-      },
-      {
-        item_key: "sts_emergency",
-        label: "Plan urgence / lost link",
-        description: "Procedures urgence valides avant vol.",
-        obligatoire: 1,
-        link_url: ""
-      }
-    ];
-  } else {
-    specificItems = [
-      {
-        item_key: "risk_analysis",
-        label: "Analyse des risques PDRA/SORA",
-        description: "Structurer dossier d'analyse et mitigations.",
-        obligatoire: 1,
-        link_url: LINKS.regulation
-      },
-      {
-        item_key: "op_authorization",
-        label: "Autorisation operationnelle",
-        description: "Verifier besoin d'autorisation avant execution.",
-        obligatoire: 1,
-        link_url: LINKS.alphaTango
-      },
-      {
-        item_key: "authority_plan",
-        label: "Plan communication autorites",
-        description: "Mairie/proprietaire/autorites selon zone.",
-        obligatoire: 0,
-        link_url: LINKS.geoportail
-      }
-    ];
-  }
-
-  return [...specificItems, ...common].map((item, idx) => ({
-    ...item,
-    sort_order: idx + 1,
-    state: "todo"
-  }));
+function checklistTemplate(prep = {}, suggestion = {}) {
+  const type = getChecklistTemplateType(prep, suggestion);
+  const template = CHECKLIST_TEMPLATES[type] || CHECKLIST_TEMPLATES.OPEN;
+  return flattenChecklistTemplate(type, template);
 }
 
 function buildRecommendation(prep = {}) {
@@ -356,6 +481,46 @@ function mergeChecklistState(templateItems, existingItems = []) {
     ...item,
     state: stateByKey.get(item.item_key) === "done" ? "done" : "todo"
   }));
+}
+
+function groupChecklistBySteps(items = []) {
+  const grouped = new Map();
+  items.forEach((item) => {
+    const stepKey = item.step_key || "default";
+    if (!grouped.has(stepKey)) {
+      grouped.set(stepKey, {
+        step_key: stepKey,
+        step_title: item.step_title || "Checklist",
+        step_order: Number(item.step_order || 1),
+        items: []
+      });
+    }
+    grouped.get(stepKey).items.push({
+      ...item,
+      links: (() => {
+        try {
+          const parsed = item.links_json ? JSON.parse(item.links_json) : null;
+          if (Array.isArray(parsed) && parsed.length) return parsed;
+        } catch {
+          // noop
+        }
+        return item.link_url ? [item.link_url] : [];
+      })()
+    });
+  });
+
+  return Array.from(grouped.values())
+    .sort((a, b) => a.step_order - b.step_order)
+    .map((step) => ({
+      ...step,
+      items: step.items.sort((a, b) => {
+        const s = Number(a.step_order || 1) - Number(b.step_order || 1);
+        if (s !== 0) return s;
+        const o = Number(a.item_order || 0) - Number(b.item_order || 0);
+        if (o !== 0) return o;
+        return Number(a.sort_order || 0) - Number(b.sort_order || 0);
+      })
+    }));
 }
 
 function buildMissionCopySummary(mission = {}, prep = {}, recommendation = {}) {
@@ -387,5 +552,7 @@ module.exports = {
   buildRecommendation,
   checklistTemplate,
   mergeChecklistState,
-  buildMissionCopySummary
+  buildMissionCopySummary,
+  groupChecklistBySteps,
+  getChecklistTemplateType
 };

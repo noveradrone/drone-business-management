@@ -258,12 +258,18 @@ CREATE TABLE IF NOT EXISTS regulatory_preparations (
 CREATE TABLE IF NOT EXISTS regulatory_checklist_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   preparation_id INTEGER NOT NULL,
+  template_type TEXT NOT NULL DEFAULT 'OPEN',
+  step_key TEXT,
+  step_title TEXT,
+  step_order INTEGER NOT NULL DEFAULT 1,
+  item_order INTEGER NOT NULL DEFAULT 1,
   item_key TEXT NOT NULL,
   label TEXT NOT NULL,
   description TEXT,
   obligatoire INTEGER NOT NULL DEFAULT 1,
   state TEXT NOT NULL CHECK(state IN ('todo','done')) DEFAULT 'todo',
   link_url TEXT,
+  links_json TEXT,
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -388,6 +394,12 @@ ensureColumn("company_settings", "quote_show_signature_block", "INTEGER NOT NULL
 ensureColumn("company_settings", "quote_show_validity_notice", "INTEGER NOT NULL DEFAULT 1");
 ensureColumn("user_theme_preferences", "theme_id", "TEXT NOT NULL DEFAULT 'ocean'");
 ensureColumn("user_theme_preferences", "density", "TEXT NOT NULL DEFAULT 'comfortable'");
+ensureColumn("regulatory_checklist_items", "template_type", "TEXT NOT NULL DEFAULT 'OPEN'");
+ensureColumn("regulatory_checklist_items", "step_key", "TEXT");
+ensureColumn("regulatory_checklist_items", "step_title", "TEXT");
+ensureColumn("regulatory_checklist_items", "step_order", "INTEGER NOT NULL DEFAULT 1");
+ensureColumn("regulatory_checklist_items", "item_order", "INTEGER NOT NULL DEFAULT 1");
+ensureColumn("regulatory_checklist_items", "links_json", "TEXT");
 
 ensureColumn("invoices", "acompte_pourcentage", "REAL NOT NULL DEFAULT 0");
 ensureColumn("invoices", "acompte_montant", "REAL NOT NULL DEFAULT 0");

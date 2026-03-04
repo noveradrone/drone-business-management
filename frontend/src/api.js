@@ -68,6 +68,11 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify({ state })
       }),
+    markPreparationStep: (missionId, stepKey, state) =>
+      request(`/flight-preparation/missions/${missionId}/checklist/step/${encodeURIComponent(stepKey)}/mark`, {
+        method: "POST",
+        body: JSON.stringify({ state })
+      }),
     uploadPreparationAttachment: (missionId, data) =>
       request(`/flight-preparation/missions/${missionId}/attachments`, {
         method: "POST",

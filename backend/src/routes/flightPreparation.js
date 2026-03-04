@@ -10,6 +10,8 @@ const {
   buildRecommendation,
   checklistTemplate,
   mergeChecklistState,
+  groupChecklistBySteps,
+  getChecklistTemplateType,
   buildMissionCopySummary,
   LINKS
 } = require("../services/flightPreparation");
@@ -82,7 +84,21 @@ function getPreparationByMissionId(missionId) {
 function getChecklist(preparationId) {
   return db
     .prepare(
-      `SELECT id, item_key, label, description, obligatoire, state, link_url, sort_order
+      `SELECT
+         id,
+         template_type,
+         step_key,
+         step_title,
+         step_order,
+         item_order,
+         item_key,
+         label,
+         description,
+         obligatoire,
+         state,
+         link_url,
+         links_json,
+         sort_order
        FROM regulatory_checklist_items
        WHERE preparation_id = ?
        ORDER BY sort_order, id`
@@ -108,18 +124,25 @@ function persistChecklist(preparationId, template = []) {
     db.prepare("DELETE FROM regulatory_checklist_items WHERE preparation_id = ?").run(preparationId);
     const insert = db.prepare(
       `INSERT INTO regulatory_checklist_items (
-        preparation_id, item_key, label, description, obligatoire, state, link_url, sort_order, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+        preparation_id, template_type, step_key, step_title, step_order, item_order,
+        item_key, label, description, obligatoire, state, link_url, links_json, sort_order, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
     );
     merged.forEach((item) => {
       insert.run(
         preparationId,
+        item.template_type || "OPEN",
+        item.step_key || null,
+        item.step_title || null,
+        Number(item.step_order || 1),
+        Number(item.item_order || 1),
         item.item_key,
         item.label,
         item.description || null,
         item.obligatoire ? 1 : 0,
         item.state === "done" ? "done" : "todo",
         item.link_url || null,
+        item.links_json || null,
         Number(item.sort_order || 0)
       );
     });
@@ -156,7 +179,9 @@ function ensurePreparation(missionId) {
 
   const recommendation = buildRecommendation(prep);
   let checklist = getChecklist(prep.id);
-  if (!checklist.length) {
+  const expectedType = getChecklistTemplateType(prep, recommendation);
+  const currentType = checklist[0]?.template_type || null;
+  if (!checklist.length || currentType !== expectedType) {
     checklist = persistChecklist(prep.id, checklistTemplate(prep, recommendation));
   }
 
@@ -168,11 +193,13 @@ function responsePayload(bundle) {
   const { mission, preparation, recommendation, checklist } = bundle;
   const attachments = getAttachments(preparation.id);
   const company = db.prepare("SELECT * FROM company_settings WHERE id = 1").get() || {};
+  const checklist_steps = groupChecklistBySteps(checklist);
   return {
     mission,
     preparation,
     recommendation,
     checklist,
+    checklist_steps,
     attachments,
     links: LINKS,
     copy_summary: buildMissionCopySummary(mission, preparation, recommendation),
@@ -288,6 +315,22 @@ router.patch("/missions/:missionId/checklist/:itemId", authRequired, (req, res) 
   ).run(state, item.id);
 
   return res.json({ item: db.prepare("SELECT * FROM regulatory_checklist_items WHERE id = ?").get(item.id) });
+});
+
+router.post("/missions/:missionId/checklist/step/:stepKey/mark", authRequired, (req, res) => {
+  const missionId = Number(req.params.missionId);
+  const stepKey = String(req.params.stepKey || "").trim();
+  if (!Number.isFinite(missionId) || !stepKey) return res.status(400).json({ message: "Parametres invalides" });
+  const prep = getPreparationByMissionId(missionId);
+  if (!prep) return res.status(404).json({ message: "Preparation introuvable" });
+  const state = String(req.body?.state || "").toLowerCase() === "done" ? "done" : "todo";
+  const update = db.prepare(
+    `UPDATE regulatory_checklist_items
+     SET state = ?, updated_at = datetime('now')
+     WHERE preparation_id = ? AND step_key = ?`
+  );
+  const result = update.run(state, prep.id, stepKey);
+  return res.json({ changed: result.changes, state });
 });
 
 router.post("/missions/:missionId/attachments", authRequired, (req, res) => {
