@@ -147,10 +147,28 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data)
       }),
-    generateAi: (inspectionId) =>
-      request(`/thermography/${inspectionId}/generate-ai`, { method: "POST", body: JSON.stringify({}) }),
-    generateReport: (inspectionId) =>
-      request(`/thermography/${inspectionId}/generate-report`, { method: "POST", body: JSON.stringify({}) }),
+    generateAi: (inspectionId, options = {}) =>
+      request(`/thermography/${inspectionId}/generate-ai`, {
+        method: "POST",
+        body: JSON.stringify({ force: !!options.force })
+      }),
+    generateReport: (inspectionId, options = {}) =>
+      request(`/thermography/${inspectionId}/generate-report`, {
+        method: "POST",
+        body: JSON.stringify({ force: !!options.force })
+      }),
+    addReportImage: (inspectionId, data) =>
+      request(`/thermography/${inspectionId}/report-images`, {
+        method: "POST",
+        body: JSON.stringify(data)
+      }),
+    updateReportImage: (inspectionId, imageId, data) =>
+      request(`/thermography/${inspectionId}/report-images/${imageId}`, {
+        method: "PUT",
+        body: JSON.stringify(data)
+      }),
+    removeReportImage: (inspectionId, imageId) =>
+      request(`/thermography/${inspectionId}/report-images/${imageId}`, { method: "DELETE" }),
     pdf: (inspectionId) => request(`/thermography/${inspectionId}/pdf`)
   },
   quotes: {

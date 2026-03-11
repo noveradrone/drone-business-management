@@ -185,24 +185,52 @@ body.menu-open {
   gap: var(--gap);
 }
 
+.page-header,
 .page-head {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  text-align: center;
-  margin-bottom: 14px;
   gap: 10px;
-  flex-wrap: wrap;
+  margin-bottom: 14px;
+  width: 100%;
 }
 
-.page-head h2 {
+.page-header .page-title,
+.page-head h2,
+.page-head h3 {
   margin: 0;
   letter-spacing: -0.02em;
   text-align: center;
-  flex: 1 1 auto;
+  grid-column: 2;
+  justify-self: center;
+}
+
+.page-header .page-title,
+.page-head h2 {
   font-size: clamp(1.55rem, 2.4vw, 1.95rem);
 }
 
+.page-head h3 {
+  font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+}
+
+.page-header .page-action {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.page-head > :last-child:not(h2):not(h3) {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.page-head > :first-child:not(h2):not(h3),
+.page-header > :first-child:not(.page-title):not(.page-action) {
+  grid-column: 1;
+  justify-self: start;
+}
+
+.page-subtitle,
 .page-summary {
   margin: 0 0 14px;
   color: var(--muted);
@@ -292,6 +320,17 @@ form.form-grid > * {
   display: flex;
   flex-direction: column;
   gap: var(--gap);
+}
+
+.section-gap {
+  gap: var(--gap);
+}
+
+.card-section {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .grid-cards {
@@ -573,6 +612,39 @@ table.data-table tbody tr:hover {
   white-space: nowrap;
 }
 
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-strong) 78%, var(--bg-color) 22%);
+  font-size: 0.8rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.status-brouillon {
+  color: #9a6b00;
+  border-color: color-mix(in srgb, #f8c14c 50%, var(--border));
+  background: color-mix(in srgb, #f8c14c 16%, transparent);
+}
+
+.status-en_cours {
+  color: #0f5eb4;
+  border-color: color-mix(in srgb, #0a84ff 42%, var(--border));
+  background: color-mix(in srgb, #0a84ff 14%, transparent);
+}
+
+.status-termine,
+.status-rapport_genere {
+  color: #0f7d4d;
+  border-color: color-mix(in srgb, #1f9d55 45%, var(--border));
+  background: color-mix(in srgb, #1f9d55 14%, transparent);
+}
+
 .data-row-actions {
   display: grid;
   gap: 8px;
@@ -655,6 +727,83 @@ table.data-table tbody tr:hover {
   border: 1px solid var(--border);
 }
 
+.thermography-page {
+  gap: calc(var(--gap) + 2px);
+}
+
+.thermography-page .page-head.page-head-sub {
+  margin-bottom: 4px;
+}
+
+.thermo-section {
+  margin-top: 6px;
+}
+
+.thermo-inspection-list .data-row-card {
+  grid-template-columns: minmax(250px, 1.2fr) minmax(220px, 1fr) minmax(220px, 0.95fr);
+}
+
+.thermo-inspection-list .data-row-actions,
+.thermo-anomaly-list .data-row-actions,
+.thermo-report-image-list .data-row-actions {
+  gap: 7px;
+}
+
+.thermo-inspection-list .data-row-actions > *,
+.thermo-anomaly-list .data-row-actions > *,
+.thermo-report-image-list .data-row-actions > * {
+  min-width: 110px;
+}
+
+.thermo-form-grid {
+  row-gap: 12px;
+}
+
+.thermo-filter-grid {
+  row-gap: 10px;
+}
+
+.thermo-helper-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thermo-ai-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.thermo-ai-block {
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-strong) 97%, var(--bg-color) 3%);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.thermo-ai-label {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.thermo-ai-text {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.thermo-ai-block textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+
 .thermography-page .checkbox-inline input[type="file"] {
   min-height: 0;
   width: auto;
@@ -664,7 +813,7 @@ table.data-table tbody tr:hover {
 }
 
 .thermography-page .actions-cell {
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 
 .error {
@@ -1340,9 +1489,27 @@ textarea {
   }
 
   .page-head {
-    flex-direction: column;
-    align-items: flex-start;
+    grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  .page-header {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .page-header .page-title,
+  .page-head h2,
+  .page-head h3 {
+    grid-column: 1;
+    justify-self: center;
+  }
+
+  .page-header .page-action,
+  .page-head > :last-child:not(h2):not(h3),
+  .page-head > :first-child:not(h2):not(h3) {
+    grid-column: 1;
+    justify-self: stretch;
   }
 
   .page-summary {

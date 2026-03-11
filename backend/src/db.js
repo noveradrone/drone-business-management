@@ -309,6 +309,7 @@ CREATE TABLE IF NOT EXISTS inspections_thermo (
   methodologie_ai TEXT,
   conclusion_ai TEXT,
   recommandations_globales_ai TEXT,
+  ai_edited INTEGER NOT NULL DEFAULT 0,
   statut TEXT NOT NULL DEFAULT 'brouillon',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -340,10 +341,23 @@ CREATE TABLE IF NOT EXISTS inspection_anomalies (
   FOREIGN KEY (inspection_id) REFERENCES inspections_thermo(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS inspection_report_images (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  inspection_id INTEGER NOT NULL,
+  image_url TEXT NOT NULL,
+  titre TEXT,
+  legende TEXT,
+  ordre_affichage INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (inspection_id) REFERENCES inspections_thermo(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_inspections_thermo_user ON inspections_thermo(user_id);
 CREATE INDEX IF NOT EXISTS idx_inspections_thermo_client ON inspections_thermo(client_id);
 CREATE INDEX IF NOT EXISTS idx_inspections_thermo_date ON inspections_thermo(date_inspection);
 CREATE INDEX IF NOT EXISTS idx_inspection_anomalies_inspection ON inspection_anomalies(inspection_id);
+CREATE INDEX IF NOT EXISTS idx_inspection_report_images_inspection ON inspection_report_images(inspection_id);
 
 CREATE TABLE IF NOT EXISTS insurances (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -456,6 +470,9 @@ ensureColumn("regulatory_checklist_items", "step_title", "TEXT");
 ensureColumn("regulatory_checklist_items", "step_order", "INTEGER NOT NULL DEFAULT 1");
 ensureColumn("regulatory_checklist_items", "item_order", "INTEGER NOT NULL DEFAULT 1");
 ensureColumn("regulatory_checklist_items", "links_json", "TEXT");
+ensureColumn("inspections_thermo", "ai_edited", "INTEGER NOT NULL DEFAULT 0");
+ensureColumn("company_settings", "insurance_policy", "TEXT");
+ensureColumn("company_settings", "signature_name", "TEXT");
 
 ensureColumn("invoices", "acompte_pourcentage", "REAL NOT NULL DEFAULT 0");
 ensureColumn("invoices", "acompte_montant", "REAL NOT NULL DEFAULT 0");

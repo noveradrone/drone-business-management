@@ -2,17 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import DataRowList from "../components/DataRowList";
 
-const TYPE_OPTIONS = [
-  "toiture",
-  "panneaux photovoltaiques",
-  "batiment",
-  "electrique",
-  "industriel",
-  "autre"
-];
-
+const TYPE_OPTIONS = ["toiture", "panneaux photovoltaiques", "batiment", "electrique", "industriel", "autre"];
 const STATUS_OPTIONS = ["brouillon", "en_cours", "termine", "rapport_genere"];
 const GRAVITY_OPTIONS = ["faible", "moderee", "elevee", "critique"];
+
+const STATUS_LABELS = {
+  brouillon: "Brouillon",
+  en_cours: "En cours",
+  termine: "Termine",
+  rapport_genere: "Rapport genere"
+};
 
 const emptyInspection = {
   client_id: "",
@@ -28,6 +27,11 @@ const emptyInspection = {
   operateur: "",
   objectif_mission: "",
   observations_generales: "",
+  introduction_ai: "",
+  methodologie_ai: "",
+  conclusion_ai: "",
+  recommandations_globales_ai: "",
+  ai_edited: 0,
   statut: "brouillon"
 };
 
@@ -51,8 +55,21 @@ const emptyAnomaly = {
   image_visible_data_url: ""
 };
 
+const emptyReportImage = {
+  id: null,
+  titre: "",
+  legende: "",
+  ordre_affichage: 1,
+  image_url: "",
+  image_data_url: ""
+};
+
 function toPreview(url, dataUrl) {
   return dataUrl || url || "";
+}
+
+function toStatusLabel(value) {
+  return STATUS_LABELS[value] || value || "-";
 }
 
 function readFileAsDataUrl(file) {
@@ -73,6 +90,21 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+function tempLabel(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  const n = Number(value);
+  return Number.isFinite(n) ? `${n.toFixed(1)} degC` : "-";
+}
+
+function normalizeInspectionPayload(inspection) {
+  return {
+    ...inspection,
+    client_id: Number(inspection.client_id),
+    temperature_ambiante: inspection.temperature_ambiante === "" ? null : Number(inspection.temperature_ambiante),
+    ai_edited: inspection.ai_edited ? 1 : 0
+  };
+}
+
 export default function ThermographyPage() {
   const [rows, setRows] = useState([]);
   const [clients, setClients] = useState([]);
@@ -84,6 +116,9 @@ export default function ThermographyPage() {
   const [inspection, setInspection] = useState(emptyInspection);
   const [anomalies, setAnomalies] = useState([]);
   const [anomalyForm, setAnomalyForm] = useState(emptyAnomaly);
+  const [reportImages, setReportImages] = useState([]);
+  const [reportImageForm, setReportImageForm] = useState(emptyReportImage);
+  const [aiEditMode, setAiEditMode] = useState(false);
   const [filters, setFilters] = useState({
     q: "",
     client_id: "",
@@ -143,14 +178,18 @@ export default function ThermographyPage() {
         operateur: payload.inspection.operateur || "",
         objectif_mission: payload.inspection.objectif_mission || "",
         observations_generales: payload.inspection.observations_generales || "",
-        statut: payload.inspection.statut || "brouillon",
         introduction_ai: payload.inspection.introduction_ai || "",
         methodologie_ai: payload.inspection.methodologie_ai || "",
         conclusion_ai: payload.inspection.conclusion_ai || "",
-        recommandations_globales_ai: payload.inspection.recommandations_globales_ai || ""
+        recommandations_globales_ai: payload.inspection.recommandations_globales_ai || "",
+        ai_edited: Number(payload.inspection.ai_edited || 0),
+        statut: payload.inspection.statut || "brouillon"
       });
       setAnomalies(payload.anomalies || []);
+      setReportImages(payload.report_images || []);
       setAnomalyForm(emptyAnomaly);
+      setReportImageForm(emptyReportImage);
+      setAiEditMode(false);
     } catch (e) {
       setError(e.message);
     }
@@ -160,19 +199,18 @@ export default function ThermographyPage() {
     setSelectedId(null);
     setInspection(emptyInspection);
     setAnomalies([]);
+    setReportImages([]);
     setAnomalyForm(emptyAnomaly);
+    setReportImageForm(emptyReportImage);
+    setAiEditMode(false);
   }
 
-  async function saveInspection(e) {
-    e.preventDefault();
+  async function saveInspection(event) {
+    if (event?.preventDefault) event.preventDefault();
     setError("");
     setSaving(true);
     try {
-      const payload = {
-        ...inspection,
-        client_id: Number(inspection.client_id),
-        temperature_ambiante: inspection.temperature_ambiante === "" ? null : Number(inspection.temperature_ambiante)
-      };
+      const payload = normalizeInspectionPayload(inspection);
       if (selectedId) {
         await api.thermography.update(selectedId, payload);
         await loadInspection(selectedId);
@@ -202,19 +240,30 @@ export default function ThermographyPage() {
 
   async function generateAi() {
     if (!selectedId) return;
+    const force = !!inspection.ai_edited;
+    if (force) {
+      const ok = window.confirm(
+        "Le texte IA a ete modifie manuellement. Regenerer le rapport ecrasera vos modifications. Continuer ?"
+      );
+      if (!ok) return;
+    }
+
     setError("");
     setAiLoading(true);
     try {
-      const payload = await api.thermography.generateReport(selectedId);
+      const payload = await api.thermography.generateReport(selectedId, { force });
       setInspection((prev) => ({
         ...prev,
         introduction_ai: payload.inspection.introduction_ai || "",
         methodologie_ai: payload.inspection.methodologie_ai || "",
         conclusion_ai: payload.inspection.conclusion_ai || "",
         recommandations_globales_ai: payload.inspection.recommandations_globales_ai || "",
+        ai_edited: Number(payload.inspection.ai_edited || 0),
         statut: payload.inspection.statut || prev.statut
       }));
       setAnomalies(payload.anomalies || []);
+      setReportImages(payload.report_images || []);
+      setAiEditMode(false);
       await loadRows();
     } catch (e) {
       setError(e.message);
@@ -273,8 +322,8 @@ export default function ThermographyPage() {
     });
   }
 
-  async function saveAnomaly(e) {
-    e.preventDefault();
+  async function saveAnomaly(event) {
+    event.preventDefault();
     if (!selectedId) return;
     setError("");
     setSaving(true);
@@ -312,25 +361,112 @@ export default function ThermographyPage() {
     }
   }
 
+  async function onPickReportImage(file) {
+    if (!file) return;
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setReportImageForm((prev) => ({ ...prev, image_data_url: dataUrl }));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  function editReportImage(row) {
+    setReportImageForm({
+      id: row.id,
+      titre: row.titre || "",
+      legende: row.legende || "",
+      ordre_affichage: row.ordre_affichage || 1,
+      image_url: row.image_url || "",
+      image_data_url: ""
+    });
+  }
+
+  function clearReportImageForm() {
+    setReportImageForm(emptyReportImage);
+  }
+
+  async function saveReportImage(event) {
+    event.preventDefault();
+    if (!selectedId) return;
+    setError("");
+    setSaving(true);
+    try {
+      const payload = {
+        titre: reportImageForm.titre,
+        legende: reportImageForm.legende,
+        ordre_affichage: Number(reportImageForm.ordre_affichage || 1),
+        image_url: reportImageForm.image_url,
+        image_data_url: reportImageForm.image_data_url
+      };
+
+      if (reportImageForm.id) {
+        await api.thermography.updateReportImage(selectedId, reportImageForm.id, payload);
+      } else {
+        await api.thermography.addReportImage(selectedId, payload);
+      }
+
+      await loadInspection(selectedId);
+      clearReportImageForm();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeReportImage(row) {
+    if (!selectedId) return;
+    if (!window.confirm(`Supprimer l'image "${row.titre || `#${row.id}`}" ?`)) return;
+    setError("");
+    try {
+      await api.thermography.removeReportImage(selectedId, row.id);
+      await loadInspection(selectedId);
+      if (reportImageForm.id === row.id) clearReportImageForm();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  function markAiEdited(field, value) {
+    setInspection((prev) => ({
+      ...prev,
+      [field]: value,
+      ai_edited: 1
+    }));
+  }
+
   return (
-    <div className="thermography-page">
-      <div className="page-head">
-        <h2>Thermographie</h2>
-        <button className="secondary" onClick={resetForm}>Nouvelle inspection</button>
+    <div className="thermography-page stack">
+      <div className="page-header">
+        <h2 className="page-title">Thermographie</h2>
+        <div className="page-action">
+          <button className="secondary" onClick={resetForm}>
+            Nouvelle inspection
+          </button>
+        </div>
       </div>
-      <p className="page-summary">
+      <p className="page-subtitle page-summary">
         Cree des inspections thermographiques, ajoute des anomalies avec photos, puis genere automatiquement le rapport IA et le PDF premium.
       </p>
 
-      {error && <p className="error">{error}</p>}
+      {error ? <p className="error">{error}</p> : null}
 
-      <div className="card">
-        <div className="page-head" style={{ marginBottom: 8 }}>
-          <h3 style={{ margin: 0 }}>Liste des inspections</h3>
+      <section className="card card-section stack">
+        <div className="page-head page-head-sub">
+          <h3>Liste des inspections</h3>
         </div>
-        <div className="form-grid">
-          <input placeholder="Recherche titre/client" value={filters.q} onChange={(e) => setFilters((p) => ({ ...p, q: e.target.value }))} />
-          <select value={filters.client_id} onChange={(e) => setFilters((p) => ({ ...p, client_id: e.target.value }))}>
+
+        <div className="form-grid thermo-filter-grid">
+          <input
+            placeholder="Recherche titre/client"
+            value={filters.q}
+            onChange={(e) => setFilters((p) => ({ ...p, q: e.target.value }))}
+          />
+          <select
+            value={filters.client_id}
+            onChange={(e) => setFilters((p) => ({ ...p, client_id: e.target.value }))}
+          >
             <option value="">Tous clients</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -340,7 +476,10 @@ export default function ThermographyPage() {
           </select>
           <input type="date" value={filters.from} onChange={(e) => setFilters((p) => ({ ...p, from: e.target.value }))} />
           <input type="date" value={filters.to} onChange={(e) => setFilters((p) => ({ ...p, to: e.target.value }))} />
-          <select value={filters.type_inspection} onChange={(e) => setFilters((p) => ({ ...p, type_inspection: e.target.value }))}>
+          <select
+            value={filters.type_inspection}
+            onChange={(e) => setFilters((p) => ({ ...p, type_inspection: e.target.value }))}
+          >
             <option value="">Tous types</option>
             {TYPE_OPTIONS.map((type) => (
               <option key={type} value={type}>
@@ -348,54 +487,69 @@ export default function ThermographyPage() {
               </option>
             ))}
           </select>
-          <select value={filters.statut} onChange={(e) => setFilters((p) => ({ ...p, statut: e.target.value }))}>
+          <select
+            value={filters.statut}
+            onChange={(e) => setFilters((p) => ({ ...p, statut: e.target.value }))}
+          >
             <option value="">Tous statuts</option>
             {STATUS_OPTIONS.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {toStatusLabel(status)}
               </option>
             ))}
           </select>
         </div>
-      </div>
+      </section>
 
       <DataRowList
+        className="thermo-inspection-list"
         items={rows}
         emptyMessage="Aucune inspection thermographique."
         renderTitle={(row) => row.titre}
-        renderSubtitle={(row) => `${row.company_name} - ${row.date_inspection}`}
+        renderSubtitle={(row) => `${row.company_name || "Client inconnu"} - ${row.date_inspection}`}
         renderDetails={(row) => (
           <div className="data-row-info-grid">
             <div className="data-row-info">
               <span className="data-row-label">Type</span>
-              <span className="data-row-value">{row.type_inspection}</span>
+              <span className="data-row-value">{row.type_inspection || "-"}</span>
             </div>
             <div className="data-row-info">
               <span className="data-row-label">Statut</span>
-              <span className="data-row-value">{row.statut}</span>
+              <span className={`status-pill status-${row.statut || "brouillon"}`}>{toStatusLabel(row.statut)}</span>
             </div>
           </div>
         )}
         renderActions={(row) => (
           <>
-            <button className="secondary" onClick={() => loadInspection(row.id)}>Voir</button>
-            <button className="secondary" onClick={() => loadInspection(row.id)}>Modifier</button>
-            <button className="secondary" onClick={async () => {
-              try {
-                const blob = await api.thermography.pdf(row.id);
-                downloadBlob(blob, `rapport-thermographie-${row.id}.pdf`);
-              } catch (e) {
-                setError(e.message);
-              }
-            }}>Generer PDF</button>
-            <button className="danger" onClick={() => removeInspection(row)}>Supprimer</button>
+            <button className="secondary" onClick={() => loadInspection(row.id)}>
+              Voir
+            </button>
+            <button className="secondary" onClick={() => loadInspection(row.id)}>
+              Modifier
+            </button>
+            <button
+              className="secondary"
+              onClick={async () => {
+                try {
+                  const blob = await api.thermography.pdf(row.id);
+                  downloadBlob(blob, `rapport-thermographie-${row.id}.pdf`);
+                } catch (e) {
+                  setError(e.message);
+                }
+              }}
+            >
+              Generer PDF
+            </button>
+            <button className="danger" onClick={() => removeInspection(row)}>
+              Supprimer
+            </button>
           </>
         )}
       />
 
-      <div className="card">
-        <div className="page-head" style={{ marginBottom: 8 }}>
-          <h3 style={{ margin: 0 }}>{selectedId ? `Inspection #${selectedId}` : "Nouvelle inspection"}</h3>
+      <section className="card card-section stack">
+        <div className="page-head page-head-sub">
+          <h3>{selectedId ? `Inspection #${selectedId}` : "Nouvelle inspection"}</h3>
           <div className="actions-cell">
             <button onClick={saveInspection} disabled={saving}>
               {saving ? "Enregistrement..." : "Enregistrer inspection"}
@@ -409,7 +563,7 @@ export default function ThermographyPage() {
           </div>
         </div>
 
-        <form className="form-grid" onSubmit={saveInspection}>
+        <form className="form-grid thermo-form-grid" onSubmit={saveInspection}>
           <select value={inspection.client_id} onChange={(e) => setInspection((p) => ({ ...p, client_id: e.target.value }))} required>
             <option value="">Client</option>
             {clients.map((c) => (
@@ -418,27 +572,69 @@ export default function ThermographyPage() {
               </option>
             ))}
           </select>
-          <input placeholder="Titre inspection" value={inspection.titre} onChange={(e) => setInspection((p) => ({ ...p, titre: e.target.value }))} required />
-          <input placeholder="Adresse" value={inspection.adresse} onChange={(e) => setInspection((p) => ({ ...p, adresse: e.target.value }))} />
-          <input type="date" value={inspection.date_inspection} onChange={(e) => setInspection((p) => ({ ...p, date_inspection: e.target.value }))} required />
-          <select value={inspection.type_inspection} onChange={(e) => setInspection((p) => ({ ...p, type_inspection: e.target.value }))}>
+          <input
+            placeholder="Titre inspection"
+            value={inspection.titre}
+            onChange={(e) => setInspection((p) => ({ ...p, titre: e.target.value }))}
+            required
+          />
+          <input
+            placeholder="Adresse"
+            value={inspection.adresse}
+            onChange={(e) => setInspection((p) => ({ ...p, adresse: e.target.value }))}
+          />
+          <input
+            type="date"
+            value={inspection.date_inspection}
+            onChange={(e) => setInspection((p) => ({ ...p, date_inspection: e.target.value }))}
+            required
+          />
+
+          <select
+            value={inspection.type_inspection}
+            onChange={(e) => setInspection((p) => ({ ...p, type_inspection: e.target.value }))}
+          >
             {TYPE_OPTIONS.map((type) => (
               <option key={type} value={type}>
                 {type}
               </option>
             ))}
           </select>
-          <input placeholder="Objectif mission" value={inspection.objectif_mission} onChange={(e) => setInspection((p) => ({ ...p, objectif_mission: e.target.value }))} />
-          <input placeholder="Drone utilise" value={inspection.drone_utilise} onChange={(e) => setInspection((p) => ({ ...p, drone_utilise: e.target.value }))} />
-          <input placeholder="Camera thermique" value={inspection.camera_thermique} onChange={(e) => setInspection((p) => ({ ...p, camera_thermique: e.target.value }))} />
-          <input type="number" step="0.1" placeholder="Temperature ambiante" value={inspection.temperature_ambiante} onChange={(e) => setInspection((p) => ({ ...p, temperature_ambiante: e.target.value }))} />
+          <input
+            placeholder="Objectif mission"
+            value={inspection.objectif_mission}
+            onChange={(e) => setInspection((p) => ({ ...p, objectif_mission: e.target.value }))}
+          />
+          <input
+            placeholder="Drone utilise"
+            value={inspection.drone_utilise}
+            onChange={(e) => setInspection((p) => ({ ...p, drone_utilise: e.target.value }))}
+          />
+          <input
+            placeholder="Camera thermique"
+            value={inspection.camera_thermique}
+            onChange={(e) => setInspection((p) => ({ ...p, camera_thermique: e.target.value }))}
+          />
+
+          <input
+            type="number"
+            step="0.1"
+            placeholder="Temperature ambiante"
+            value={inspection.temperature_ambiante}
+            onChange={(e) => setInspection((p) => ({ ...p, temperature_ambiante: e.target.value }))}
+          />
           <input placeholder="Meteo" value={inspection.meteo} onChange={(e) => setInspection((p) => ({ ...p, meteo: e.target.value }))} />
           <input placeholder="Vent" value={inspection.vent} onChange={(e) => setInspection((p) => ({ ...p, vent: e.target.value }))} />
-          <input placeholder="Operateur" value={inspection.operateur} onChange={(e) => setInspection((p) => ({ ...p, operateur: e.target.value }))} />
+          <input
+            placeholder="Operateur"
+            value={inspection.operateur}
+            onChange={(e) => setInspection((p) => ({ ...p, operateur: e.target.value }))}
+          />
+
           <select value={inspection.statut} onChange={(e) => setInspection((p) => ({ ...p, statut: e.target.value }))}>
             {STATUS_OPTIONS.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {toStatusLabel(status)}
               </option>
             ))}
           </select>
@@ -451,15 +647,45 @@ export default function ThermographyPage() {
         </form>
 
         {selectedId ? (
-          <div className="card" style={{ marginTop: 14 }}>
-            <h3 style={{ marginTop: 0 }}>Anomalies</h3>
-            <form className="form-grid" onSubmit={saveAnomaly}>
-              <input placeholder="Titre anomalie" value={anomalyForm.titre} onChange={(e) => setAnomalyForm((p) => ({ ...p, titre: e.target.value }))} required />
+          <div className="card card-section thermo-section stack">
+            <div className="page-head page-head-sub">
+              <h3>Anomalies</h3>
+            </div>
+
+            <form className="form-grid thermo-form-grid" onSubmit={saveAnomaly}>
+              <input
+                placeholder="Titre anomalie"
+                value={anomalyForm.titre}
+                onChange={(e) => setAnomalyForm((p) => ({ ...p, titre: e.target.value }))}
+                required
+              />
               <input placeholder="Zone" value={anomalyForm.zone} onChange={(e) => setAnomalyForm((p) => ({ ...p, zone: e.target.value }))} />
-              <input placeholder="Type anomalie" value={anomalyForm.type_anomalie} onChange={(e) => setAnomalyForm((p) => ({ ...p, type_anomalie: e.target.value }))} />
-              <input type="number" step="0.1" placeholder="Temperature max" value={anomalyForm.temperature_max} onChange={(e) => setAnomalyForm((p) => ({ ...p, temperature_max: e.target.value }))} />
-              <input type="number" step="0.1" placeholder="Temperature min" value={anomalyForm.temperature_min} onChange={(e) => setAnomalyForm((p) => ({ ...p, temperature_min: e.target.value }))} />
-              <input type="number" step="0.1" placeholder="Ecart thermique" value={anomalyForm.ecart_thermique} onChange={(e) => setAnomalyForm((p) => ({ ...p, ecart_thermique: e.target.value }))} />
+              <input
+                placeholder="Type anomalie"
+                value={anomalyForm.type_anomalie}
+                onChange={(e) => setAnomalyForm((p) => ({ ...p, type_anomalie: e.target.value }))}
+              />
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Temperature max"
+                value={anomalyForm.temperature_max}
+                onChange={(e) => setAnomalyForm((p) => ({ ...p, temperature_max: e.target.value }))}
+              />
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Temperature min"
+                value={anomalyForm.temperature_min}
+                onChange={(e) => setAnomalyForm((p) => ({ ...p, temperature_min: e.target.value }))}
+              />
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Ecart thermique"
+                value={anomalyForm.ecart_thermique}
+                onChange={(e) => setAnomalyForm((p) => ({ ...p, ecart_thermique: e.target.value }))}
+              />
               <select value={anomalyForm.gravite} onChange={(e) => setAnomalyForm((p) => ({ ...p, gravite: e.target.value }))}>
                 {GRAVITY_OPTIONS.map((g) => (
                   <option key={g} value={g}>
@@ -467,15 +693,32 @@ export default function ThermographyPage() {
                   </option>
                 ))}
               </select>
-              <input type="number" min="1" step="1" placeholder="Ordre" value={anomalyForm.ordre_affichage} onChange={(e) => setAnomalyForm((p) => ({ ...p, ordre_affichage: e.target.value }))} />
+              <input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Ordre"
+                value={anomalyForm.ordre_affichage}
+                onChange={(e) => setAnomalyForm((p) => ({ ...p, ordre_affichage: e.target.value }))}
+              />
+
               <label className="checkbox-inline" style={{ gridColumn: "1 / -1" }}>
-                <input type="file" accept=".jpg,.jpeg,.png,.webp,image/*" onChange={(e) => onPickAnomalyImage("thermique", e.target.files?.[0])} />
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,image/*"
+                  onChange={(e) => onPickAnomalyImage("thermique", e.target.files?.[0])}
+                />
                 Photo thermique
               </label>
               <label className="checkbox-inline" style={{ gridColumn: "1 / -1" }}>
-                <input type="file" accept=".jpg,.jpeg,.png,.webp,image/*" onChange={(e) => onPickAnomalyImage("visible", e.target.files?.[0])} />
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,image/*"
+                  onChange={(e) => onPickAnomalyImage("visible", e.target.files?.[0])}
+                />
                 Photo visible
               </label>
+
               <div className="form-grid-2" style={{ gridColumn: "1 / -1" }}>
                 <div className="card">
                   <p className="card-label">Apercu thermique</p>
@@ -494,6 +737,7 @@ export default function ThermographyPage() {
                   )}
                 </div>
               </div>
+
               <textarea
                 style={{ gridColumn: "1 / -1", minHeight: 86 }}
                 placeholder="Description terrain"
@@ -518,6 +762,7 @@ export default function ThermographyPage() {
                 value={anomalyForm.verification_recommandee}
                 onChange={(e) => setAnomalyForm((p) => ({ ...p, verification_recommandee: e.target.value }))}
               />
+
               <div className="actions-cell" style={{ gridColumn: "1 / -1" }}>
                 <button disabled={saving}>{anomalyForm.id ? "Mettre a jour anomalie" : "Ajouter anomalie"}</button>
                 {anomalyForm.id ? (
@@ -529,6 +774,7 @@ export default function ThermographyPage() {
             </form>
 
             <DataRowList
+              className="thermo-anomaly-list"
               items={anomalies}
               emptyMessage="Aucune anomalie pour cette inspection."
               renderTitle={(a) => a.titre}
@@ -538,16 +784,16 @@ export default function ThermographyPage() {
                   <div className="data-row-info">
                     <span className="data-row-label">Temp max/min</span>
                     <span className="data-row-value">
-                      {a.temperature_max ?? "-"}°C / {a.temperature_min ?? "-"}°C
+                      {tempLabel(a.temperature_max)} / {tempLabel(a.temperature_min)}
                     </span>
                   </div>
                   <div className="data-row-info">
                     <span className="data-row-label">Ecart</span>
-                    <span className="data-row-value">{a.ecart_thermique ?? "-"}°C</span>
+                    <span className="data-row-value">{tempLabel(a.ecart_thermique)}</span>
                   </div>
                   <div className="data-row-info">
                     <span className="data-row-label">Gravite</span>
-                    <span className="data-row-value">{a.gravite}</span>
+                    <span className="data-row-value">{a.gravite || "-"}</span>
                   </div>
                 </div>
               )}
@@ -559,38 +805,200 @@ export default function ThermographyPage() {
               )}
               renderActions={(a) => (
                 <>
-                  <button className="secondary" onClick={() => editAnomaly(a)}>Modifier</button>
-                  <button className="danger" onClick={() => removeAnomaly(a)}>Supprimer</button>
+                  <button className="secondary" onClick={() => editAnomaly(a)}>
+                    Modifier
+                  </button>
+                  <button className="danger" onClick={() => removeAnomaly(a)}>
+                    Supprimer
+                  </button>
                 </>
               )}
             />
           </div>
         ) : null}
 
-        {inspection.introduction_ai || inspection.methodologie_ai || inspection.conclusion_ai ? (
-          <div className="card" style={{ marginTop: 14 }}>
-            <h3 style={{ marginTop: 0 }}>Texte IA genere</h3>
-            <div className="data-row-info-grid">
-              <div className="data-row-info">
-                <span className="data-row-label">Introduction</span>
-                <span className="data-row-value">{inspection.introduction_ai || "-"}</span>
-              </div>
-              <div className="data-row-info">
-                <span className="data-row-label">Methodologie</span>
-                <span className="data-row-value">{inspection.methodologie_ai || "-"}</span>
-              </div>
-              <div className="data-row-info">
-                <span className="data-row-label">Conclusion</span>
-                <span className="data-row-value">{inspection.conclusion_ai || "-"}</span>
-              </div>
-              <div className="data-row-info">
-                <span className="data-row-label">Recommandations</span>
-                <span className="data-row-value">{inspection.recommandations_globales_ai || "-"}</span>
-              </div>
+        {selectedId ? (
+          <div className="card card-section thermo-section stack">
+            <div className="page-head page-head-sub">
+              <h3>Images complementaires du rapport</h3>
             </div>
+
+            <form className="form-grid thermo-form-grid" onSubmit={saveReportImage}>
+              <input
+                placeholder="Titre image"
+                value={reportImageForm.titre}
+                onChange={(e) => setReportImageForm((p) => ({ ...p, titre: e.target.value }))}
+              />
+              <input
+                placeholder="Legende"
+                value={reportImageForm.legende}
+                onChange={(e) => setReportImageForm((p) => ({ ...p, legende: e.target.value }))}
+              />
+              <input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Ordre"
+                value={reportImageForm.ordre_affichage}
+                onChange={(e) => setReportImageForm((p) => ({ ...p, ordre_affichage: e.target.value }))}
+              />
+
+              <label className="checkbox-inline" style={{ gridColumn: "1 / -1" }}>
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,image/*"
+                  onChange={(e) => onPickReportImage(e.target.files?.[0])}
+                />
+                Ajouter une image
+              </label>
+
+              <div className="form-grid-2" style={{ gridColumn: "1 / -1" }}>
+                <div className="card">
+                  <p className="card-label">Apercu</p>
+                  {toPreview(reportImageForm.image_url, reportImageForm.image_data_url) ? (
+                    <img src={toPreview(reportImageForm.image_url, reportImageForm.image_data_url)} alt="Rapport" />
+                  ) : (
+                    <p className="documents-intro">Aucune image.</p>
+                  )}
+                </div>
+                <div className="card thermo-helper-card">
+                  <p className="documents-intro">Ces images seront ajoutees dans le PDF final, section illustrations complementaires.</p>
+                </div>
+              </div>
+
+              <div className="actions-cell" style={{ gridColumn: "1 / -1" }}>
+                <button disabled={saving}>{reportImageForm.id ? "Mettre a jour image" : "Ajouter image"}</button>
+                {reportImageForm.id ? (
+                  <button type="button" className="secondary" onClick={clearReportImageForm}>
+                    Annuler edition
+                  </button>
+                ) : null}
+              </div>
+            </form>
+
+            <DataRowList
+              className="thermo-report-image-list"
+              items={reportImages}
+              emptyMessage="Aucune image complementaire."
+              renderTitle={(img) => img.titre || `Image #${img.id}`}
+              renderSubtitle={(img) => img.legende || "Sans legende"}
+              renderDetails={(img) => (
+                <div className="data-row-info-grid">
+                  <div className="data-row-info">
+                    <span className="data-row-label">Ordre</span>
+                    <span className="data-row-value">{img.ordre_affichage || 1}</span>
+                  </div>
+                  <div className="data-row-info">
+                    <span className="data-row-label">Apercu</span>
+                    <span className="data-row-value">{img.image_url ? "Image disponible" : "-"}</span>
+                  </div>
+                </div>
+              )}
+              renderMeta={(img) =>
+                img.image_url ? (
+                  <span className="data-row-chip">URL image</span>
+                ) : null
+              }
+              renderActions={(img) => (
+                <>
+                  <button className="secondary" onClick={() => editReportImage(img)}>
+                    Modifier
+                  </button>
+                  <button className="danger" onClick={() => removeReportImage(img)}>
+                    Supprimer
+                  </button>
+                </>
+              )}
+            />
           </div>
         ) : null}
-      </div>
+
+        {selectedId ? (
+          <div className="card card-section thermo-section stack">
+            <div className="page-head page-head-sub">
+              <h3>Texte genere par IA</h3>
+              <div className="actions-cell">
+                {!aiEditMode ? (
+                  <button type="button" className="secondary" onClick={() => setAiEditMode(true)}>
+                    Modifier
+                  </button>
+                ) : (
+                  <>
+                    <button type="button" onClick={saveInspection} disabled={saving}>
+                      Enregistrer texte IA
+                    </button>
+                    <button type="button" className="secondary" onClick={() => setAiEditMode(false)}>
+                      Annuler
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="thermo-ai-grid">
+              <div className="thermo-ai-block">
+                <p className="thermo-ai-label">Introduction</p>
+                {aiEditMode ? (
+                  <textarea
+                    value={inspection.introduction_ai || ""}
+                    onChange={(e) => markAiEdited("introduction_ai", e.target.value)}
+                    placeholder="Introduction du rapport..."
+                  />
+                ) : (
+                  <p className="thermo-ai-text">{inspection.introduction_ai || "-"}</p>
+                )}
+              </div>
+
+              <div className="thermo-ai-block">
+                <p className="thermo-ai-label">Methodologie</p>
+                {aiEditMode ? (
+                  <textarea
+                    value={inspection.methodologie_ai || ""}
+                    onChange={(e) => markAiEdited("methodologie_ai", e.target.value)}
+                    placeholder="Methodologie..."
+                  />
+                ) : (
+                  <p className="thermo-ai-text">{inspection.methodologie_ai || "-"}</p>
+                )}
+              </div>
+
+              <div className="thermo-ai-block">
+                <p className="thermo-ai-label">Conclusion</p>
+                {aiEditMode ? (
+                  <textarea
+                    value={inspection.conclusion_ai || ""}
+                    onChange={(e) => markAiEdited("conclusion_ai", e.target.value)}
+                    placeholder="Conclusion..."
+                  />
+                ) : (
+                  <p className="thermo-ai-text">{inspection.conclusion_ai || "-"}</p>
+                )}
+              </div>
+
+              <div className="thermo-ai-block">
+                <p className="thermo-ai-label">Recommandations</p>
+                {aiEditMode ? (
+                  <textarea
+                    value={inspection.recommandations_globales_ai || ""}
+                    onChange={(e) => markAiEdited("recommandations_globales_ai", e.target.value)}
+                    placeholder="Recommandations..."
+                  />
+                ) : (
+                  <p className="thermo-ai-text">{inspection.recommandations_globales_ai || "-"}</p>
+                )}
+              </div>
+            </div>
+
+            {inspection.ai_edited ? (
+              <p className="documents-intro">Le texte IA a ete modifie manuellement et sera conserve dans le PDF.</p>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
+      {selectedClient ? (
+        <p className="documents-intro">Client selectionne : {selectedClient.company_name}</p>
+      ) : null}
     </div>
   );
 }

@@ -23,7 +23,38 @@ function toNumber(value, fallback = null) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function toBoolInt(value, fallback = 0) {
+  if (value === undefined || value === null || value === "") return fallback ? 1 : 0;
+  if (typeof value === "boolean") return value ? 1 : 0;
+  if (typeof value === "number") return value ? 1 : 0;
+  const raw = String(value).trim().toLowerCase();
+  if (["1", "true", "yes", "oui"].includes(raw)) return 1;
+  if (["0", "false", "no", "non"].includes(raw)) return 0;
+  return fallback ? 1 : 0;
+}
+
 function normalizeInspectionInput(payload = {}, existing = {}) {
+  const hasManualAiPayload =
+    payload.introduction_ai !== undefined ||
+    payload.methodologie_ai !== undefined ||
+    payload.conclusion_ai !== undefined ||
+    payload.recommandations_globales_ai !== undefined;
+
+  const introduction_ai = clean(payload.introduction_ai, clean(existing.introduction_ai));
+  const methodologie_ai = clean(payload.methodologie_ai, clean(existing.methodologie_ai));
+  const conclusion_ai = clean(payload.conclusion_ai, clean(existing.conclusion_ai));
+  const recommandations_globales_ai = clean(
+    payload.recommandations_globales_ai,
+    clean(existing.recommandations_globales_ai)
+  );
+
+  const aiChangedManually =
+    hasManualAiPayload &&
+    (introduction_ai !== clean(existing.introduction_ai) ||
+      methodologie_ai !== clean(existing.methodologie_ai) ||
+      conclusion_ai !== clean(existing.conclusion_ai) ||
+      recommandations_globales_ai !== clean(existing.recommandations_globales_ai));
+
   const next = {
     client_id: Number(payload.client_id ?? existing.client_id),
     titre: clean(payload.titre, clean(existing.titre)),
@@ -38,6 +69,16 @@ function normalizeInspectionInput(payload = {}, existing = {}) {
     operateur: clean(payload.operateur, clean(existing.operateur)),
     objectif_mission: clean(payload.objectif_mission, clean(existing.objectif_mission)),
     observations_generales: clean(payload.observations_generales, clean(existing.observations_generales)),
+    introduction_ai,
+    methodologie_ai,
+    conclusion_ai,
+    recommandations_globales_ai,
+    ai_edited:
+      payload.ai_edited !== undefined
+        ? toBoolInt(payload.ai_edited, toBoolInt(existing.ai_edited, 0))
+        : aiChangedManually
+          ? 1
+          : toBoolInt(existing.ai_edited, 0),
     statut: clean(payload.statut, clean(existing.statut, "brouillon")).toLowerCase()
   };
 
@@ -108,6 +149,27 @@ function listAnomalies(inspectionId) {
     .all(inspectionId);
 }
 
+function listReportImages(inspectionId) {
+  return db
+    .prepare(
+      `SELECT *
+       FROM inspection_report_images
+       WHERE inspection_id = ?
+       ORDER BY ordre_affichage ASC, id ASC`
+    )
+    .all(inspectionId);
+}
+
+function normalizeReportImageInput(payload = {}, existing = {}) {
+  return {
+    image_url: clean(payload.image_url, clean(existing.image_url)),
+    image_data_url: clean(payload.image_data_url),
+    titre: clean(payload.titre, clean(existing.titre)),
+    legende: clean(payload.legende, clean(existing.legende)),
+    ordre_affichage: Number(payload.ordre_affichage ?? existing.ordre_affichage ?? 1)
+  };
+}
+
 async function maybeUploadImageFromPayload(dataUrl, folder, fallbackUrl = "") {
   if (!dataUrl) return fallbackUrl || "";
   const uploaded = await uploadImageToCloudinary(dataUrl, { folder });
@@ -157,8 +219,9 @@ router.post("/", authRequired, (req, res) => {
       .prepare(
         `INSERT INTO inspections_thermo (
           user_id, client_id, titre, adresse, date_inspection, type_inspection, drone_utilise, camera_thermique,
-          temperature_ambiante, meteo, vent, operateur, objectif_mission, observations_generales, statut, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+          temperature_ambiante, meteo, vent, operateur, objectif_mission, observations_generales,
+          introduction_ai, methodologie_ai, conclusion_ai, recommandations_globales_ai, ai_edited, statut, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
       )
       .run(
         req.user.id,
@@ -175,6 +238,11 @@ router.post("/", authRequired, (req, res) => {
         payload.operateur || null,
         payload.objectif_mission || null,
         payload.observations_generales || null,
+        payload.introduction_ai || null,
+        payload.methodologie_ai || null,
+        payload.conclusion_ai || null,
+        payload.recommandations_globales_ai || null,
+        payload.ai_edited || 0,
         payload.statut
       );
     const created = getInspectionOwnedByUser(result.lastInsertRowid, req.user.id);
@@ -190,7 +258,8 @@ router.get("/:id", authRequired, (req, res) => {
   const inspection = getInspectionOwnedByUser(id, req.user.id);
   if (!inspection) return res.status(404).json({ message: "Inspection introuvable." });
   const anomalies = listAnomalies(id);
-  return res.json({ inspection, anomalies });
+  const report_images = listReportImages(id);
+  return res.json({ inspection, anomalies, report_images });
 });
 
 router.put("/:id", authRequired, (req, res) => {
@@ -205,7 +274,8 @@ router.put("/:id", authRequired, (req, res) => {
       `UPDATE inspections_thermo
        SET client_id = ?, titre = ?, adresse = ?, date_inspection = ?, type_inspection = ?, drone_utilise = ?,
            camera_thermique = ?, temperature_ambiante = ?, meteo = ?, vent = ?, operateur = ?, objectif_mission = ?,
-           observations_generales = ?, statut = ?, updated_at = datetime('now')
+           observations_generales = ?, introduction_ai = ?, methodologie_ai = ?, conclusion_ai = ?,
+           recommandations_globales_ai = ?, ai_edited = ?, statut = ?, updated_at = datetime('now')
        WHERE id = ? AND user_id = ?`
     ).run(
       payload.client_id,
@@ -221,6 +291,11 @@ router.put("/:id", authRequired, (req, res) => {
       payload.operateur || null,
       payload.objectif_mission || null,
       payload.observations_generales || null,
+      payload.introduction_ai || null,
+      payload.methodologie_ai || null,
+      payload.conclusion_ai || null,
+      payload.recommandations_globales_ai || null,
+      payload.ai_edited || 0,
       payload.statut,
       id,
       req.user.id
@@ -389,6 +464,83 @@ router.post("/:id/anomalies/:anomalyId/upload", authRequired, async (req, res) =
   }
 });
 
+router.post("/:id/report-images", authRequired, async (req, res) => {
+  const inspectionId = Number(req.params.id);
+  if (!Number.isFinite(inspectionId)) return res.status(400).json({ message: "ID inspection invalide." });
+  const inspection = getInspectionOwnedByUser(inspectionId, req.user.id);
+  if (!inspection) return res.status(404).json({ message: "Inspection introuvable." });
+
+  try {
+    const payload = normalizeReportImageInput(req.body || {});
+    if (!payload.image_url && !payload.image_data_url) {
+      return res.status(400).json({ message: "Image requise." });
+    }
+    const folder = `drone-business/thermography/user-${req.user.id}/inspection-${inspectionId}/report-images`;
+    const imageUrl = await maybeUploadImageFromPayload(payload.image_data_url, folder, payload.image_url);
+    if (!imageUrl) return res.status(400).json({ message: "Image invalide." });
+
+    const result = db
+      .prepare(
+        `INSERT INTO inspection_report_images (
+          inspection_id, image_url, titre, legende, ordre_affichage, updated_at
+        ) VALUES (?, ?, ?, ?, ?, datetime('now'))`
+      )
+      .run(inspectionId, imageUrl, payload.titre || null, payload.legende || null, payload.ordre_affichage);
+
+    const created = db.prepare("SELECT * FROM inspection_report_images WHERE id = ?").get(result.lastInsertRowid);
+    return res.status(201).json(created);
+  } catch (error) {
+    return res.status(400).json({ message: error.message || "Ajout image impossible." });
+  }
+});
+
+router.put("/:id/report-images/:imageId", authRequired, async (req, res) => {
+  const inspectionId = Number(req.params.id);
+  const imageId = Number(req.params.imageId);
+  if (!Number.isFinite(inspectionId) || !Number.isFinite(imageId)) {
+    return res.status(400).json({ message: "IDs invalides." });
+  }
+  const inspection = getInspectionOwnedByUser(inspectionId, req.user.id);
+  if (!inspection) return res.status(404).json({ message: "Inspection introuvable." });
+  const existing = db
+    .prepare("SELECT * FROM inspection_report_images WHERE id = ? AND inspection_id = ?")
+    .get(imageId, inspectionId);
+  if (!existing) return res.status(404).json({ message: "Image introuvable." });
+
+  try {
+    const payload = normalizeReportImageInput(req.body || {}, existing);
+    const folder = `drone-business/thermography/user-${req.user.id}/inspection-${inspectionId}/report-images`;
+    const imageUrl = await maybeUploadImageFromPayload(payload.image_data_url, folder, payload.image_url);
+    if (!imageUrl) return res.status(400).json({ message: "Image invalide." });
+
+    db.prepare(
+      `UPDATE inspection_report_images
+       SET image_url = ?, titre = ?, legende = ?, ordre_affichage = ?, updated_at = datetime('now')
+       WHERE id = ? AND inspection_id = ?`
+    ).run(imageUrl, payload.titre || null, payload.legende || null, payload.ordre_affichage, imageId, inspectionId);
+
+    const updated = db.prepare("SELECT * FROM inspection_report_images WHERE id = ?").get(imageId);
+    return res.json(updated);
+  } catch (error) {
+    return res.status(400).json({ message: error.message || "Mise a jour image impossible." });
+  }
+});
+
+router.delete("/:id/report-images/:imageId", authRequired, (req, res) => {
+  const inspectionId = Number(req.params.id);
+  const imageId = Number(req.params.imageId);
+  if (!Number.isFinite(inspectionId) || !Number.isFinite(imageId)) {
+    return res.status(400).json({ message: "IDs invalides." });
+  }
+  const inspection = getInspectionOwnedByUser(inspectionId, req.user.id);
+  if (!inspection) return res.status(404).json({ message: "Inspection introuvable." });
+  const result = db
+    .prepare("DELETE FROM inspection_report_images WHERE id = ? AND inspection_id = ?")
+    .run(imageId, inspectionId);
+  if (!result.changes) return res.status(404).json({ message: "Image introuvable." });
+  return res.status(204).send();
+});
+
 async function handleGenerateAi(req, res) {
   const inspectionId = Number(req.params.id);
   if (!Number.isFinite(inspectionId)) return res.status(400).json({ message: "ID inspection invalide." });
@@ -396,13 +548,21 @@ async function handleGenerateAi(req, res) {
   if (!inspection) return res.status(404).json({ message: "Inspection introuvable." });
   const anomalies = listAnomalies(inspectionId);
   const client = db.prepare("SELECT * FROM clients WHERE id = ?").get(inspection.client_id);
+  const force = toBoolInt(req.body?.force, 0);
+
+  if (toBoolInt(inspection.ai_edited, 0) && !force) {
+    return res.status(409).json({
+      message: "Le texte IA a ete modifie manuellement. Confirmez la regeneration pour ecraser les modifications.",
+      code: "AI_TEXT_EDITED"
+    });
+  }
 
   try {
     const report = await generateThermographyReport({ inspection, anomalies, client });
     db.prepare(
       `UPDATE inspections_thermo
        SET introduction_ai = ?, methodologie_ai = ?, conclusion_ai = ?, recommandations_globales_ai = ?,
-           statut = 'rapport_genere', updated_at = datetime('now')
+           ai_edited = 0, statut = 'rapport_genere', updated_at = datetime('now')
        WHERE id = ? AND user_id = ?`
     ).run(
       report.introduction_ai || null,
@@ -430,7 +590,11 @@ async function handleGenerateAi(req, res) {
     });
 
     const refreshed = getInspectionOwnedByUser(inspectionId, req.user.id);
-    return res.json({ inspection: refreshed, anomalies: listAnomalies(inspectionId) });
+    return res.json({
+      inspection: refreshed,
+      anomalies: listAnomalies(inspectionId),
+      report_images: listReportImages(inspectionId)
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message || "Generation IA impossible." });
   }
@@ -445,11 +609,12 @@ router.get("/:id/pdf", authRequired, async (req, res) => {
   const inspection = getInspectionOwnedByUser(inspectionId, req.user.id);
   if (!inspection) return res.status(404).json({ message: "Inspection introuvable." });
   const anomalies = listAnomalies(inspectionId);
+  const reportImages = listReportImages(inspectionId);
   const client = db.prepare("SELECT * FROM clients WHERE id = ?").get(inspection.client_id) || {};
   const company = db.prepare("SELECT * FROM company_settings WHERE id = 1").get() || {};
 
   try {
-    const pdf = await buildThermographyPdf({ inspection, anomalies, client, company });
+    const pdf = await buildThermographyPdf({ inspection, anomalies, reportImages, client, company });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
