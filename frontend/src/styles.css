@@ -740,7 +740,19 @@ table.data-table tbody tr:hover {
 }
 
 .thermo-inspection-list .data-row-card {
-  grid-template-columns: minmax(250px, 1.2fr) minmax(220px, 1fr) minmax(220px, 0.95fr);
+  grid-template-columns: minmax(290px, 1.4fr) minmax(220px, 1fr) 220px;
+  gap: 24px;
+  align-items: center;
+}
+
+.thermo-inspection-list .data-row-main {
+  padding-right: 8px;
+}
+
+.thermo-inspection-list .data-row-secondary {
+  padding: 4px 8px;
+  border-left: 1px dashed color-mix(in srgb, var(--border) 82%, transparent);
+  border-right: 1px dashed color-mix(in srgb, var(--border) 82%, transparent);
 }
 
 .thermo-inspection-list .data-row-actions,
@@ -757,6 +769,19 @@ table.data-table tbody tr:hover {
 
 .thermo-form-grid {
   row-gap: 12px;
+}
+
+.thermo-primary-actions {
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.thermo-primary-actions button,
+.thermo-primary-actions a {
+  min-height: var(--btn-height-md);
+  min-width: 120px;
+  font-size: var(--btn-font-size);
+  padding: 0 14px;
 }
 
 .thermo-filter-grid {
@@ -1541,6 +1566,19 @@ textarea {
     gap: 10px;
   }
 
+  .thermo-inspection-list .data-row-card {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .thermo-inspection-list .data-row-secondary {
+    border-left: 0;
+    border-right: 0;
+    border-top: 1px dashed color-mix(in srgb, var(--border) 82%, transparent);
+    border-bottom: 1px dashed color-mix(in srgb, var(--border) 82%, transparent);
+    padding: 8px 0;
+  }
+
   .client-row-list .data-row-secondary {
     padding: 0;
   }
@@ -1694,6 +1732,12 @@ textarea {
   .actions-cell button {
     width: auto;
     min-width: 120px;
+  }
+
+  .thermo-primary-actions button,
+  .thermo-primary-actions a {
+    min-height: 44px;
+    min-width: 124px;
   }
 
   .sidebar {

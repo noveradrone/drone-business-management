@@ -118,6 +118,7 @@ export default function ThermographyPage() {
   const [anomalyForm, setAnomalyForm] = useState(emptyAnomaly);
   const [reportImages, setReportImages] = useState([]);
   const [reportImageForm, setReportImageForm] = useState(emptyReportImage);
+  const [reportImageUploading, setReportImageUploading] = useState(false);
   const [aiEditMode, setAiEditMode] = useState(false);
   const [filters, setFilters] = useState({
     q: "",
@@ -371,6 +372,33 @@ export default function ThermographyPage() {
     }
   }
 
+  async function uploadMultipleReportImages(fileList = []) {
+    if (!selectedId || !fileList.length) return;
+    setError("");
+    setReportImageUploading(true);
+    try {
+      const maxOrder = reportImages.reduce((acc, item) => Math.max(acc, Number(item.ordre_affichage || 0)), 0);
+      for (let i = 0; i < fileList.length; i += 1) {
+        const file = fileList[i];
+        // eslint-disable-next-line no-await-in-loop
+        const dataUrl = await readFileAsDataUrl(file);
+        const baseName = String(file?.name || `Image-${i + 1}`).replace(/\.[^.]+$/, "");
+        // eslint-disable-next-line no-await-in-loop
+        await api.thermography.addReportImage(selectedId, {
+          titre: baseName,
+          legende: "",
+          ordre_affichage: maxOrder + i + 1,
+          image_data_url: dataUrl
+        });
+      }
+      await loadInspection(selectedId);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setReportImageUploading(false);
+    }
+  }
+
   function editReportImage(row) {
     setReportImageForm({
       id: row.id,
@@ -550,7 +578,7 @@ export default function ThermographyPage() {
       <section className="card card-section stack">
         <div className="page-head page-head-sub">
           <h3>{selectedId ? `Inspection #${selectedId}` : "Nouvelle inspection"}</h3>
-          <div className="actions-cell">
+          <div className="actions-cell thermo-primary-actions">
             <button onClick={saveInspection} disabled={saving}>
               {saving ? "Enregistrement..." : "Enregistrer inspection"}
             </button>
@@ -847,9 +875,18 @@ export default function ThermographyPage() {
                 <input
                   type="file"
                   accept=".jpg,.jpeg,.png,.webp,image/*"
-                  onChange={(e) => onPickReportImage(e.target.files?.[0])}
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (!files.length) return;
+                    if (files.length > 1) {
+                      uploadMultipleReportImages(files);
+                    } else {
+                      onPickReportImage(files[0]);
+                    }
+                  }}
                 />
-                Ajouter une image
+                Ajouter une ou plusieurs images
               </label>
 
               <div className="form-grid-2" style={{ gridColumn: "1 / -1" }}>
@@ -867,7 +904,13 @@ export default function ThermographyPage() {
               </div>
 
               <div className="actions-cell" style={{ gridColumn: "1 / -1" }}>
-                <button disabled={saving}>{reportImageForm.id ? "Mettre a jour image" : "Ajouter image"}</button>
+                <button disabled={saving || reportImageUploading}>
+                  {reportImageUploading
+                    ? "Import en cours..."
+                    : reportImageForm.id
+                      ? "Mettre a jour image"
+                      : "Ajouter image"}
+                </button>
                 {reportImageForm.id ? (
                   <button type="button" className="secondary" onClick={clearReportImageForm}>
                     Annuler edition

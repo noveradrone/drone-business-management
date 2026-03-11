@@ -10,46 +10,76 @@ function tempDelta(max, min) {
 
 function prudenceByGravite(gravite) {
   const key = String(gravite || "").toLowerCase();
-  if (key === "critique") return "Le niveau de vigilance est eleve et une verification rapide est recommandee.";
-  if (key === "elevee") return "Un controle technique rapproche peut etre pertinent pour confirmer l'observation.";
-  if (key === "moderee") return "Une verification complementaire est recommandee pour confirmer l'origine exacte.";
-  return "L'observation thermique laisse supposer une anomalie a surveiller.";
+  if (key === "critique") return "Niveau de vigilance: eleve. Verification prioritaire recommandee.";
+  if (key === "elevee") return "Niveau de vigilance: soutenu. Controle technique rapproche recommande.";
+  if (key === "moderee") return "Niveau de vigilance: modere. Verification complementaire recommandee.";
+  return "Niveau de vigilance: a surveiller. Observation a recontroler selon le contexte.";
 }
 
-function buildAnomalyInterpretation(inspection, anomaly) {
+function imageAvailability(anomaly) {
+  if (anomaly.image_thermique_url && anomaly.image_visible_url) {
+    return "Les images thermique et visible sont disponibles pour l'analyse.";
+  }
+  if (anomaly.image_thermique_url) {
+    return "Seule l'image thermique est disponible: l'analyse visuelle reste partielle.";
+  }
+  if (anomaly.image_visible_url) {
+    return "Seule l'image visible est disponible: l'analyse thermique reste limitee.";
+  }
+  return "Aucune image exploitable n'est jointe: interpretation fondee sur les informations saisies.";
+}
+
+function structuredInterpretationParts(inspection, anomaly) {
   const delta = Number.isFinite(Number(anomaly.ecart_thermique))
     ? Number(anomaly.ecart_thermique)
     : tempDelta(anomaly.temperature_max, anomaly.temperature_min);
-  const deltaText = Number.isFinite(delta) ? `${delta.toFixed(1)}°C` : "non mesure";
+  const deltaText = Number.isFinite(delta) ? `${delta.toFixed(1)} degC` : "non mesure";
   const type = clean(anomaly.type_anomalie, "anomalie thermique");
   const zone = clean(anomaly.zone, "zone non precisee");
   const gravite = clean(anomaly.gravite, "moderee");
 
-  return [
-    `L'observation thermique laisse supposer une zone atypique (${type}) localisee sur ${zone}.`,
-    `L'ecart thermique observe (${deltaText}) peut indiquer un comportement thermique non uniforme.`,
-    anomaly.description_terrain
-      ? `Le contexte terrain mentionne (${anomaly.description_terrain}) semble renforcer cette hypothese.`
-      : "Les donnees de terrain disponibles semblent reveler un contraste thermique localise.",
-    anomaly.image_thermique_url || anomaly.image_visible_url
-      ? "Les images jointes semblent reveler des variations localisees, a interpreter avec prudence."
-      : "En l'absence d'analyse image detaillee, l'interpretation reste basee sur les mesures saisies.",
-    prudenceByGravite(gravite)
+  const observation = [
+    `La zone "${zone}" presente une signature associee a ${type}.`,
+    imageAvailability(anomaly)
   ].join(" ");
+
+  const interpretation = [
+    `L'image thermique met en evidence un ecart de ${deltaText}.`,
+    "Cette repartition de temperature peut etre compatible avec une non-uniformite locale.",
+    "Sous reserve des conditions d'acquisition, cette anomalie peut suggerer un comportement thermique atypique."
+  ].join(" ");
+
+  const hypotheses = anomaly.causes_probables
+    ? `Hypotheses issues du terrain: ${clean(anomaly.causes_probables)}.`
+    : "Hypotheses possibles: pont thermique localise, materiau humide, defaut d'assemblage ou source de chaleur parasite.";
+
+  const vigilance = `${prudenceByGravite(gravite)} Gravite declaree: ${gravite}.`;
+
+  const recommendation = [
+    clean(
+      anomaly.verification_recommandee,
+      "Une verification complementaire par un professionnel qualifie est recommandee."
+    ),
+    anomaly.risques_potentiels
+      ? `Points de vigilance complementaires: ${clean(anomaly.risques_potentiels)}.`
+      : "Un controle terrain cible est recommande pour confirmer l'origine de l'ecart thermique observe."
+  ].join(" ");
+
+  return { observation, interpretation, hypotheses, vigilance, recommendation };
 }
 
-function buildAnomalyRecommendation(anomaly) {
-  const gravite = clean(anomaly.gravite, "moderee");
-  const base = anomaly.verification_recommandee
-    ? clean(anomaly.verification_recommandee)
-    : "Une verification complementaire sur site est recommandee.";
+function buildStructuredInterpretation(inspection, anomaly) {
+  const parts = structuredInterpretationParts(inspection, anomaly);
+  return [
+    `Observation visuelle: ${parts.observation}`,
+    `Interpretation thermique: ${parts.interpretation}`,
+    `Hypotheses possibles: ${parts.hypotheses}`,
+    `Niveau de vigilance: ${parts.vigilance}`
+  ].join("\n");
+}
 
-  const risk = clean(anomaly.risques_potentiels);
-  const riskLine = risk
-    ? `Compte tenu des risques potentiels mentionnes (${risk}), il peut etre pertinent de prioriser cette verification.`
-    : "Un controle technique cible peut aider a confirmer l'origine de la signature thermique.";
-
-  return `${base} ${riskLine} Niveau de gravite renseigne: ${gravite}.`;
+function buildAnomalyRecommendation(inspection, anomaly) {
+  return structuredInterpretationParts(inspection, anomaly).recommendation;
 }
 
 function buildFallbackReport({ inspection, anomalies, client }) {
@@ -58,29 +88,30 @@ function buildFallbackReport({ inspection, anomalies, client }) {
       inspection.date_inspection,
       "date non renseignee"
     )}.`,
-    `La mission, de type ${clean(inspection.type_inspection, "autre")}, avait pour objectif: ${clean(
+    `La mission de type ${clean(inspection.type_inspection, "autre")} vise ${clean(
       inspection.objectif_mission,
-      "analyse visuelle et thermique des zones ciblees"
+      "l'identification d'ecarts thermiques potentiels"
     )}.`,
-    "Les observations presentes dans ce rapport peuvent indiquer des zones d'ecart thermique et necessitent, selon les cas, une verification complementaire."
+    "Le rapport est redige pour rester exploitable par un particulier, un thermicien et un bureau d'etude.",
+    "Les observations peuvent indiquer des tendances thermiques mais ne constituent pas un diagnostic certain."
   ].join(" ");
 
   const methodology = [
-    `L'inspection a ete conduite avec le drone ${clean(inspection.drone_utilise, "non renseigne")} et la camera thermique ${clean(
+    `Inspection realisee avec le drone ${clean(inspection.drone_utilise, "non renseigne")} et la camera ${clean(
       inspection.camera_thermique,
       "non renseignee"
     )}.`,
-    `Conditions d'intervention: temperature ambiante ${clean(
+    `Conditions d'acquisition: temperature ambiante ${clean(
       inspection.temperature_ambiante,
       "non renseignee"
-    )}°C, meteo ${clean(inspection.meteo, "non renseignee")}, vent ${clean(inspection.vent, "non renseigne")}.`,
-    "Les images thermiques et visibles sont interpretees avec prudence: elles semblent reveler des tendances, sans constituer un diagnostic certain."
+    )} degC, meteo ${clean(inspection.meteo, "non renseignee")}, vent ${clean(inspection.vent, "non renseigne")}.`,
+    "L'interpretation reste dependante des conditions de prise de vue, de l'emissivite des surfaces et du contexte d'exploitation."
   ].join(" ");
 
   const interpreted = anomalies.map((anomaly) => ({
     id: anomaly.id,
-    interpretation_ai: buildAnomalyInterpretation(inspection, anomaly),
-    recommandation_ai: buildAnomalyRecommendation(anomaly)
+    interpretation_ai: buildStructuredInterpretation(inspection, anomaly),
+    recommandation_ai: buildAnomalyRecommendation(inspection, anomaly)
   }));
 
   const criticalCount = anomalies.filter((a) => String(a.gravite || "").toLowerCase() === "critique").length;
@@ -89,19 +120,19 @@ function buildFallbackReport({ inspection, anomalies, client }) {
   const conclusion = [
     `L'inspection a permis d'identifier ${anomalies.length} observation(s) thermique(s).`,
     criticalCount > 0
-      ? `${criticalCount} zone(s) critique(s) ont ete relevees et semblent necessiter un suivi prioritaire.`
-      : "Aucune zone critique n'a ete clairement identifiee sur la base des donnees saisies.",
+      ? `${criticalCount} zone(s) critique(s) semblent necessiter une action prioritaire.`
+      : "Aucune zone critique n'a ete identifiee selon les donnees disponibles.",
     highCount > 0
-      ? `${highCount} zone(s) de gravite elevee peuvent indiquer un besoin de verification technique rapide.`
-      : "Les anomalies restantes paraissent de gravite faible a moderee, sous reserve de controle terrain.",
-    "Cette synthese reste informative: une verification complementaire est recommandee avant toute decision technique."
+      ? `${highCount} zone(s) de gravite elevee meritent un controle technique rapproche.`
+      : "Les autres zones relevent plutot d'une surveillance ou d'un controle cible.",
+    "Selon les bonnes pratiques d'inspection thermographique, un recoupement par controle terrain peut etre necessaire."
   ].join(" ");
 
   const recommandationsGlobales = [
-    "Planifier une verification ciblee des zones presentant les plus forts ecarts thermiques.",
-    "Comparer les observations thermiques avec un controle visuel et, si necessaire, des mesures instrumentees sur site.",
-    "Documenter l'evolution des zones a surveiller lors d'une inspection de suivi.",
-    "Adapter la priorisation des interventions selon la criticite, l'usage du site et les contraintes de securite."
+    "Prioriser les zones avec les ecarts thermiques les plus marques.",
+    "Completer l'analyse par un controle visuel de proximite et, si necessaire, des mesures instrumentees.",
+    "Documenter l'evolution des zones sensibles lors d'un passage de suivi.",
+    "Conserver une approche prudente: les images thermiques doivent etre interpretees dans leur contexte d'acquisition."
   ].join(" ");
 
   return {
@@ -113,26 +144,104 @@ function buildFallbackReport({ inspection, anomalies, client }) {
   };
 }
 
+function buildPromptPayload(payload) {
+  return {
+    inspection: {
+      type_inspection: payload.inspection?.type_inspection,
+      date_inspection: payload.inspection?.date_inspection,
+      objectif_mission: payload.inspection?.objectif_mission,
+      drone_utilise: payload.inspection?.drone_utilise,
+      camera_thermique: payload.inspection?.camera_thermique,
+      temperature_ambiante: payload.inspection?.temperature_ambiante,
+      meteo: payload.inspection?.meteo,
+      vent: payload.inspection?.vent,
+      observations_generales: payload.inspection?.observations_generales
+    },
+    client: {
+      company_name: payload.client?.company_name,
+      contact_name: payload.client?.contact_name
+    },
+    anomalies: (payload.anomalies || []).map((a) => ({
+      id: a.id,
+      titre: a.titre,
+      zone: a.zone,
+      type_anomalie: a.type_anomalie,
+      gravite: a.gravite,
+      temperature_max: a.temperature_max,
+      temperature_min: a.temperature_min,
+      ecart_thermique: a.ecart_thermique,
+      description_terrain: a.description_terrain,
+      causes_probables: a.causes_probables,
+      risques_potentiels: a.risques_potentiels,
+      verification_recommandee: a.verification_recommandee,
+      image_thermique_url: a.image_thermique_url,
+      image_visible_url: a.image_visible_url
+    }))
+  };
+}
+
+function formatAnomalyFromAi(aiItem, fallbackItem) {
+  const observation = clean(aiItem?.observation_visuelle);
+  const interpretation = clean(aiItem?.interpretation_thermique);
+  const hypotheses = clean(aiItem?.hypotheses_possibles);
+  const vigilance = clean(aiItem?.niveau_vigilance);
+  const recommendation = clean(aiItem?.recommandation, fallbackItem?.recommandation_ai);
+
+  const interpretationLines = [
+    observation ? `Observation visuelle: ${observation}` : "",
+    interpretation ? `Interpretation thermique: ${interpretation}` : "",
+    hypotheses ? `Hypotheses possibles: ${hypotheses}` : "",
+    vigilance ? `Niveau de vigilance: ${vigilance}` : ""
+  ]
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
+
+  return {
+    interpretation_ai: clean(interpretationLines, fallbackItem?.interpretation_ai),
+    recommandation_ai: clean(recommendation, fallbackItem?.recommandation_ai)
+  };
+}
+
 async function generateWithOpenAI(payload) {
+  const compactPayload = buildPromptPayload(payload);
+
   const prompt = `
 Tu rediges un rapport thermographique professionnel en francais uniquement.
-Reste prudent. N'utilise jamais de certitude diagnostique.
-Utilise des formulations: "peut indiquer", "semble reveler", "verification complementaire recommandee".
+Public cible: particulier, thermicien, bureau d'etude.
 
-Contexte inspection:
-${JSON.stringify(payload.inspection)}
+Contraintes obligatoires:
+- Rester prudent, jamais de diagnostic certain.
+- Utiliser des formulations du type: "peut indiquer", "semble reveler", "sous reserve des conditions de prise de vue".
+- Prioriser l'analyse des images (thermique + visible) quand elles sont disponibles.
+- Si une image est absente ou peu exploitable, le dire explicitement et completer avec les donnees mesurees/saisies.
+- Donner un texte utile, concret, pas generique.
 
-Anomalies:
-${JSON.stringify(payload.anomalies)}
+Donnees d'entree:
+${JSON.stringify(compactPayload)}
 
-Renvoie un JSON strict:
+Pour CHAQUE anomalie, fournir:
+1) observation_visuelle
+2) interpretation_thermique
+3) hypotheses_possibles
+4) niveau_vigilance
+5) recommandation
+
+Renvoie uniquement un JSON strict, sans markdown:
 {
   "introduction_ai": "...",
   "methodologie_ai": "...",
   "conclusion_ai": "...",
   "recommandations_globales_ai": "...",
   "anomalies": [
-    { "id": 1, "interpretation_ai": "...", "recommandation_ai": "..." }
+    {
+      "id": 1,
+      "observation_visuelle": "...",
+      "interpretation_thermique": "...",
+      "hypotheses_possibles": "...",
+      "niveau_vigilance": "...",
+      "recommandation": "..."
+    }
   ]
 }
 `;
@@ -145,7 +254,7 @@ Renvoie un JSON strict:
     },
     body: JSON.stringify({
       model: thermographyOpenAiModel,
-      temperature: 0.3,
+      temperature: 0.25,
       response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt }]
     })
@@ -163,14 +272,29 @@ Renvoie un JSON strict:
 async function generateThermographyReport(payload) {
   const fallback = buildFallbackReport(payload);
   if (!thermographyOpenAiKey) return fallback;
+
   try {
     const ai = await generateWithOpenAI(payload);
+    const aiAnomaliesById = new Map(
+      (Array.isArray(ai?.anomalies) ? ai.anomalies : [])
+        .map((item) => [Number(item?.id), item])
+        .filter(([id]) => Number.isFinite(id))
+    );
+
+    const anomalies = fallback.anomalies.map((fallbackItem) => {
+      const target = aiAnomaliesById.get(Number(fallbackItem.id));
+      return {
+        id: fallbackItem.id,
+        ...formatAnomalyFromAi(target, fallbackItem)
+      };
+    });
+
     return {
       introduction_ai: clean(ai.introduction_ai, fallback.introduction_ai),
       methodologie_ai: clean(ai.methodologie_ai, fallback.methodologie_ai),
       conclusion_ai: clean(ai.conclusion_ai, fallback.conclusion_ai),
       recommandations_globales_ai: clean(ai.recommandations_globales_ai, fallback.recommandations_globales_ai),
-      anomalies: Array.isArray(ai.anomalies) && ai.anomalies.length ? ai.anomalies : fallback.anomalies
+      anomalies
     };
   } catch {
     return fallback;

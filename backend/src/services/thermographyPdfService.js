@@ -57,8 +57,8 @@ function ensureSpace(doc, y, required) {
   return PAGE.marginTop;
 }
 
-function sectionTitle(doc, y, title) {
-  y = ensureSpace(doc, y, 24);
+function sectionTitle(doc, y, title, minFollowingHeight = 52) {
+  y = ensureSpace(doc, y, 24 + minFollowingHeight);
   doc.font("Helvetica-Bold").fontSize(15).fillColor(COLORS.heading).text(title, PAGE.marginX, y);
   return y + 24;
 }
@@ -129,9 +129,10 @@ async function drawImageCard(doc, y, imageUrl, title, legend) {
   const x = PAGE.marginX;
   const width = doc.page.width - PAGE.marginX * 2;
   const imageHeight = 220;
-  const legendText = clean(legend);
+  const rawLegend = clean(legend);
+  const legendText = rawLegend.length > 900 ? `${rawLegend.slice(0, 900)}...` : rawLegend;
   const titleText = clean(title, "Illustration");
-  const legendHeight = legendText ? doc.heightOfString(legendText, { width: width - 18, lineGap: 2 }) : 0;
+  const legendHeight = legendText ? Math.min(doc.heightOfString(legendText, { width: width - 18, lineGap: 2 }), 92) : 0;
   const total = imageHeight + 54 + legendHeight;
 
   y = ensureSpace(doc, y, total + 10);
@@ -240,6 +241,18 @@ async function drawContextPage(doc, { inspection, reportImages = [] }) {
   let y = PAGE.marginTop;
 
   y = sectionTitle(doc, y, "Contexte et methodologie");
+  y = paragraphBlock(
+    doc,
+    y,
+    "Perimetre de mission",
+    [
+      clean(inspection.objectif_mission, "Objectif non renseigne."),
+      clean(inspection.adresse) ? `Site inspecte: ${clean(inspection.adresse)}.` : "",
+      clean(inspection.type_inspection) ? `Type d'inspection: ${clean(inspection.type_inspection)}.` : ""
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
   y = paragraphBlock(doc, y, "Introduction", clean(inspection.introduction_ai, "Introduction non generee."));
   y = paragraphBlock(doc, y, "Methodologie", clean(inspection.methodologie_ai, "Methodologie non generee."));
 
@@ -254,6 +267,15 @@ async function drawContextPage(doc, { inspection, reportImages = [] }) {
     { label: "Objectif mission", value: clean(inspection.objectif_mission, "-") }
   ]);
 
+  y = paragraphBlock(
+    doc,
+    y,
+    "Limites et precautions d'interpretation",
+    "L'interpretation thermique reste dependante des conditions d'acquisition, de l'emissivite des materiaux, " +
+      "de l'environnement (meteo/vent) et de l'angle de prise de vue. Selon les bonnes pratiques d'inspection thermographique, " +
+      "un controle complementaire de terrain peut etre necessaire pour confirmer les observations."
+  );
+
   if (reportImages.length) {
     y = sectionTitle(doc, y, "Illustrations complementaires (selection)");
     for (let i = 0; i < Math.min(reportImages.length, 2); i += 1) {
@@ -261,6 +283,37 @@ async function drawContextPage(doc, { inspection, reportImages = [] }) {
       y = await drawImageCard(doc, y, reportImages[i].image_url, reportImages[i].titre, reportImages[i].legende);
     }
   }
+}
+
+function parseInterpretationSections(text) {
+  const raw = clean(text);
+  const result = {
+    observation: "",
+    interpretation: "",
+    hypotheses: "",
+    vigilance: "",
+    fallback: raw
+  };
+  if (!raw) return result;
+
+  raw
+    .split(/\n+/)
+    .map((line) => clean(line))
+    .filter(Boolean)
+    .forEach((line) => {
+      const lower = line.toLowerCase();
+      if (lower.startsWith("observation visuelle:")) {
+        result.observation = clean(line.split(":").slice(1).join(":"));
+      } else if (lower.startsWith("interpretation thermique:")) {
+        result.interpretation = clean(line.split(":").slice(1).join(":"));
+      } else if (lower.startsWith("hypotheses possibles:")) {
+        result.hypotheses = clean(line.split(":").slice(1).join(":"));
+      } else if (lower.startsWith("niveau de vigilance:")) {
+        result.vigilance = clean(line.split(":").slice(1).join(":"));
+      }
+    });
+
+  return result;
 }
 
 async function drawAnomalyPage(doc, anomaly, index) {
@@ -323,8 +376,18 @@ async function drawAnomalyPage(doc, anomaly, index) {
   }
   y += pairHeight + 12;
 
+  const interpretationSections = parseInterpretationSections(anomaly.interpretation_ai);
+
   y = paragraphBlock(doc, y, "Description terrain", anomaly.description_terrain);
-  y = paragraphBlock(doc, y, "Interpretation IA", anomaly.interpretation_ai);
+  y = paragraphBlock(doc, y, "Observation visuelle", interpretationSections.observation);
+  y = paragraphBlock(
+    doc,
+    y,
+    "Interpretation thermique",
+    clean(interpretationSections.interpretation, interpretationSections.fallback)
+  );
+  y = paragraphBlock(doc, y, "Hypotheses possibles", clean(interpretationSections.hypotheses, anomaly.causes_probables));
+  y = paragraphBlock(doc, y, "Niveau de vigilance", interpretationSections.vigilance);
   y = paragraphBlock(doc, y, "Recommandation IA", anomaly.recommandation_ai);
   y = paragraphBlock(doc, y, "Causes probables", anomaly.causes_probables);
   y = paragraphBlock(doc, y, "Risques potentiels", anomaly.risques_potentiels);
@@ -348,7 +411,7 @@ async function drawFinalPage(doc, { inspection }) {
   doc.addPage();
   let y = PAGE.marginTop;
 
-  y = sectionTitle(doc, y, "Conclusion");
+  y = sectionTitle(doc, y, "Synthese generale");
   y = paragraphBlock(doc, y, "Synthese", clean(inspection.conclusion_ai, "Conclusion non generee."));
 
   y = sectionTitle(doc, y, "Recommandations globales");
@@ -375,7 +438,8 @@ async function drawFinalPage(doc, { inspection }) {
     y,
     "Cadre general",
     "Ce rapport suit une demarche d'observation thermographique aerienne orientee prevention et aide a la decision. " +
-      "Les interpretations sont etablies a partir des donnees disponibles le jour de l'inspection."
+      "Selon les bonnes pratiques d'inspection thermographique, l'interpretation reste dependante des conditions d'acquisition " +
+      "et des verifications de terrain complementaires."
   );
 }
 
