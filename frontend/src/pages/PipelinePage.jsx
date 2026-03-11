@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import DataTable from "../components/DataTable";
+import DataRowList from "../components/DataRowList";
 
 const statuses = [
   { value: "prospect", label: "Prospect" },
@@ -105,48 +105,47 @@ export default function PipelinePage() {
         <button className="primary-action" style={{ gridColumn: "1 / -1" }}>Mettre a jour</button>
       </form>
 
-      <DataTable>
-          <thead>
-            <tr>
-              <th>Client</th>
-              <th>Statut</th>
-              <th>Source</th>
-              <th>Derniere maj</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pipeline.map((p) => (
-              <tr key={p.id}>
-                <td data-label="Client">{p.company_name}</td>
-                <td data-label="Statut">{statuses.find((s) => s.value === p.status)?.label || p.status}</td>
-                <td data-label="Source">{p.source || p.source_channel || "-"}</td>
-                <td data-label="Derniere maj">{p.updated_at}</td>
-              </tr>
-            ))}
-          </tbody>
-        </DataTable>
+      <DataRowList
+        items={pipeline}
+        emptyMessage="Aucun prospect dans le pipeline."
+        renderTitle={(p) => p.company_name}
+        renderSubtitle={(p) => statuses.find((s) => s.value === p.status)?.label || p.status}
+        renderDetails={(p) => (
+          <div className="data-row-info-grid">
+            <div className="data-row-info">
+              <span className="data-row-label">Source</span>
+              <span className="data-row-value">{p.source || p.source_channel || "-"}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Maj</span>
+              <span className="data-row-value">{p.updated_at}</span>
+            </div>
+          </div>
+        )}
+      />
 
       {stats && (
         <details className="details-panel">
           <summary>Détails conversions par source</summary>
-          <DataTable style={{ marginTop: 12 }}>
-              <thead>
-                <tr>
-                  <th>Source</th>
-                  <th>Taux conversion</th>
-                  <th>Total prospects</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(stats.conversion_by_source || []).map((s) => (
-                  <tr key={s.source}>
-                    <td data-label="Source">{s.source}</td>
-                    <td data-label="Taux conversion">{Number(s.conversion_rate || 0).toFixed(1)}%</td>
-                    <td data-label="Total prospects">{s.total}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </DataTable>
+          <DataRowList
+            items={stats.conversion_by_source || []}
+            className="data-row-list-compact"
+            emptyMessage="Aucune source."
+            getKey={(s) => s.source}
+            renderTitle={(s) => s.source}
+            renderDetails={(s) => (
+              <div className="data-row-info-grid">
+                <div className="data-row-info">
+                  <span className="data-row-label">Conversion</span>
+                  <span className="data-row-value">{Number(s.conversion_rate || 0).toFixed(1)}%</span>
+                </div>
+                <div className="data-row-info">
+                  <span className="data-row-label">Prospects</span>
+                  <span className="data-row-value">{s.total}</span>
+                </div>
+              </div>
+            )}
+          />
         </details>
       )}
     </div>

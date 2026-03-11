@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import DataTable from "../components/DataTable";
+import DataRowList from "../components/DataRowList";
 
 export default function ReviewsPage() {
   const [rows, setRows] = useState([]);
@@ -53,37 +53,29 @@ export default function ReviewsPage() {
 
       {error && <p className="error">{error}</p>}
 
-      <DataTable>
-          <thead>
-            <tr>
-              <th>Nom</th>
-              <th>Telephone</th>
-              <th>Date mission</th>
-              <th>Compteur relances</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td data-label="Nom">{r.contact_name || r.company_name}</td>
-                <td data-label="Telephone">{r.phone || "-"}</td>
-                <td data-label="Date mission">{r.mission_date}</td>
-                <td data-label="Compteur relances">{r.compteur_relances}</td>
-                <td data-label="Actions" className="actions-cell">
-                  <button className="secondary" onClick={() => sendReviewRequest(r)}>
-                    Envoyer demande d'avis
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td data-label="Information" colSpan="5">Aucun client a relancer actuellement.</td>
-              </tr>
-            )}
-          </tbody>
-        </DataTable>
+      <DataRowList
+        items={rows}
+        emptyMessage="Aucun client a relancer actuellement."
+        renderTitle={(r) => r.contact_name || r.company_name}
+        renderDetails={(r) => (
+          <div className="data-row-info-grid">
+            <div className="data-row-info">
+              <span className="data-row-label">Telephone</span>
+              <span className="data-row-value">{r.phone || "-"}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Mission</span>
+              <span className="data-row-value">{r.mission_date}</span>
+            </div>
+          </div>
+        )}
+        renderMeta={(r) => <span className="data-row-chip">Relances: {r.compteur_relances}</span>}
+        renderActions={(r) => (
+          <button className="secondary" onClick={() => sendReviewRequest(r)}>
+            Envoyer demande d'avis
+          </button>
+        )}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import DataTable from "../components/DataTable";
+import DataRowList from "../components/DataRowList";
 
 export default function ClientsPage() {
   const [clients, setClients] = useState([]);
@@ -86,48 +86,48 @@ export default function ClientsPage() {
 
       {error && <p className="error">{error}</p>}
 
-      <DataTable>
-          <thead>
-            <tr>
-              <th>Entreprise</th>
-              <th>Contact</th>
-              <th>Email</th>
-              <th>Téléphone</th>
-              <th>SIRET</th>
-              <th>TVA</th>
-              <th>Source</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clients.map((c) => (
-              <tr key={c.id}>
-                <td data-label="Entreprise">{c.company_name}</td>
-                <td data-label="Contact">{c.contact_name || "-"}</td>
-                <td data-label="Email">{c.email || "-"}</td>
-                <td data-label="Telephone">{c.phone || "-"}</td>
-                <td data-label="SIRET">{c.siret || "-"}</td>
-                <td data-label="TVA">{c.vat_number || "-"}</td>
-                <td data-label="Source">{c.source_channel || "-"}</td>
-                <td data-label="Actions" className="actions-cell">
-                  {c.phone ? (
-                    <a className="secondary action-link-btn" href={`tel:${c.phone}`}>
-                      Appeler
-                    </a>
-                  ) : null}
-                  {c.email ? (
-                    <a className="secondary action-link-btn" href={`mailto:${c.email}`}>
-                      Email
-                    </a>
-                  ) : null}
-                  <button type="button" className="danger" onClick={() => removeClient(c)}>
-                    Supprimer
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </DataTable>
+      <DataRowList
+        items={clients}
+        emptyMessage="Aucun client enregistre."
+        renderTitle={(c) => c.company_name}
+        renderSubtitle={(c) => c.contact_name || "Contact non renseigne"}
+        renderDetails={(c) => (
+          <div className="data-row-info-grid">
+            <div className="data-row-info">
+              <span className="data-row-label">Email</span>
+              <span className="data-row-value">{c.email || "-"}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Telephone</span>
+              <span className="data-row-value">{c.phone || "-"}</span>
+            </div>
+          </div>
+        )}
+        renderMeta={(c) => (
+          <>
+            {c.siret ? <span className="data-row-chip">SIRET {c.siret}</span> : null}
+            {c.vat_number ? <span className="data-row-chip">TVA {c.vat_number}</span> : null}
+            {c.source_channel ? <span className="data-row-chip">Source: {c.source_channel}</span> : null}
+          </>
+        )}
+        renderActions={(c) => (
+          <>
+            {c.phone ? (
+              <a className="secondary action-link-btn" href={`tel:${c.phone}`}>
+                Appeler
+              </a>
+            ) : null}
+            {c.email ? (
+              <a className="secondary action-link-btn" href={`mailto:${c.email}`}>
+                Email
+              </a>
+            ) : null}
+            <button type="button" className="danger" onClick={() => removeClient(c)}>
+              Supprimer
+            </button>
+          </>
+        )}
+      />
     </div>
   );
 }

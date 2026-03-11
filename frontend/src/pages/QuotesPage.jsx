@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
-import DataTable from "../components/DataTable";
+import DataRowList from "../components/DataRowList";
 
 const STATUS_META = {
   draft: { label: "Brouillon", color: "#f59e0b" },
@@ -450,49 +450,51 @@ export default function QuotesPage() {
         </div>
       </div>
 
-      <DataTable>
-          <thead>
-            <tr>
-              <th>Numero</th>
-              <th>Client</th>
-              <th>Date</th>
-              <th>Validite</th>
-              <th>Statut</th>
-              <th>Total</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {quotes.map((q) => (
-              <tr key={q.id}>
-                <td data-label="Numero">{q.quote_number}</td>
-                <td data-label="Client">{q.company_name}</td>
-                <td data-label="Date">{q.quote_date}</td>
-                <td data-label="Validite">{q.valid_until || "-"}</td>
-                <td data-label="Statut">{statusBadge(q.status)}</td>
-                <td data-label="Total">{Number(q.total || 0).toFixed(2)} {q.currency || "EUR"}</td>
-                <td data-label="Actions" className="actions-cell">
-                  <button className="secondary" onClick={() => previewPdf(q)} disabled={previewLoading}>
-                    {previewLoading ? "Ouverture..." : "Previsualiser PDF"}
-                  </button>
-                  <button className="secondary" onClick={() => downloadPdf(q)}>Telecharger PDF</button>
-                  <button className="secondary" onClick={() => sendQuote(q)}>Envoyer</button>
-                  <button
-                    className="secondary"
-                    onClick={() => convertQuote(q)}
-                    disabled={q.status !== "accepted"}
-                    title={q.status !== "accepted" ? "Disponible uniquement pour un devis accepte" : ""}
-                  >
-                    Convertir facture
-                  </button>
-                  <button type="button" className="danger" onClick={() => removeQuote(q)}>
-                    Supprimer
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </DataTable>
+      <DataRowList
+        items={quotes}
+        emptyMessage="Aucun devis."
+        renderTitle={(q) => q.quote_number}
+        renderSubtitle={(q) => q.company_name}
+        renderDetails={(q) => (
+          <div className="data-row-info-grid">
+            <div className="data-row-info">
+              <span className="data-row-label">Date</span>
+              <span className="data-row-value">{q.quote_date}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Validite</span>
+              <span className="data-row-value">{q.valid_until || "-"}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Total</span>
+              <span className="data-row-value">
+                {Number(q.total || 0).toFixed(2)} {q.currency || "EUR"}
+              </span>
+            </div>
+          </div>
+        )}
+        renderMeta={(q) => <>{statusBadge(q.status)}</>}
+        renderActions={(q) => (
+          <>
+            <button className="secondary" onClick={() => previewPdf(q)} disabled={previewLoading}>
+              {previewLoading ? "Ouverture..." : "Previsualiser PDF"}
+            </button>
+            <button className="secondary" onClick={() => downloadPdf(q)}>Telecharger PDF</button>
+            <button className="secondary" onClick={() => sendQuote(q)}>Envoyer</button>
+            <button
+              className="secondary"
+              onClick={() => convertQuote(q)}
+              disabled={q.status !== "accepted"}
+              title={q.status !== "accepted" ? "Disponible uniquement pour un devis accepte" : ""}
+            >
+              Convertir facture
+            </button>
+            <button type="button" className="danger" onClick={() => removeQuote(q)}>
+              Supprimer
+            </button>
+          </>
+        )}
+      />
 
       {previewOpen && (
         <div className="modal-backdrop" onClick={closePreview}>

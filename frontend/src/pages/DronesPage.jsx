@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import DataTable from "../components/DataTable";
+import DataRowList from "../components/DataRowList";
 
 const defaultForm = {
   brand: "",
@@ -135,43 +135,44 @@ export default function DronesPage() {
 
       {error && <p className="error">{error}</p>}
 
-      <DataTable>
-          <thead>
-            <tr>
-              <th>Marque</th>
-              <th>Modele</th>
-              <th>S/N</th>
-              <th>Etat</th>
-              <th>Heures</th>
-              <th>Cycles</th>
-              <th>Seuils</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {drones.map((d) => (
-              <tr key={d.id}>
-                <td data-label="Marque">{d.brand}</td>
-                <td data-label="Modele">{d.model}</td>
-                <td data-label="S/N">{d.serial_number}</td>
-                <td data-label="Etat">{d.status}</td>
-                <td data-label="Heures">{Number(d.total_flight_hours).toFixed(1)}</td>
-                <td data-label="Cycles">{d.total_cycles}</td>
-                <td data-label="Seuils">
-                  {d.battery_cycle_threshold || 300} cyc / {Number(d.propeller_hours_threshold || 120).toFixed(1)} h
-                </td>
-                <td data-label="Actions" className="actions-cell">
-                  <button type="button" className="secondary" onClick={() => startEdit(d)}>
-                    ✏️ Modifier
-                  </button>
-                  <button type="button" className="danger" onClick={() => removeDrone(d)}>
-                    Supprimer
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </DataTable>
+      <DataRowList
+        items={drones}
+        emptyMessage="Aucun drone."
+        renderTitle={(d) => `${d.brand} ${d.model}`}
+        renderSubtitle={(d) => `S/N ${d.serial_number}`}
+        renderDetails={(d) => (
+          <div className="data-row-info-grid">
+            <div className="data-row-info">
+              <span className="data-row-label">Etat</span>
+              <span className="data-row-value">{d.status}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Heures</span>
+              <span className="data-row-value">{Number(d.total_flight_hours).toFixed(1)}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Cycles</span>
+              <span className="data-row-value">{d.total_cycles}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Seuils</span>
+              <span className="data-row-value">
+                {d.battery_cycle_threshold || 300} cyc / {Number(d.propeller_hours_threshold || 120).toFixed(1)} h
+              </span>
+            </div>
+          </div>
+        )}
+        renderActions={(d) => (
+          <>
+            <button type="button" className="secondary" onClick={() => startEdit(d)}>
+              Modifier
+            </button>
+            <button type="button" className="danger" onClick={() => removeDrone(d)}>
+              Supprimer
+            </button>
+          </>
+        )}
+      />
 
       {editOpen && (
         <div className="modal-backdrop" onClick={cancelEdit}>

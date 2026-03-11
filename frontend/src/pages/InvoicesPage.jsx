@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
-import DataTable from "../components/DataTable";
+import DataRowList from "../components/DataRowList";
 
 function download(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -502,54 +502,59 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <DataTable>
-          <thead>
-            <tr>
-              <th>Numero</th>
-              <th>Client</th>
-              <th>Date</th>
-              <th>Echeance</th>
-              <th>Statut</th>
-              <th>Total</th>
-              <th>Acompte</th>
-              <th>Recu</th>
-              <th>Reste</th>
-              <th>Relances</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredInvoices.map((i) => {
-              const due = Math.max(0, Number(i.total || 0) - Number(i.amount_received || 0));
-              return (
-                <tr key={i.id}>
-                  <td data-label="Numero">{i.invoice_number}</td>
-                  <td data-label="Client">{i.company_name}</td>
-                  <td data-label="Date">{i.invoice_date}</td>
-                  <td data-label="Echeance">{i.due_date}</td>
-                  <td data-label="Statut">{statusBadge(i.status)}</td>
-                  <td data-label="Total">{Number(i.total || 0).toFixed(2)} {i.currency}</td>
-                  <td data-label="Acompte">{Number(i.acompte_montant || 0).toFixed(2)} {i.currency}</td>
-                  <td data-label="Recu">{Number(i.amount_received || 0).toFixed(2)} {i.currency}</td>
-                  <td data-label="Reste">{due.toFixed(2)} {i.currency}</td>
-                  <td data-label="Relances">{i.nombre_relances || 0}</td>
-                  <td data-label="Actions" className="actions-cell">
-                    <button className="secondary" onClick={() => downloadInvoicePdf(i)}>PDF</button>
-                    <button className="secondary" onClick={() => loadInvoiceDetails(i.id)}>Paiement</button>
-                    {i.status !== "paid" && (
-                      <button type="button" className="secondary" onClick={() => markAsPaid(i)}>
-                        Marquer payee
-                      </button>
-                    )}
-                    <button type="button" className="danger" onClick={() => removeInvoice(i)}>
-                      Supprimer
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </DataTable>
+      <DataRowList
+        items={filteredInvoices}
+        emptyMessage="Aucune facture."
+        renderTitle={(i) => i.invoice_number}
+        renderSubtitle={(i) => i.company_name}
+        renderDetails={(i) => {
+          const due = Math.max(0, Number(i.total || 0) - Number(i.amount_received || 0));
+          return (
+            <div className="data-row-info-grid">
+              <div className="data-row-info">
+                <span className="data-row-label">Date</span>
+                <span className="data-row-value">{i.invoice_date}</span>
+              </div>
+              <div className="data-row-info">
+                <span className="data-row-label">Echeance</span>
+                <span className="data-row-value">{i.due_date}</span>
+              </div>
+              <div className="data-row-info">
+                <span className="data-row-label">Total</span>
+                <span className="data-row-value">{Number(i.total || 0).toFixed(2)} {i.currency}</span>
+              </div>
+              <div className="data-row-info">
+                <span className="data-row-label">Recu</span>
+                <span className="data-row-value">{Number(i.amount_received || 0).toFixed(2)} {i.currency}</span>
+              </div>
+              <div className="data-row-info">
+                <span className="data-row-label">Reste</span>
+                <span className="data-row-value">{due.toFixed(2)} {i.currency}</span>
+              </div>
+            </div>
+          );
+        }}
+        renderMeta={(i) => (
+          <>
+            {statusBadge(i.status)}
+            <span className="data-row-chip">Relances: {i.nombre_relances || 0}</span>
+          </>
+        )}
+        renderActions={(i) => (
+          <>
+            <button className="secondary" onClick={() => downloadInvoicePdf(i)}>PDF</button>
+            <button className="secondary" onClick={() => loadInvoiceDetails(i.id)}>Paiement</button>
+            {i.status !== "paid" && (
+              <button type="button" className="secondary" onClick={() => markAsPaid(i)}>
+                Marquer payee
+              </button>
+            )}
+            <button type="button" className="danger" onClick={() => removeInvoice(i)}>
+              Supprimer
+            </button>
+          </>
+        )}
+      />
 
       <details className="details-panel">
         <summary>Détails encaissements et impayés</summary>
@@ -621,35 +626,29 @@ export default function InvoicesPage() {
             <button className="primary-action">Enregistrer paiement</button>
           </form>
 
-          <DataTable style={{ marginTop: 10 }}>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Montant</th>
-                  <th>Mode</th>
-                  <th>Reference</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(selectedInvoice?.payments || []).map((p) => (
-                  <tr key={p.id}>
-                    <td data-label="Date">{p.payment_date}</td>
-                    <td data-label="Montant">{Number(p.amount || 0).toFixed(2)} {selectedInvoice?.currency || "EUR"}</td>
-                    <td data-label="Mode">{p.method || "-"}</td>
-                    <td data-label="Reference">{p.reference || "-"}</td>
-                    <td data-label="Actions">
-                      <button className="secondary" onClick={() => downloadReceiptPdf(selectedInvoiceId, p)}>Recu PDF</button>
-                    </td>
-                  </tr>
-                ))}
-                {selectedInvoice && selectedInvoice.payments && selectedInvoice.payments.length === 0 && (
-                  <tr>
-                    <td data-label="Information" colSpan="5">Aucun paiement enregistre.</td>
-                  </tr>
-                )}
-              </tbody>
-            </DataTable>
+          <DataRowList
+            items={selectedInvoice?.payments || []}
+            emptyMessage="Aucun paiement enregistre."
+            renderTitle={(p) => `${Number(p.amount || 0).toFixed(2)} ${selectedInvoice?.currency || "EUR"}`}
+            renderSubtitle={(p) => p.payment_date}
+            renderDetails={(p) => (
+              <div className="data-row-info-grid">
+                <div className="data-row-info">
+                  <span className="data-row-label">Mode</span>
+                  <span className="data-row-value">{p.method || "-"}</span>
+                </div>
+                <div className="data-row-info">
+                  <span className="data-row-label">Reference</span>
+                  <span className="data-row-value">{p.reference || "-"}</span>
+                </div>
+              </div>
+            )}
+            renderActions={(p) => (
+              <button className="secondary" onClick={() => downloadReceiptPdf(selectedInvoiceId, p)}>
+                Recu PDF
+              </button>
+            )}
+          />
         </div>
       )}
     </div>

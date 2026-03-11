@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import DataTable from "../components/DataTable";
+import DataRowList from "../components/DataRowList";
 
 export default function InsurancesPage() {
   const [insurances, setInsurances] = useState([]);
@@ -144,36 +144,37 @@ export default function InsurancesPage() {
         </button>
       </form>
 
-      <DataTable>
-          <thead>
-            <tr>
-              <th>Assureur</th>
-              <th>Police</th>
-              <th>Type</th>
-              <th>Début</th>
-              <th>Fin</th>
-              <th>Prime</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {insurances.map((i) => (
-              <tr key={i.id}>
-                <td data-label="Assureur">{i.provider}</td>
-                <td data-label="Police">{i.policy_number}</td>
-                <td data-label="Type">{i.insured_entity_type}</td>
-                <td data-label="Debut">{i.valid_from}</td>
-                <td data-label="Fin">{i.valid_until}</td>
-                <td data-label="Prime">{i.premium_amount ? `${Number(i.premium_amount).toFixed(2)} €` : "-"}</td>
-                <td data-label="Actions" className="actions-cell">
-                  <button type="button" className="danger" onClick={() => removeInsurance(i)}>
-                    Supprimer
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </DataTable>
+      <DataRowList
+        items={insurances}
+        emptyMessage="Aucun contrat d'assurance."
+        renderTitle={(i) => i.provider}
+        renderSubtitle={(i) => i.policy_number}
+        renderDetails={(i) => (
+          <div className="data-row-info-grid">
+            <div className="data-row-info">
+              <span className="data-row-label">Type</span>
+              <span className="data-row-value">{i.insured_entity_type}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Debut</span>
+              <span className="data-row-value">{i.valid_from}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Fin</span>
+              <span className="data-row-value">{i.valid_until}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Prime</span>
+              <span className="data-row-value">{i.premium_amount ? `${Number(i.premium_amount).toFixed(2)} €` : "-"}</span>
+            </div>
+          </div>
+        )}
+        renderActions={(i) => (
+          <button type="button" className="danger" onClick={() => removeInsurance(i)}>
+            Supprimer
+          </button>
+        )}
+      />
     </div>
   );
 }

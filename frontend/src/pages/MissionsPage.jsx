@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import DataTable from "../components/DataTable";
+import DataRowList from "../components/DataRowList";
 
 const packOptions = ["Essentiel", "Premium", "Instagram"];
 const statusOptions = ["planned", "in_progress", "completed", "cancelled"];
@@ -470,45 +470,52 @@ export default function MissionsPage() {
         </button>
       </form>
 
-      <DataTable>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Client</th>
-              <th>Pack</th>
-              <th>Dep.</th>
-              <th>Statut</th>
-              <th>CA</th>
-              <th>Cout total</th>
-              <th>Marge brute</th>
-              <th>Taux horaire</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {missions.map((m) => (
-              <tr key={m.id}>
-                <td data-label="Date">{m.mission_date}</td>
-                <td data-label="Client">{m.company_name}</td>
-                <td data-label="Pack">{m.selected_pack || "-"}</td>
-                <td data-label="Departement">{m.department || "-"}</td>
-                <td data-label="Statut">{MISSION_STATUS_LABELS[m.mission_status] || m.mission_status}</td>
-                <td data-label="CA">{Number(m.mission_revenue || 0).toFixed(2)} EUR</td>
-                <td data-label="Cout total">{Number(m.total_cost || 0).toFixed(2)} EUR</td>
-                <td data-label="Marge brute">{Number(m.gross_margin || 0).toFixed(2)} EUR</td>
-                <td data-label="Taux horaire">{Number(m.effective_hourly_rate || 0).toFixed(2)} EUR/h</td>
-                <td data-label="Actions" className="actions-cell">
-                  <button type="button" className="secondary" onClick={() => openPreparation(m)}>
-                    Preparation de vol
-                  </button>
-                  <button type="button" className="danger" onClick={() => removeMission(m)}>
-                    Supprimer
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </DataTable>
+      <DataRowList
+        items={missions}
+        emptyMessage="Aucune mission."
+        renderTitle={(m) => `Mission #${m.id}`}
+        renderSubtitle={(m) => `${m.company_name} - ${m.mission_date}`}
+        renderDetails={(m) => (
+          <div className="data-row-info-grid">
+            <div className="data-row-info">
+              <span className="data-row-label">Pack</span>
+              <span className="data-row-value">{m.selected_pack || "-"}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Dep.</span>
+              <span className="data-row-value">{m.department || "-"}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">CA</span>
+              <span className="data-row-value">{Number(m.mission_revenue || 0).toFixed(2)} EUR</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Cout</span>
+              <span className="data-row-value">{Number(m.total_cost || 0).toFixed(2)} EUR</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Marge</span>
+              <span className="data-row-value">{Number(m.gross_margin || 0).toFixed(2)} EUR</span>
+            </div>
+          </div>
+        )}
+        renderMeta={(m) => (
+          <>
+            <span className="data-row-chip">{MISSION_STATUS_LABELS[m.mission_status] || m.mission_status}</span>
+            <span className="data-row-chip">{Number(m.effective_hourly_rate || 0).toFixed(2)} EUR/h</span>
+          </>
+        )}
+        renderActions={(m) => (
+          <>
+            <button type="button" className="secondary" onClick={() => openPreparation(m)}>
+              Preparation de vol
+            </button>
+            <button type="button" className="danger" onClick={() => removeMission(m)}>
+              Supprimer
+            </button>
+          </>
+        )}
+      />
 
       {selectedMission && (
         <div className="modal-backdrop" onClick={closePreparation}>
