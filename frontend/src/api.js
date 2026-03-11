@@ -120,6 +120,39 @@ export const api = {
       return res.blob();
     }
   },
+  thermography: {
+    list: (params = {}) => {
+      const search = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") search.set(key, value);
+      });
+      const suffix = search.toString() ? `?${search.toString()}` : "";
+      return request(`/thermography${suffix}`);
+    },
+    create: (data) => request("/thermography", { method: "POST", body: JSON.stringify(data) }),
+    get: (id) => request(`/thermography/${id}`),
+    update: (id, data) => request(`/thermography/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    remove: (id) => request(`/thermography/${id}`, { method: "DELETE" }),
+    addAnomaly: (inspectionId, data) =>
+      request(`/thermography/${inspectionId}/anomalies`, { method: "POST", body: JSON.stringify(data) }),
+    updateAnomaly: (inspectionId, anomalyId, data) =>
+      request(`/thermography/${inspectionId}/anomalies/${anomalyId}`, {
+        method: "PUT",
+        body: JSON.stringify(data)
+      }),
+    removeAnomaly: (inspectionId, anomalyId) =>
+      request(`/thermography/${inspectionId}/anomalies/${anomalyId}`, { method: "DELETE" }),
+    uploadAnomalyImage: (inspectionId, anomalyId, data) =>
+      request(`/thermography/${inspectionId}/anomalies/${anomalyId}/upload`, {
+        method: "POST",
+        body: JSON.stringify(data)
+      }),
+    generateAi: (inspectionId) =>
+      request(`/thermography/${inspectionId}/generate-ai`, { method: "POST", body: JSON.stringify({}) }),
+    generateReport: (inspectionId) =>
+      request(`/thermography/${inspectionId}/generate-report`, { method: "POST", body: JSON.stringify({}) }),
+    pdf: (inspectionId) => request(`/thermography/${inspectionId}/pdf`)
+  },
   quotes: {
     list: (params = {}) => {
       const search = new URLSearchParams();

@@ -16,6 +16,7 @@ import DocumentsPage from "./pages/DocumentsPage";
 import PipelinePage from "./pages/PipelinePage";
 import ReviewsPage from "./pages/ReviewsPage";
 import ForecastPage from "./pages/ForecastPage";
+import ThermographyPage from "./pages/ThermographyPage";
 import {
   applyTheme,
   DEFAULT_THEME,
@@ -92,6 +93,7 @@ export default function App() {
           <Route path="pipeline" element={<PipelinePage />} />
           <Route path="reviews" element={<ReviewsPage />} />
           <Route path="forecast" element={<ForecastPage />} />
+          <Route path="thermography" element={<ThermographyPage />} />
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>

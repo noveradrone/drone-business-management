@@ -19,5 +19,11 @@ module.exports = {
   googleReviewLink: process.env.GOOGLE_REVIEW_LINK || "",
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || "",
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN || "",
-  twilioFromPhone: process.env.TWILIO_FROM_PHONE || ""
+  twilioFromPhone: process.env.TWILIO_FROM_PHONE || "",
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || "",
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || "",
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || "",
+  cloudinaryUploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET || "",
+  thermographyOpenAiKey: process.env.OPENAI_API_KEY || "",
+  thermographyOpenAiModel: process.env.OPENAI_MODEL || "gpt-4o-mini"
 };

@@ -289,6 +289,62 @@ CREATE TABLE IF NOT EXISTS regulatory_attachments (
   FOREIGN KEY (preparation_id) REFERENCES regulatory_preparations(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS inspections_thermo (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  client_id INTEGER NOT NULL,
+  titre TEXT NOT NULL,
+  adresse TEXT,
+  date_inspection TEXT NOT NULL,
+  type_inspection TEXT NOT NULL DEFAULT 'autre',
+  drone_utilise TEXT,
+  camera_thermique TEXT,
+  temperature_ambiante REAL,
+  meteo TEXT,
+  vent TEXT,
+  operateur TEXT,
+  objectif_mission TEXT,
+  observations_generales TEXT,
+  introduction_ai TEXT,
+  methodologie_ai TEXT,
+  conclusion_ai TEXT,
+  recommandations_globales_ai TEXT,
+  statut TEXT NOT NULL DEFAULT 'brouillon',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS inspection_anomalies (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  inspection_id INTEGER NOT NULL,
+  titre TEXT NOT NULL,
+  zone TEXT,
+  type_anomalie TEXT,
+  image_thermique_url TEXT,
+  image_visible_url TEXT,
+  temperature_max REAL,
+  temperature_min REAL,
+  ecart_thermique REAL,
+  gravite TEXT,
+  description_terrain TEXT,
+  causes_probables TEXT,
+  risques_potentiels TEXT,
+  verification_recommandee TEXT,
+  interpretation_ai TEXT,
+  recommandation_ai TEXT,
+  ordre_affichage INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (inspection_id) REFERENCES inspections_thermo(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_inspections_thermo_user ON inspections_thermo(user_id);
+CREATE INDEX IF NOT EXISTS idx_inspections_thermo_client ON inspections_thermo(client_id);
+CREATE INDEX IF NOT EXISTS idx_inspections_thermo_date ON inspections_thermo(date_inspection);
+CREATE INDEX IF NOT EXISTS idx_inspection_anomalies_inspection ON inspection_anomalies(inspection_id);
+
 CREATE TABLE IF NOT EXISTS insurances (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   provider TEXT NOT NULL,

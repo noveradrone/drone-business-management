@@ -595,6 +595,26 @@ table.data-table tbody tr:hover {
   font-size: 0.95rem;
 }
 
+.thermography-page img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.thermography-page .checkbox-inline input[type="file"] {
+  min-height: 0;
+  width: auto;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.thermography-page .actions-cell {
+  justify-content: flex-start;
+}
+
 .error {
   color: var(--danger);
   margin: 0 0 10px;

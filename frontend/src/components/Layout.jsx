@@ -11,6 +11,7 @@ const navGroups = [
       ["/missions", "Missions"],
       ["/quotes", "Devis"],
       ["/invoices", "Factures"],
+      ["/thermography", "Thermographie"],
       ["/drones", "Drones"],
       ["/insurances", "Assurances"]
     ]
