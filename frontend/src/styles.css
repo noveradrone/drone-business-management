@@ -189,7 +189,7 @@ body.menu-open {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  text-align: left;
+  text-align: center;
   margin-bottom: 14px;
   gap: 10px;
   flex-wrap: wrap;
@@ -198,7 +198,8 @@ body.menu-open {
 .page-head h2 {
   margin: 0;
   letter-spacing: -0.02em;
-  text-align: left;
+  text-align: center;
+  flex: 1 1 auto;
   font-size: clamp(1.55rem, 2.4vw, 1.95rem);
 }
 
@@ -207,6 +208,9 @@ body.menu-open {
   color: var(--muted);
   font-size: 0.92rem;
   max-width: 62ch;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .card-grid {
@@ -231,6 +235,7 @@ body.menu-open {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  text-align: center;
 }
 
 .card-value {
@@ -238,6 +243,7 @@ body.menu-open {
   font-size: 1.2rem;
   font-weight: 680;
   letter-spacing: -0.02em;
+  text-align: center;
 }
 
 .metrics-row {
@@ -585,6 +591,7 @@ table.data-table tbody tr:hover {
   padding: 12px;
   background: color-mix(in srgb, var(--surface-strong) 96%, var(--bg-color) 4%);
   color: var(--muted);
+  text-align: center;
 }
 
 .data-row-list-compact .data-row-card {
@@ -593,6 +600,51 @@ table.data-table tbody tr:hover {
 
 .data-row-list-compact .data-row-title {
   font-size: 0.95rem;
+}
+
+.client-row-list .data-row-card {
+  grid-template-columns: minmax(220px, 1.2fr) minmax(320px, 1.5fr) 170px;
+  gap: 12px;
+}
+
+.client-row-list .data-row-title {
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.client-row-list .data-row-subtitle {
+  margin-top: 6px;
+  font-size: 0.86rem;
+}
+
+.client-row-list .data-row-secondary {
+  padding: 0 4px;
+}
+
+.client-row-list .data-row-info-grid {
+  gap: 5px;
+}
+
+.client-row-list .data-row-info {
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 6px;
+}
+
+.client-row-list .data-row-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--muted) 90%, var(--text) 10%);
+}
+
+.client-row-list .data-row-value {
+  font-size: 0.91rem;
+}
+
+.client-row-list .data-row-actions {
+  align-self: center;
+  gap: 7px;
 }
 
 .thermography-page img {
@@ -618,6 +670,7 @@ table.data-table tbody tr:hover {
 .error {
   color: var(--danger);
   margin: 0 0 10px;
+  text-align: center;
 }
 
 .login-wrap {
@@ -716,6 +769,43 @@ form.form-grid.login-form {
 .documents-intro {
   margin: 0 0 16px;
   color: var(--muted);
+  text-align: center;
+}
+
+.card > h2,
+.card > h3,
+.details-panel > summary,
+.loading {
+  text-align: center;
+}
+
+button,
+.action-link-btn,
+.document-download {
+  text-align: center;
+}
+
+/* Conserver l'alignement a gauche pour donnees structurees */
+table,
+th,
+td,
+.data-table,
+.data-table th,
+.data-table td,
+.data-row-main,
+.data-row-secondary,
+.data-row-title,
+.data-row-subtitle,
+.data-row-info-grid,
+.data-row-info,
+.data-row-label,
+.data-row-value,
+.data-row-meta,
+form,
+form label,
+input,
+select,
+textarea {
   text-align: left;
 }
 
@@ -1277,6 +1367,19 @@ form.form-grid.login-form {
   .data-row-info {
     grid-template-columns: 84px 1fr;
     gap: 8px;
+  }
+
+  .client-row-list .data-row-card {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .client-row-list .data-row-secondary {
+    padding: 0;
+  }
+
+  .client-row-list .data-row-info {
+    grid-template-columns: 88px minmax(0, 1fr);
   }
 
   .data-row-actions {

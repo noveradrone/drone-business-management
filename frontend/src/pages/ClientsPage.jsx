@@ -88,6 +88,7 @@ export default function ClientsPage() {
 
       <DataRowList
         items={clients}
+        className="client-row-list"
         emptyMessage="Aucun client enregistre."
         renderTitle={(c) => c.company_name}
         renderSubtitle={(c) => c.contact_name || "Contact non renseigne"}
@@ -101,28 +102,35 @@ export default function ClientsPage() {
               <span className="data-row-label">Telephone</span>
               <span className="data-row-value">{c.phone || "-"}</span>
             </div>
+            <div className="data-row-info">
+              <span className="data-row-label">SIRET</span>
+              <span className="data-row-value">{c.siret || "-"}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Source</span>
+              <span className="data-row-value">{c.source_channel || "-"}</span>
+            </div>
+            {c.vat_number ? (
+              <div className="data-row-info">
+                <span className="data-row-label">TVA</span>
+                <span className="data-row-value">{c.vat_number}</span>
+              </div>
+            ) : null}
           </div>
-        )}
-        renderMeta={(c) => (
-          <>
-            {c.siret ? <span className="data-row-chip">SIRET {c.siret}</span> : null}
-            {c.vat_number ? <span className="data-row-chip">TVA {c.vat_number}</span> : null}
-            {c.source_channel ? <span className="data-row-chip">Source: {c.source_channel}</span> : null}
-          </>
         )}
         renderActions={(c) => (
           <>
             {c.phone ? (
-              <a className="secondary action-link-btn" href={`tel:${c.phone}`}>
+              <a className="secondary action-link-btn btn-sm" href={`tel:${c.phone}`}>
                 Appeler
               </a>
             ) : null}
             {c.email ? (
-              <a className="secondary action-link-btn" href={`mailto:${c.email}`}>
+              <a className="secondary action-link-btn btn-sm" href={`mailto:${c.email}`}>
                 Email
               </a>
             ) : null}
-            <button type="button" className="danger" onClick={() => removeClient(c)}>
+            <button type="button" className="danger btn-sm" onClick={() => removeClient(c)}>
               Supprimer
             </button>
           </>
