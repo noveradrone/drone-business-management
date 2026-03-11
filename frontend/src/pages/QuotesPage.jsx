@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
+import DataTable from "../components/DataTable";
 
 const STATUS_META = {
   draft: { label: "Brouillon", color: "#f59e0b" },
@@ -449,8 +450,7 @@ export default function QuotesPage() {
         </div>
       </div>
 
-      <div className="table-wrap">
-        <table className="mobile-cards-table">
+      <DataTable>
           <thead>
             <tr>
               <th>Numero</th>
@@ -492,8 +492,7 @@ export default function QuotesPage() {
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
 
       {previewOpen && (
         <div className="modal-backdrop" onClick={closePreview}>

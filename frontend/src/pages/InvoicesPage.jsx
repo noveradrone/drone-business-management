@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
+import DataTable from "../components/DataTable";
 
 function download(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -501,8 +502,7 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <div className="table-wrap">
-        <table className="mobile-cards-table">
+      <DataTable>
           <thead>
             <tr>
               <th>Numero</th>
@@ -549,8 +549,7 @@ export default function InvoicesPage() {
               );
             })}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
 
       <details className="details-panel">
         <summary>Détails encaissements et impayés</summary>
@@ -622,8 +621,7 @@ export default function InvoicesPage() {
             <button className="primary-action">Enregistrer paiement</button>
           </form>
 
-          <div className="table-wrap" style={{ marginTop: 10 }}>
-            <table className="mobile-cards-table">
+          <DataTable style={{ marginTop: 10 }}>
               <thead>
                 <tr>
                   <th>Date</th>
@@ -651,8 +649,7 @@ export default function InvoicesPage() {
                   </tr>
                 )}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
         </div>
       )}
     </div>

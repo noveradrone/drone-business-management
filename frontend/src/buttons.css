@@ -165,6 +165,22 @@ button.primary-action {
   min-width: 0;
 }
 
+table.data-table td.actions-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+}
+
+table.data-table td.actions-cell button,
+table.data-table td.actions-cell a {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--btn-height-sm);
+  justify-content: center;
+}
+
 button.sidebar-overlay {
   all: unset;
   position: fixed;
@@ -192,6 +208,16 @@ button.sidebar-overlay {
     min-height: 44px;
     min-width: 120px;
     font-size: 0.9rem;
+  }
+
+  table.data-table td.actions-cell {
+    gap: 8px;
+  }
+
+  table.data-table td.actions-cell button,
+  table.data-table td.actions-cell a {
+    width: 100%;
+    min-width: 0;
   }
 }
 

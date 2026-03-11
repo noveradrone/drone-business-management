@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import DataTable from "../components/DataTable";
 
 const statuses = [
   { value: "prospect", label: "Prospect" },
@@ -104,8 +105,7 @@ export default function PipelinePage() {
         <button className="primary-action" style={{ gridColumn: "1 / -1" }}>Mettre a jour</button>
       </form>
 
-      <div className="table-wrap">
-        <table className="mobile-cards-table">
+      <DataTable>
           <thead>
             <tr>
               <th>Client</th>
@@ -124,14 +124,12 @@ export default function PipelinePage() {
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
 
       {stats && (
         <details className="details-panel">
           <summary>Détails conversions par source</summary>
-          <div className="table-wrap" style={{ marginTop: 12 }}>
-            <table className="mobile-cards-table">
+          <DataTable style={{ marginTop: 12 }}>
               <thead>
                 <tr>
                   <th>Source</th>
@@ -148,8 +146,7 @@ export default function PipelinePage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
         </details>
       )}
     </div>

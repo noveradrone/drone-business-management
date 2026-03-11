@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import DataTable from "../components/DataTable";
 
 const packOptions = ["Essentiel", "Premium", "Instagram"];
 const statusOptions = ["planned", "in_progress", "completed", "cancelled"];
@@ -469,8 +470,7 @@ export default function MissionsPage() {
         </button>
       </form>
 
-      <div className="table-wrap">
-        <table className="mobile-cards-table">
+      <DataTable>
           <thead>
             <tr>
               <th>Date</th>
@@ -508,8 +508,7 @@ export default function MissionsPage() {
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
 
       {selectedMission && (
         <div className="modal-backdrop" onClick={closePreparation}>

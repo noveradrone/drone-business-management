@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import DataTable from "../components/DataTable";
 
 export default function ClientsPage() {
   const [clients, setClients] = useState([]);
@@ -85,8 +86,7 @@ export default function ClientsPage() {
 
       {error && <p className="error">{error}</p>}
 
-      <div className="table-wrap">
-        <table className="mobile-cards-table">
+      <DataTable>
           <thead>
             <tr>
               <th>Entreprise</th>
@@ -127,8 +127,7 @@ export default function ClientsPage() {
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
     </div>
   );
 }

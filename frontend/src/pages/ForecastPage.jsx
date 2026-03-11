@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import DataTable from "../components/DataTable";
 
 export default function ForecastPage() {
   const [summary, setSummary] = useState(null);
@@ -32,8 +33,7 @@ export default function ForecastPage() {
         </div>
       </div>
 
-      <div className="table-wrap" style={{ marginBottom: 12 }}>
-        <table className="mobile-cards-table">
+      <DataTable style={{ marginBottom: 12 }}>
           <thead>
             <tr>
               <th>Mois</th>
@@ -48,11 +48,9 @@ export default function ForecastPage() {
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
 
-      <div className="table-wrap" style={{ marginBottom: 12 }}>
-        <table className="mobile-cards-table">
+      <DataTable style={{ marginBottom: 12 }}>
           <thead>
             <tr>
               <th>Mois (saisonnalite)</th>
@@ -67,11 +65,9 @@ export default function ForecastPage() {
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
 
-      <div className="table-wrap">
-        <table className="mobile-cards-table">
+      <DataTable>
           <thead>
             <tr>
               <th>Departement</th>
@@ -86,8 +82,7 @@ export default function ForecastPage() {
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
     </div>
   );
 }

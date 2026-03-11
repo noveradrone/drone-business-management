@@ -429,6 +429,49 @@ tbody tr:hover {
   background: var(--table-row-hover);
 }
 
+.data-table-wrap {
+  border-radius: 16px;
+  border-color: color-mix(in srgb, var(--border) 86%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--overlay-color) 14%, transparent);
+}
+
+table.data-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+table.data-table thead th {
+  padding: 14px 16px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  background: color-mix(in srgb, var(--table-header-bg) 84%, var(--surface-strong));
+}
+
+table.data-table tbody td {
+  padding: 14px 16px;
+  vertical-align: middle;
+  font-size: 0.92rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
+}
+
+table.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+table.data-table tbody tr {
+  transition: background 140ms ease;
+}
+
+table.data-table tbody tr:hover {
+  background: color-mix(in srgb, var(--table-row-hover) 76%, transparent);
+}
+
 .error {
   color: var(--danger);
   margin: 0 0 10px;

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import DataTable from "../components/DataTable";
 
 export default function ReviewsPage() {
   const [rows, setRows] = useState([]);
@@ -52,8 +53,7 @@ export default function ReviewsPage() {
 
       {error && <p className="error">{error}</p>}
 
-      <div className="table-wrap">
-        <table className="mobile-cards-table">
+      <DataTable>
           <thead>
             <tr>
               <th>Nom</th>
@@ -83,8 +83,7 @@ export default function ReviewsPage() {
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import DataTable from "../components/DataTable";
 
 const defaultForm = {
   brand: "",
@@ -134,8 +135,7 @@ export default function DronesPage() {
 
       {error && <p className="error">{error}</p>}
 
-      <div className="table-wrap">
-        <table className="mobile-cards-table">
+      <DataTable>
           <thead>
             <tr>
               <th>Marque</th>
@@ -171,8 +171,7 @@ export default function DronesPage() {
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
 
       {editOpen && (
         <div className="modal-backdrop" onClick={cancelEdit}>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
+import DataTable from "../components/DataTable";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -97,8 +98,7 @@ export default function DashboardPage() {
         <summary>Top drones et encaissements</summary>
         <div className="card" style={{ marginBottom: 12 }}>
           <h3 style={{ marginTop: 0 }}>Top drones (heures de vol)</h3>
-          <div className="table-wrap">
-            <table className="mobile-cards-table">
+          <DataTable>
               <thead>
                 <tr>
                   <th>Drone</th>
@@ -117,14 +117,12 @@ export default function DashboardPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
         </div>
 
         <div className="card" style={{ marginBottom: 12 }}>
           <h3 style={{ marginTop: 0 }}>Encaissements mensuels</h3>
-          <div className="table-wrap">
-            <table className="mobile-cards-table">
+          <DataTable>
               <thead>
                 <tr>
                   <th>Mois</th>
@@ -139,8 +137,7 @@ export default function DashboardPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
         </div>
       </details>
 
@@ -149,8 +146,7 @@ export default function DashboardPage() {
         {maintenanceAlerts.length === 0 ? (
           <p style={{ margin: 0 }}>Aucune alerte maintenance.</p>
         ) : (
-          <div className="table-wrap" style={{ marginBottom: 12 }}>
-            <table className="mobile-cards-table">
+          <DataTable style={{ marginBottom: 12 }}>
               <thead>
                 <tr>
                   <th>Drone</th>
@@ -173,8 +169,7 @@ export default function DashboardPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
         )}
       </div>
 
@@ -183,8 +178,7 @@ export default function DashboardPage() {
         {reminders.length === 0 ? (
           <p style={{ margin: 0 }}>Aucun rappel en attente.</p>
         ) : (
-          <div className="table-wrap">
-            <table className="mobile-cards-table">
+          <DataTable>
               <thead>
                 <tr>
                   <th>Type</th>
@@ -201,8 +195,7 @@ export default function DashboardPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
         )}
       </div>
     </div>
