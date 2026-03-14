@@ -170,34 +170,84 @@ router.put("/:id", authRequired, (req, res) => {
   if (!quote) return res.status(404).json({ message: "Quote not found" });
 
   const payload = req.body || {};
+  const quoteDate = payload.quote_date || quote.quote_date;
   const validUntil = payload.valid_until !== undefined ? payload.valid_until : quote.valid_until;
   const finalStatus = normalizeQuoteStatus(payload.status || quote.status, validUntil);
-  const allowed = {
-    quote_date: payload.quote_date || quote.quote_date,
-    valid_until: validUntil,
-    status: finalStatus,
-    tax_rate: payload.tax_rate !== undefined ? toNumber(payload.tax_rate, 0) : quote.tax_rate,
-    currency: payload.currency || quote.currency || "EUR",
-    notes: payload.notes !== undefined ? payload.notes : quote.notes
-  };
+  const finalNumber = payload.quote_number || quote.quote_number;
+  const clientId = payload.client_id !== undefined ? Number(payload.client_id) : quote.client_id;
+  const taxRate = payload.tax_rate !== undefined ? toNumber(payload.tax_rate, 0) : quote.tax_rate;
+  const currency = payload.currency || quote.currency || "EUR";
+  const notes = payload.notes !== undefined ? payload.notes : quote.notes;
+  const items = Array.isArray(payload.items) && payload.items.length
+    ? payload.items
+    : db.prepare("SELECT description, quantity, unit_price FROM quote_items WHERE quote_id = ?").all(req.params.id);
 
-  db.prepare(
-    `UPDATE quotes
-     SET quote_date = ?, valid_until = ?, status = ?, tax_rate = ?, currency = ?, notes = ?, sent_at = CASE WHEN ? = 'sent' AND sent_at IS NULL THEN datetime('now') ELSE sent_at END
-     WHERE id = ?`
-  ).run(
-    allowed.quote_date,
-    allowed.valid_until,
-    allowed.status,
-    allowed.tax_rate,
-    allowed.currency,
-    allowed.notes,
-    allowed.status,
-    req.params.id
+  if (!clientId || !quoteDate) {
+    return res.status(400).json({ message: "client_id and quote_date are required" });
+  }
+
+  const totals = calculateQuoteTotals(
+    items,
+    taxRate,
+    payload.discount_percent !== undefined ? payload.discount_percent : quote.discount_percent,
+    payload.discount_amount !== undefined ? payload.discount_amount : quote.discount_amount,
+    payload.acompte_percent !== undefined ? payload.acompte_percent : quote.acompte_percent,
+    payload.acompte_amount !== undefined ? payload.acompte_amount : quote.acompte_amount
   );
 
-  const updated = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
-  res.json(updated);
+  const tx = db.transaction(() => {
+    db.prepare(
+      `UPDATE quotes
+       SET client_id = ?, quote_number = ?, quote_date = ?, valid_until = ?, status = ?,
+           subtotal = ?, tax_rate = ?, total = ?, notes = ?, currency = ?,
+           discount_percent = ?, discount_amount = ?, subtotal_after_discount = ?,
+           acompte_percent = ?, acompte_amount = ?, estimated_balance = ?,
+           sent_at = CASE
+             WHEN ? = 'sent' AND sent_at IS NULL THEN datetime('now')
+             WHEN ? != 'sent' THEN NULL
+             ELSE sent_at
+           END
+       WHERE id = ?`
+    ).run(
+      clientId,
+      finalNumber,
+      quoteDate,
+      validUntil,
+      finalStatus,
+      totals.subtotal,
+      taxRate,
+      totals.total,
+      notes,
+      currency,
+      totals.discount_percent,
+      totals.discount_amount,
+      totals.subtotal_after_discount,
+      totals.acompte_percent,
+      totals.acompte_amount,
+      totals.estimated_balance,
+      finalStatus,
+      finalStatus,
+      req.params.id
+    );
+
+    db.prepare("DELETE FROM quote_items WHERE quote_id = ?").run(req.params.id);
+    const itemInsert = db.prepare(
+      `INSERT INTO quote_items (quote_id, description, quantity, unit_price, total)
+       VALUES (?, ?, ?, ?, ?)`
+    );
+    totals.normalizedItems.forEach((item) => {
+      itemInsert.run(req.params.id, item.description, item.quantity, item.unit_price, item.total);
+    });
+  });
+
+  try {
+    tx();
+    const updated = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
+    const updatedItems = db.prepare("SELECT * FROM quote_items WHERE quote_id = ?").all(req.params.id);
+    res.json({ ...updated, items: updatedItems });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 });
 
 router.post("/:id/send", authRequired, (req, res) => {

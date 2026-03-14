@@ -10,6 +10,31 @@ const STATUS_META = {
   expired: { label: "Expire", color: "#dc2626" }
 };
 
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function defaultValidUntil() {
+  return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function buildInitialForm() {
+  return {
+    client_id: "",
+    quote_number: "",
+    quote_date: todayIso(),
+    valid_until: defaultValidUntil(),
+    status: "draft",
+    tax_rate: 20,
+    currency: "EUR",
+    discount_percent: 0,
+    discount_amount: 0,
+    acompte_percent: 0,
+    acompte_amount: 0,
+    notes: ""
+  };
+}
+
 function download(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -57,24 +82,12 @@ export default function QuotesPage() {
   const [previewUrl, setPreviewUrl] = useState("");
   const [previewName, setPreviewName] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
-
-  const [form, setForm] = useState({
-    client_id: "",
-    quote_number: "",
-    quote_date: new Date().toISOString().slice(0, 10),
-    valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    status: "draft",
-    tax_rate: 20,
-    currency: "EUR",
-    discount_percent: 0,
-    discount_amount: 0,
-    acompte_percent: 0,
-    acompte_amount: 0,
-    notes: ""
-  });
+  const [editingQuoteId, setEditingQuoteId] = useState(null);
+  const [form, setForm] = useState(buildInitialForm);
   const [items, setItems] = useState([{ description: "", quantity: 1, unit_price: 0 }]);
 
   async function refreshNextNumber(dateValue) {
+    if (editingQuoteId) return;
     try {
       const payload = await api.quotes.nextNumber(dateValue);
       setForm((prev) => ({ ...prev, quote_number: payload.quote_number || prev.quote_number }));
@@ -156,6 +169,53 @@ export default function QuotesPage() {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }
 
+  async function beginEdit(quote) {
+    setError("");
+    try {
+      const fullQuote = await api.quotes.get(quote.id);
+      setEditingQuoteId(quote.id);
+      setForm({
+        client_id: String(fullQuote.client_id || ""),
+        quote_number: fullQuote.quote_number || "",
+        quote_date: fullQuote.quote_date || todayIso(),
+        valid_until: fullQuote.valid_until || defaultValidUntil(),
+        status: fullQuote.status || "draft",
+        tax_rate: Number(fullQuote.tax_rate || 0),
+        currency: fullQuote.currency || "EUR",
+        discount_percent: Number(fullQuote.discount_percent || 0),
+        discount_amount: Number(fullQuote.discount_amount || 0),
+        acompte_percent: Number(fullQuote.acompte_percent || 0),
+        acompte_amount: Number(fullQuote.acompte_amount || 0),
+        notes: fullQuote.notes || ""
+      });
+      setItems(
+        fullQuote.items?.length
+          ? fullQuote.items.map((item) => ({
+              description: item.description || "",
+              quantity: Number(item.quantity || 1),
+              unit_price: Number(item.unit_price || 0)
+            }))
+          : [{ description: "", quantity: 1, unit_price: 0 }]
+      );
+      createSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function resetFormState() {
+    const nextForm = buildInitialForm();
+    setEditingQuoteId(null);
+    setForm(nextForm);
+    setItems([{ description: "", quantity: 1, unit_price: 0 }]);
+    await refreshNextNumber(nextForm.quote_date);
+  }
+
+  async function cancelEdit() {
+    setError("");
+    await resetFormState();
+  }
+
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, i) => sum + Number(i.quantity || 0) * Number(i.unit_price || 0), 0);
     let discount = Number(form.discount_amount || 0);
@@ -198,7 +258,7 @@ export default function QuotesPage() {
 
     setSubmitting(true);
     try {
-      await api.quotes.create({
+      const payload = {
         ...form,
         client_id: Number(form.client_id),
         tax_rate: Number(form.tax_rate),
@@ -207,25 +267,15 @@ export default function QuotesPage() {
         acompte_percent: Number(form.acompte_percent || 0),
         acompte_amount: Number(form.acompte_amount || 0),
         items: filteredItems
-      });
+      };
 
-      const nextDate = new Date().toISOString().slice(0, 10);
-      setForm({
-        client_id: "",
-        quote_number: "",
-        quote_date: nextDate,
-        valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-        status: "draft",
-        tax_rate: 20,
-        currency: "EUR",
-        discount_percent: 0,
-        discount_amount: 0,
-        acompte_percent: 0,
-        acompte_amount: 0,
-        notes: ""
-      });
-      setItems([{ description: "", quantity: 1, unit_price: 0 }]);
-      await refreshNextNumber(nextDate);
+      if (editingQuoteId) {
+        await api.quotes.update(editingQuoteId, payload);
+      } else {
+        await api.quotes.create(payload);
+      }
+
+      await resetFormState();
       await load();
     } catch (err) {
       setError(err.message);
@@ -348,8 +398,13 @@ export default function QuotesPage() {
       {error && <p className="error">{error}</p>}
 
       <details className="details-panel" open ref={createSectionRef}>
-        <summary>Creation devis</summary>
+        <summary>{editingQuoteId ? "Modification devis" : "Creation devis"}</summary>
         <form className="form-grid" onSubmit={submit}>
+          {editingQuoteId ? (
+            <p className="section-note" style={{ gridColumn: "1 / -1" }}>
+              Le devis selectionne est en cours de modification.
+            </p>
+          ) : null}
           <select value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })} required>
             <option value="">Client</option>
             {clients.map((c) => (
@@ -421,9 +476,16 @@ export default function QuotesPage() {
             </p>
           </div>
 
-          <button className="primary-action" style={{ gridColumn: "1 / -1" }} disabled={submitting}>
-            {submitting ? "Creation..." : "Creer le devis"}
-          </button>
+          <div className="form-actions" style={{ gridColumn: "1 / -1" }}>
+            <button className="primary-action" disabled={submitting}>
+              {submitting ? (editingQuoteId ? "Enregistrement..." : "Creation...") : editingQuoteId ? "Enregistrer le devis" : "Creer le devis"}
+            </button>
+            {editingQuoteId ? (
+              <button type="button" className="secondary" onClick={cancelEdit} disabled={submitting}>
+                Annuler
+              </button>
+            ) : null}
+          </div>
         </form>
       </details>
 
@@ -476,12 +538,16 @@ export default function QuotesPage() {
         renderMeta={(q) => <>{statusBadge(q.status)}</>}
         renderActions={(q) => (
           <>
-            <button className="secondary" onClick={() => previewPdf(q)} disabled={previewLoading}>
+            <button type="button" className="secondary" onClick={() => beginEdit(q)}>
+              Modifier
+            </button>
+            <button type="button" className="secondary" onClick={() => previewPdf(q)} disabled={previewLoading}>
               {previewLoading ? "Ouverture..." : "Previsualiser PDF"}
             </button>
-            <button className="secondary" onClick={() => downloadPdf(q)}>Telecharger PDF</button>
-            <button className="secondary" onClick={() => sendQuote(q)}>Envoyer</button>
+            <button type="button" className="secondary" onClick={() => downloadPdf(q)}>Telecharger PDF</button>
+            <button type="button" className="secondary" onClick={() => sendQuote(q)}>Envoyer</button>
             <button
+              type="button"
               className="secondary"
               onClick={() => convertQuote(q)}
               disabled={q.status !== "accepted"}
@@ -507,7 +573,7 @@ export default function QuotesPage() {
                     Telecharger PDF
                   </a>
                 ) : null}
-                <button className="secondary" onClick={closePreview}>
+                <button type="button" className="secondary" onClick={closePreview}>
                   Fermer
                 </button>
               </div>
