@@ -54,6 +54,7 @@ export const api = {
   clients: {
     list: () => request("/clients"),
     create: (data) => request("/clients", { method: "POST", body: JSON.stringify(data) }),
+    update: (id, data) => request(`/clients/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     remove: (id) => request(`/clients/${id}`, { method: "DELETE" })
   },
   missions: {
