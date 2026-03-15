@@ -719,6 +719,96 @@ table.data-table tbody tr:hover {
   gap: 7px;
 }
 
+.quote-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.quote-edit-actions > .primary-action {
+  width: auto;
+  min-width: 220px;
+}
+
+.quote-edit-actions > .secondary {
+  min-width: 120px;
+}
+
+.quote-row-list {
+  gap: 16px;
+}
+
+.quote-row-list .data-row-card {
+  grid-template-columns: minmax(240px, 1.2fr) minmax(220px, 1fr) minmax(190px, 220px);
+  gap: 24px;
+  padding: 20px;
+  border-radius: 18px;
+}
+
+.quote-row-list .data-row-main {
+  padding-right: 8px;
+}
+
+.quote-row-list .data-row-title {
+  font-size: 1.08rem;
+}
+
+.quote-row-list .data-row-subtitle {
+  margin-top: 6px;
+}
+
+.quote-row-list .data-row-secondary {
+  gap: 12px;
+  padding: 4px 8px;
+}
+
+.quote-row-list .data-row-info-grid {
+  gap: 10px;
+}
+
+.quote-row-list .data-row-info {
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.quote-row-list .data-row-meta {
+  align-items: center;
+}
+
+.quote-row-list .data-row-actions {
+  gap: 10px;
+  align-self: center;
+}
+
+.quote-row-list .data-row-actions > * {
+  min-width: 148px;
+}
+
+.quote-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.81rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--quote-badge-color, var(--text-color));
+  background: var(--quote-badge-background, color-mix(in srgb, var(--surface-strong) 90%, transparent));
+  border: 1px solid var(--quote-badge-border, color-mix(in srgb, var(--border) 90%, transparent));
+}
+
+.quote-status-badge-accepted {
+  --quote-badge-color: #137c4d;
+  --quote-badge-background: color-mix(in srgb, #1f9d55 14%, transparent);
+  --quote-badge-border: color-mix(in srgb, #1f9d55 34%, var(--border));
+}
+
 .thermography-page img {
   width: 100%;
   max-height: 220px;
@@ -1566,6 +1656,16 @@ textarea {
     gap: 10px;
   }
 
+  .quote-row-list .data-row-card {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .quote-row-list .data-row-secondary {
+    padding: 0;
+  }
+
   .thermo-inspection-list .data-row-card {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -1593,6 +1693,17 @@ textarea {
 
   .data-row-actions > * {
     min-height: 44px;
+  }
+
+  .quote-edit-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .quote-edit-actions > .primary-action,
+  .quote-edit-actions > .secondary {
+    width: 100%;
+    min-width: 0;
   }
 
   form.form-grid {

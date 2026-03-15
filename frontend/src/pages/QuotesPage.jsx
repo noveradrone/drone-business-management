@@ -48,15 +48,11 @@ function statusBadge(status) {
   const meta = STATUS_META[status] || { label: status || "-", color: "#6b7280" };
   return (
     <span
+      className={`quote-status-badge quote-status-badge-${status || "default"}`}
       style={{
-        display: "inline-block",
-        borderRadius: 999,
-        padding: "4px 10px",
-        fontWeight: 700,
-        fontSize: 12,
-        background: `${meta.color}1A`,
-        color: meta.color,
-        border: `1px solid ${meta.color}55`
+        "--quote-badge-color": meta.color,
+        "--quote-badge-background": `${meta.color}14`,
+        "--quote-badge-border": `${meta.color}45`
       }}
     >
       {meta.label}
@@ -476,7 +472,7 @@ export default function QuotesPage() {
             </p>
           </div>
 
-          <div className="form-actions" style={{ gridColumn: "1 / -1" }}>
+          <div className="form-actions quote-edit-actions" style={{ gridColumn: "1 / -1" }}>
             <button className="primary-action" disabled={submitting}>
               {submitting ? (editingQuoteId ? "Enregistrement..." : "Creation...") : editingQuoteId ? "Enregistrer le devis" : "Creer le devis"}
             </button>
@@ -514,6 +510,7 @@ export default function QuotesPage() {
 
       <DataRowList
         items={quotes}
+        className="quote-row-list"
         emptyMessage="Aucun devis."
         renderTitle={(q) => q.quote_number}
         renderSubtitle={(q) => q.company_name}
