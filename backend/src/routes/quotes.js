@@ -12,10 +12,22 @@ const {
 
 const router = express.Router();
 
+function mapQuoteRow(row) {
+  if (!row) return row;
+  if (row.converted_invoice_id) {
+    return {
+      ...row,
+      status: "converted"
+    };
+  }
+  return row;
+}
+
 function syncQuoteStatuses() {
-  const rows = db.prepare("SELECT id, status, valid_until FROM quotes").all();
+  const rows = db.prepare("SELECT id, status, valid_until, converted_invoice_id FROM quotes").all();
   const update = db.prepare("UPDATE quotes SET status = ? WHERE id = ?");
   rows.forEach((row) => {
+    if (row.converted_invoice_id) return;
     const normalized = normalizeQuoteStatus(row.status, row.valid_until);
     if (normalized !== row.status) update.run(normalized, row.id);
   });
@@ -32,8 +44,9 @@ router.get("/stats", authRequired, (req, res) => {
     .prepare(
       `SELECT
          COUNT(*) AS total_quotes,
-         COALESCE(SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END), 0) AS sent_quotes,
-         COALESCE(SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END), 0) AS accepted_quotes,
+         COALESCE(SUM(CASE WHEN status = 'sent' AND converted_invoice_id IS NULL THEN 1 ELSE 0 END), 0) AS sent_quotes,
+         COALESCE(SUM(CASE WHEN status = 'accepted' AND converted_invoice_id IS NULL THEN 1 ELSE 0 END), 0) AS accepted_quotes,
+         COALESCE(SUM(CASE WHEN converted_invoice_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS converted_quotes,
          COALESCE(SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END), 0) AS expired_quotes,
          COALESCE(SUM(total), 0) AS total_amount
        FROM quotes`
@@ -53,12 +66,14 @@ router.get("/", authRequired, (req, res) => {
 
   const rows = db
     .prepare(
-      `SELECT q.*, c.company_name
+      `SELECT q.*, c.company_name, i.id AS converted_invoice_id, i.invoice_number AS converted_invoice_number
        FROM quotes q
        JOIN clients c ON c.id = q.client_id
+       LEFT JOIN invoices i ON i.quote_id = q.id
        ORDER BY q.quote_date DESC`
     )
     .all()
+    .map(mapQuoteRow)
     .filter((row) => {
       if (query) {
         const hay = `${row.quote_number} ${row.company_name}`.toLowerCase();
@@ -253,11 +268,14 @@ router.put("/:id", authRequired, (req, res) => {
 router.post("/:id/send", authRequired, (req, res) => {
   const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
   if (!quote) return res.status(404).json({ message: "Quote not found" });
+  if (quote.converted_invoice_id) {
+    return res.status(400).json({ message: "Ce devis a deja ete converti en facture." });
+  }
   const status = normalizeQuoteStatus("sent", quote.valid_until);
   db.prepare("UPDATE quotes SET status = ?, sent_at = datetime('now') WHERE id = ?").run(status, req.params.id);
   const updated = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
   res.json({
-    quote: updated,
+    quote: mapQuoteRow(updated),
     message: "Devis marqué comme envoyé. Branchez un provider SMTP pour l’envoi email réel."
   });
 });
@@ -266,13 +284,17 @@ router.post("/:id/convert-to-invoice", authRequired, (req, res) => {
   const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
   if (!quote) return res.status(404).json({ message: "Quote not found" });
 
-  const status = normalizeQuoteStatus(quote.status, quote.valid_until);
-  if (status !== "accepted") {
-    return res.status(400).json({ message: "Seul un devis accepté peut être converti en facture." });
-  }
-
   const existingLink = db.prepare("SELECT id, invoice_number FROM invoices WHERE quote_id = ?").get(req.params.id);
-  if (existingLink) return res.status(400).json({ message: `Ce devis est déjà lié à ${existingLink.invoice_number}.` });
+  if (existingLink) {
+    db.prepare("UPDATE quotes SET converted_invoice_id = ?, converted_at = COALESCE(converted_at, datetime('now')) WHERE id = ?").run(
+      existingLink.id,
+      req.params.id
+    );
+    return res.status(400).json({
+      message: "Ce devis a deja ete converti en facture.",
+      invoice: existingLink
+    });
+  }
 
   const items = db.prepare("SELECT * FROM quote_items WHERE quote_id = ?").all(req.params.id);
   if (!items.length) return res.status(400).json({ message: "Impossible de convertir un devis sans ligne." });
@@ -280,6 +302,26 @@ router.post("/:id/convert-to-invoice", authRequired, (req, res) => {
   const invoiceDate = new Date().toISOString().slice(0, 10);
   const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const invoiceNumber = nextInvoiceNumber(invoiceDate);
+  const quoteLabel = quote.quote_number || `#${quote.id}`;
+  const copiedItems = items.map((item) => ({
+    description: item.description,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    total: item.total
+  }));
+
+  if (Number(quote.discount_amount || 0) > 0) {
+    copiedItems.push({
+      description: `Remise issue du devis ${quoteLabel}`,
+      quantity: 1,
+      unit_price: -Math.abs(Number(quote.discount_amount || 0)),
+      total: -Math.abs(Number(quote.discount_amount || 0))
+    });
+  }
+
+  const invoiceNotes = [quote.notes, `Facture generee a partir du devis : ${quoteLabel}`]
+    .filter(Boolean)
+    .join("\n");
 
   const tx = db.transaction(() => {
     const result = db
@@ -297,13 +339,13 @@ router.post("/:id/convert-to-invoice", authRequired, (req, res) => {
         invoiceNumber,
         invoiceDate,
         dueDate,
-        "sent",
-        quote.subtotal || 0,
+        "draft",
+        Number(quote.subtotal_after_discount || quote.subtotal || 0),
         quote.tax_rate || 0,
         quote.total || 0,
         0,
         quote.currency || "EUR",
-        quote.notes || null,
+        invoiceNotes || null,
         quote.acompte_percent || 0,
         quote.acompte_amount || 0,
         quote.estimated_balance || quote.total || 0
@@ -311,26 +353,41 @@ router.post("/:id/convert-to-invoice", authRequired, (req, res) => {
 
     const invoiceId = result.lastInsertRowid;
     const itemInsert = db.prepare(
-      `INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, total)
+       `INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, total)
        VALUES (?, ?, ?, ?, ?)`
     );
-    items.forEach((item) => {
+    copiedItems.forEach((item) => {
       itemInsert.run(invoiceId, item.description, item.quantity, item.unit_price, item.total);
     });
+    db.prepare(
+      "UPDATE quotes SET converted_invoice_id = ?, converted_at = datetime('now') WHERE id = ?"
+    ).run(invoiceId, req.params.id);
     return invoiceId;
   });
 
-  const invoiceId = tx();
-  const invoice = db.prepare("SELECT * FROM invoices WHERE id = ?").get(invoiceId);
-  res.status(201).json({ invoice });
+  try {
+    const invoiceId = tx();
+    const invoice = db.prepare("SELECT * FROM invoices WHERE id = ?").get(invoiceId);
+    const updatedQuote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
+    res.status(201).json({ invoice, quote: mapQuoteRow(updatedQuote) });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 });
 
 router.get("/:id", authRequired, (req, res) => {
   syncQuoteStatuses();
-  const quote = db.prepare("SELECT * FROM quotes WHERE id = ?").get(req.params.id);
+  const quote = db
+    .prepare(
+      `SELECT q.*, i.id AS converted_invoice_id, i.invoice_number AS converted_invoice_number
+       FROM quotes q
+       LEFT JOIN invoices i ON i.quote_id = q.id
+       WHERE q.id = ?`
+    )
+    .get(req.params.id);
   if (!quote) return res.status(404).json({ message: "Quote not found" });
   const items = db.prepare("SELECT * FROM quote_items WHERE quote_id = ?").all(req.params.id);
-  res.json({ ...quote, items });
+  res.json({ ...mapQuoteRow(quote), items });
 });
 
 router.get("/:id/pdf", authRequired, async (req, res) => {

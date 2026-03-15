@@ -12,13 +12,16 @@ function normalizeQuoteStatus(rawStatus, validUntil) {
     envoye: "sent",
     accepte: "accepted",
     refuse: "rejected",
+    converti: "converted",
     expired: "expired",
     draft: "draft",
     sent: "sent",
     accepted: "accepted",
-    rejected: "rejected"
+    rejected: "rejected",
+    converted: "converted"
   }[status] || "draft";
 
+  if (mapped === "converted") return mapped;
   if (mapped === "accepted" || mapped === "rejected") return mapped;
   const today = new Date().toISOString().slice(0, 10);
   if (validUntil && validUntil < today) return "expired";

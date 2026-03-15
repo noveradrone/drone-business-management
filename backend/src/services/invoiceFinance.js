@@ -49,7 +49,7 @@ function normalizeInvoiceStatus(invoice) {
 
 function nextInvoiceNumber(dateValue = new Date().toISOString().slice(0, 10)) {
   const year = String(dateValue).slice(0, 4);
-  const like = `INV-${year}-%`;
+  const like = `FACT-${year}-%`;
   const row = db
     .prepare(
       `SELECT invoice_number
@@ -61,7 +61,7 @@ function nextInvoiceNumber(dateValue = new Date().toISOString().slice(0, 10)) {
     .get(like);
   const current = row ? Number(String(row.invoice_number).split("-")[2] || 0) : 0;
   const next = String(current + 1).padStart(4, "0");
-  return `INV-${year}-${next}`;
+  return `FACT-${year}-${next}`;
 }
 
 function computeMissionProfitability(invoiceId) {

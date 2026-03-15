@@ -57,6 +57,7 @@ app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/clients", clientsRoutes);
 app.use("/api/missions", missionsRoutes);
 app.use("/api/quotes", quotesRoutes);
+app.use("/api/devis", quotesRoutes);
 app.use("/api/invoices", invoicesRoutes);
 app.use("/api/insurances", insurancesRoutes);
 app.use("/api/dashboard", dashboardRoutes);

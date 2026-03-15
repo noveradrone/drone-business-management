@@ -109,9 +109,12 @@ CREATE TABLE IF NOT EXISTS quotes (
   subtotal REAL NOT NULL DEFAULT 0,
   tax_rate REAL NOT NULL DEFAULT 0,
   total REAL NOT NULL DEFAULT 0,
+  converted_invoice_id INTEGER,
+  converted_at TEXT,
   notes TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (client_id) REFERENCES clients(id)
+  FOREIGN KEY (client_id) REFERENCES clients(id),
+  FOREIGN KEY (converted_invoice_id) REFERENCES invoices(id)
 );
 
 CREATE TABLE IF NOT EXISTS quote_items (
@@ -358,6 +361,7 @@ CREATE INDEX IF NOT EXISTS idx_inspections_thermo_client ON inspections_thermo(c
 CREATE INDEX IF NOT EXISTS idx_inspections_thermo_date ON inspections_thermo(date_inspection);
 CREATE INDEX IF NOT EXISTS idx_inspection_anomalies_inspection ON inspection_anomalies(inspection_id);
 CREATE INDEX IF NOT EXISTS idx_inspection_report_images_inspection ON inspection_report_images(inspection_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_quote_unique ON invoices(quote_id) WHERE quote_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS insurances (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -493,6 +497,8 @@ ensureColumn("quotes", "acompte_percent", "REAL NOT NULL DEFAULT 0");
 ensureColumn("quotes", "acompte_amount", "REAL NOT NULL DEFAULT 0");
 ensureColumn("quotes", "estimated_balance", "REAL NOT NULL DEFAULT 0");
 ensureColumn("quotes", "sent_at", "TEXT");
+ensureColumn("quotes", "converted_invoice_id", "INTEGER");
+ensureColumn("quotes", "converted_at", "TEXT");
 
 const adminExists = db.prepare("SELECT id FROM users WHERE email = ?").get("admin@drone.local");
 if (!adminExists && (nodeEnv !== "production" || allowDefaultAdmin)) {

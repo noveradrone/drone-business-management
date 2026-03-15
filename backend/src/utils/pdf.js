@@ -371,6 +371,7 @@ function drawInvoicePdfLayout(doc, invoice, items, client, settings, profitabili
   y = table.y;
   const totalsData = computeTotalsFromInvoice(invoice);
   const footerLines = buildLines([
+    isFilled(invoice.notes) ? `Notes: ${clean(invoice.notes)}` : null,
     Number(settings.show_late_penalties ?? 1) === 1 && isFilled(settings.payment_terms)
       ? `Conditions de paiement: ${clean(settings.payment_terms)}`
       : null,

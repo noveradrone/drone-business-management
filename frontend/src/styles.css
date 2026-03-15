@@ -809,6 +809,12 @@ table.data-table tbody tr:hover {
   --quote-badge-border: color-mix(in srgb, #1f9d55 34%, var(--border));
 }
 
+.quote-status-badge-converted {
+  --quote-badge-color: #6d28d9;
+  --quote-badge-background: color-mix(in srgb, #8b5cf6 14%, transparent);
+  --quote-badge-border: color-mix(in srgb, #8b5cf6 34%, var(--border));
+}
+
 .thermography-page img {
   width: 100%;
   max-height: 220px;

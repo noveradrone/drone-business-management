@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { api } from "../api";
 import DataRowList from "../components/DataRowList";
 
@@ -41,6 +42,7 @@ function statusBadge(status) {
 }
 
 export default function InvoicesPage() {
+  const location = useLocation();
   const createSectionRef = useRef(null);
   const [invoices, setInvoices] = useState([]);
   const [clients, setClients] = useState([]);
@@ -117,6 +119,14 @@ export default function InvoicesPage() {
     refreshNextNumber(form.invoice_date);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const invoiceId = new URLSearchParams(location.search).get("invoice");
+    if (!invoiceId || !invoices.some((invoice) => String(invoice.id) === String(invoiceId))) return;
+    if (String(selectedInvoiceId || "") === String(invoiceId)) return;
+    loadInvoiceDetails(invoiceId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search, invoices, selectedInvoiceId]);
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((i) => {

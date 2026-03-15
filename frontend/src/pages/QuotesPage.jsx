@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import DataRowList from "../components/DataRowList";
 
@@ -7,6 +8,7 @@ const STATUS_META = {
   sent: { label: "Envoye", color: "#2563eb" },
   accepted: { label: "Accepte", color: "#16a34a" },
   rejected: { label: "Refuse", color: "#6b7280" },
+  converted: { label: "Converti", color: "#7c3aed" },
   expired: { label: "Expire", color: "#dc2626" }
 };
 
@@ -61,6 +63,7 @@ function statusBadge(status) {
 }
 
 export default function QuotesPage() {
+  const navigate = useNavigate();
   const createSectionRef = useRef(null);
   const [quotes, setQuotes] = useState([]);
   const [clients, setClients] = useState([]);
@@ -328,13 +331,30 @@ export default function QuotesPage() {
   }
 
   async function convertQuote(quote) {
+    if (!window.confirm("Transformer ce devis en facture ?")) return;
     setError("");
     try {
-      await api.quotes.convertToInvoice(quote.id);
+      const payload = await api.quotes.convertToInvoice(quote.id);
       await load();
+      if (payload?.invoice?.id) {
+        navigate(`/invoices?invoice=${payload.invoice.id}`);
+      }
     } catch (e) {
+      if (e.message === "Ce devis a deja ete converti en facture.") {
+        const freshQuote = await api.quotes.get(quote.id).catch(() => null);
+        if (freshQuote?.converted_invoice_id) {
+          await load();
+          navigate(`/invoices?invoice=${freshQuote.converted_invoice_id}`);
+          return;
+        }
+      }
       setError(e.message);
     }
+  }
+
+  function openConvertedInvoice(quote) {
+    if (!quote.converted_invoice_id) return;
+    navigate(`/invoices?invoice=${quote.converted_invoice_id}`);
   }
 
   async function removeQuote(quote) {
@@ -496,6 +516,7 @@ export default function QuotesPage() {
             <option value="draft">Brouillon</option>
             <option value="sent">Envoye</option>
             <option value="accepted">Accepte</option>
+            <option value="converted">Converti</option>
             <option value="rejected">Refuse</option>
             <option value="expired">Expire</option>
           </select>
@@ -532,7 +553,12 @@ export default function QuotesPage() {
             </div>
           </div>
         )}
-        renderMeta={(q) => <>{statusBadge(q.status)}</>}
+        renderMeta={(q) => (
+          <>
+            {statusBadge(q.status)}
+            {q.converted_invoice_number ? <span className="data-row-chip">Facture {q.converted_invoice_number}</span> : null}
+          </>
+        )}
         renderActions={(q) => (
           <>
             <button type="button" className="secondary" onClick={() => beginEdit(q)}>
@@ -543,15 +569,15 @@ export default function QuotesPage() {
             </button>
             <button type="button" className="secondary" onClick={() => downloadPdf(q)}>Telecharger PDF</button>
             <button type="button" className="secondary" onClick={() => sendQuote(q)}>Envoyer</button>
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => convertQuote(q)}
-              disabled={q.status !== "accepted"}
-              title={q.status !== "accepted" ? "Disponible uniquement pour un devis accepte" : ""}
-            >
-              Convertir facture
-            </button>
+            {q.converted_invoice_id ? (
+              <button type="button" className="primary-action" onClick={() => openConvertedInvoice(q)}>
+                Voir facture
+              </button>
+            ) : (
+              <button type="button" className="primary-action" onClick={() => convertQuote(q)}>
+                Convertir facture
+              </button>
+            )}
             <button type="button" className="danger" onClick={() => removeQuote(q)}>
               Supprimer
             </button>
