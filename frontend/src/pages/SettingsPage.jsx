@@ -72,6 +72,9 @@ export default function SettingsPage() {
     bank_name: "",
     bank_bic: "",
     bank_iban: "",
+    insurance_provider: "",
+    insurance_contract_number: "",
+    insurance_coverage_zone: "",
     logo_data_url: "",
     payment_terms: "",
     late_penalty_rate: "",
@@ -84,6 +87,7 @@ export default function SettingsPage() {
     show_late_penalties: 1,
     show_fixed_indemnity: 1,
     show_bank_details: 1,
+    show_insurance_mention: 1,
     quote_show_signature_block: 1,
     quote_show_validity_notice: 1
   });
@@ -149,6 +153,7 @@ export default function SettingsPage() {
         show_late_penalties: Number(form.show_late_penalties || 0),
         show_fixed_indemnity: Number(form.show_fixed_indemnity || 0),
         show_bank_details: Number(form.show_bank_details || 0),
+        show_insurance_mention: Number(form.show_insurance_mention || 0),
         quote_show_signature_block: Number(form.quote_show_signature_block || 0),
         quote_show_validity_notice: Number(form.quote_show_validity_notice || 0)
       });
@@ -327,6 +332,9 @@ export default function SettingsPage() {
             <input placeholder="Banque" value={form.bank_name || ""} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} />
             <input placeholder="SWIFT/BIC" value={form.bank_bic || ""} onChange={(e) => setForm({ ...form, bank_bic: e.target.value })} />
             <input placeholder="IBAN" value={form.bank_iban || ""} onChange={(e) => setForm({ ...form, bank_iban: e.target.value })} />
+            <input placeholder="Assureur RC Pro" value={form.insurance_provider || ""} onChange={(e) => setForm({ ...form, insurance_provider: e.target.value })} />
+            <input placeholder="Numero de contrat (optionnel)" value={form.insurance_contract_number || ""} onChange={(e) => setForm({ ...form, insurance_contract_number: e.target.value })} />
+            <input placeholder="Zone de couverture" value={form.insurance_coverage_zone || ""} onChange={(e) => setForm({ ...form, insurance_coverage_zone: e.target.value })} />
             <input placeholder="Conditions de paiement" value={form.payment_terms || ""} onChange={(e) => setForm({ ...form, payment_terms: e.target.value })} />
             <input placeholder="Penalites retard" value={form.late_penalty_rate || ""} onChange={(e) => setForm({ ...form, late_penalty_rate: e.target.value })} />
             <input placeholder="Indemnite recouvrement" value={form.fixed_indemnity || ""} onChange={(e) => setForm({ ...form, fixed_indemnity: e.target.value })} />
@@ -373,6 +381,16 @@ export default function SettingsPage() {
               <select
                 value={String(Number(form.show_bank_details || 0))}
                 onChange={(e) => setForm({ ...form, show_bank_details: Number(e.target.value) })}
+              >
+                <option value="1">Oui</option>
+                <option value="0">Non</option>
+              </select>
+            </label>
+            <label>
+              Afficher la mention d'assurance
+              <select
+                value={String(Number(form.show_insurance_mention || 0))}
+                onChange={(e) => setForm({ ...form, show_insurance_mention: Number(e.target.value) })}
               >
                 <option value="1">Oui</option>
                 <option value="0">Non</option>

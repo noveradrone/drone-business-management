@@ -258,6 +258,21 @@ function estimateTotalsHeight(totals, options = {}) {
   return 14 + lineCount * 18 + 8 + 10;
 }
 
+function buildInsuranceMention(settings = {}, documentNotes = "") {
+  if (Number(settings.show_insurance_mention ?? 1) !== 1) return null;
+  const insurer = clean(settings.insurance_provider);
+  const coverage = clean(settings.insurance_coverage_zone);
+  const contractNumber = clean(settings.insurance_contract_number);
+  if (!isFilled(insurer) || !isFilled(coverage)) return null;
+
+  const mention = isFilled(contractNumber)
+    ? `Assurance responsabilite civile professionnelle souscrite aupres de ${insurer} - contrat n°${contractNumber} - couverture ${coverage}.`
+    : `Assurance responsabilite civile professionnelle souscrite aupres de ${insurer}, couvrant les prestations sur ${coverage}.`;
+
+  if (String(documentNotes || "").includes(mention)) return null;
+  return mention;
+}
+
 function drawFooterText(doc, y, footerLines) {
   const left = PAGE.marginX;
   const right = doc.page.width - PAGE.marginX;
@@ -385,7 +400,8 @@ function drawInvoicePdfLayout(doc, invoice, items, client, settings, profitabili
     Number(invoice.tax_rate || 0) === 0 &&
     isFilled(settings.vat_exemption_mention)
       ? clean(settings.vat_exemption_mention)
-      : null
+      : null,
+    buildInsuranceMention(settings, invoice.notes)
   ]);
   const pageCountAfterTable = doc.bufferedPageRange().count;
   if (pageCountAfterTable === pageCountBeforeTable) {
@@ -466,7 +482,8 @@ function drawQuotePdfLayout(doc, quote, items, client, settings) {
     Number(quote.tax_rate || 0) === 0 &&
     isFilled(settings.vat_exemption_mention)
       ? clean(settings.vat_exemption_mention)
-      : null
+      : null,
+    buildInsuranceMention(settings, quote.notes)
   ]);
   const signatureHeight = Number(settings.quote_show_signature_block ?? 1) === 1 ? 58 : 0;
   const pageCountAfterTable = doc.bufferedPageRange().count;

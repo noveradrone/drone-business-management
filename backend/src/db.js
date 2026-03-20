@@ -395,6 +395,10 @@ CREATE TABLE IF NOT EXISTS company_settings (
   bank_name TEXT,
   bank_bic TEXT,
   bank_iban TEXT,
+  insurance_provider TEXT,
+  insurance_contract_number TEXT,
+  insurance_coverage_zone TEXT,
+  show_insurance_mention INTEGER NOT NULL DEFAULT 1,
   logo_data_url TEXT,
   payment_terms TEXT DEFAULT 'Paiement a 30 jours',
   late_penalty_rate TEXT DEFAULT 'Taux BCE + 10 points',
@@ -458,6 +462,10 @@ ensureColumn("drones", "propeller_hours_threshold", "REAL NOT NULL DEFAULT 120")
 ensureColumn("company_settings", "bank_name", "TEXT");
 ensureColumn("company_settings", "bank_bic", "TEXT");
 ensureColumn("company_settings", "bank_iban", "TEXT");
+ensureColumn("company_settings", "insurance_provider", "TEXT");
+ensureColumn("company_settings", "insurance_contract_number", "TEXT");
+ensureColumn("company_settings", "insurance_coverage_zone", "TEXT");
+ensureColumn("company_settings", "show_insurance_mention", "INTEGER NOT NULL DEFAULT 1");
 ensureColumn("company_settings", "monthly_revenue_target", "REAL DEFAULT 4000");
 ensureColumn("company_settings", "show_vat", "INTEGER NOT NULL DEFAULT 1");
 ensureColumn("company_settings", "show_vat_exemption_mention", "INTEGER NOT NULL DEFAULT 1");
@@ -514,8 +522,9 @@ if (!settingsExist) {
     `INSERT INTO company_settings (
       id, company_name, legal_form, capital_amount, address_line1, zip_code, city, country,
       siret, vat_number, rcs_info, phone, email, website, payment_terms, late_penalty_rate,
-      fixed_indemnity, vat_exemption_mention, quote_validity_days, bank_name, bank_bic, bank_iban
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      fixed_indemnity, vat_exemption_mention, quote_validity_days, bank_name, bank_bic, bank_iban,
+      insurance_provider, insurance_contract_number, insurance_coverage_zone, show_insurance_mention
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     1,
     "Novera Drone",
@@ -538,7 +547,11 @@ if (!settingsExist) {
     30,
     "",
     "",
-    ""
+    "",
+    "",
+    "",
+    "",
+    1
   );
 }
 

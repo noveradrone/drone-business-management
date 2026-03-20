@@ -78,6 +78,10 @@ router.put("/company", authRequired, (req, res) => {
       payload.show_bank_details === undefined
         ? Number(current.show_bank_details ?? 1)
         : (payload.show_bank_details ? 1 : 0),
+    show_insurance_mention:
+      payload.show_insurance_mention === undefined
+        ? Number(current.show_insurance_mention ?? 1)
+        : (payload.show_insurance_mention ? 1 : 0),
     quote_show_signature_block:
       payload.quote_show_signature_block === undefined
         ? Number(current.quote_show_signature_block ?? 1)
@@ -92,11 +96,13 @@ router.put("/company", authRequired, (req, res) => {
   db.prepare(
     `INSERT INTO company_settings (
       id, company_name, legal_form, capital_amount, address_line1, zip_code, city, country,
-      siret, vat_number, rcs_info, phone, email, website, bank_name, bank_bic, bank_iban, logo_data_url, payment_terms,
+      siret, vat_number, rcs_info, phone, email, website, bank_name, bank_bic, bank_iban,
+      insurance_provider, insurance_contract_number, insurance_coverage_zone, show_insurance_mention,
+      logo_data_url, payment_terms,
       late_penalty_rate, fixed_indemnity, vat_exemption_mention, quote_validity_days, monthly_revenue_target,
       show_vat, show_vat_exemption_mention, show_late_penalties, show_fixed_indemnity, show_bank_details,
       quote_show_signature_block, quote_show_validity_notice, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       company_name=excluded.company_name,
       legal_form=excluded.legal_form,
@@ -114,6 +120,10 @@ router.put("/company", authRequired, (req, res) => {
       bank_name=excluded.bank_name,
       bank_bic=excluded.bank_bic,
       bank_iban=excluded.bank_iban,
+      insurance_provider=excluded.insurance_provider,
+      insurance_contract_number=excluded.insurance_contract_number,
+      insurance_coverage_zone=excluded.insurance_coverage_zone,
+      show_insurance_mention=excluded.show_insurance_mention,
       logo_data_url=excluded.logo_data_url,
       payment_terms=excluded.payment_terms,
       late_penalty_rate=excluded.late_penalty_rate,
@@ -147,6 +157,10 @@ router.put("/company", authRequired, (req, res) => {
     merged.bank_name ?? "",
     merged.bank_bic ?? "",
     merged.bank_iban ?? "",
+    merged.insurance_provider ?? "",
+    merged.insurance_contract_number ?? "",
+    merged.insurance_coverage_zone ?? "",
+    Number(merged.show_insurance_mention ?? 1),
     merged.logo_data_url ?? "",
     merged.payment_terms ?? "",
     merged.late_penalty_rate ?? "",
