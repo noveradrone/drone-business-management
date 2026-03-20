@@ -3,6 +3,7 @@ const db = require("../db");
 const { authRequired } = require("../middleware/auth");
 const { refreshAutomaticReminders } = require("../services/reminders");
 const { processOverdueReminders } = require("../services/invoiceReminders");
+const { getDocumentCompanySettings } = require("../services/companySettings");
 const {
   toNumber,
   calculateTotals,
@@ -321,7 +322,7 @@ router.get("/:id/payments/:paymentId/receipt-pdf", authRequired, async (req, res
   if (!payment) return res.status(404).json({ message: "Payment not found for this invoice" });
 
   const client = db.prepare("SELECT * FROM clients WHERE id = ?").get(invoice.client_id);
-  const settings = db.prepare("SELECT * FROM company_settings WHERE id = 1").get() || {};
+  const settings = getDocumentCompanySettings();
   const pdf = await buildPaymentReceiptPdf(invoice, payment, client, settings);
 
   res.setHeader("Content-Type", "application/pdf");
@@ -337,7 +338,7 @@ router.get("/:id/pdf", authRequired, async (req, res) => {
   if (!invoice) return res.status(404).json({ message: "Invoice not found" });
   const items = db.prepare("SELECT * FROM invoice_items WHERE invoice_id = ?").all(req.params.id);
   const client = db.prepare("SELECT * FROM clients WHERE id = ?").get(invoice.client_id);
-  const settings = db.prepare("SELECT * FROM company_settings WHERE id = 1").get() || {};
+  const settings = getDocumentCompanySettings();
   const profitability = computeMissionProfitability(req.params.id);
 
   const pdf = await buildInvoicePdf(invoice, items, client, settings, profitability);

@@ -3,6 +3,7 @@ const db = require("../db");
 const { authRequired } = require("../middleware/auth");
 const { buildQuotePdf } = require("../utils/pdf");
 const { nextInvoiceNumber } = require("../services/invoiceFinance");
+const { getDocumentCompanySettings } = require("../services/companySettings");
 const {
   toNumber,
   normalizeQuoteStatus,
@@ -396,7 +397,7 @@ router.get("/:id/pdf", authRequired, async (req, res) => {
   if (!quote) return res.status(404).json({ message: "Quote not found" });
   const items = db.prepare("SELECT * FROM quote_items WHERE quote_id = ?").all(req.params.id);
   const client = db.prepare("SELECT * FROM clients WHERE id = ?").get(quote.client_id);
-  const settings = db.prepare("SELECT * FROM company_settings WHERE id = 1").get() || {};
+  const settings = getDocumentCompanySettings();
 
   const pdf = await buildQuotePdf(quote, items, client, settings);
   res.setHeader("Content-Type", "application/pdf");
