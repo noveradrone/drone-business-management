@@ -1,125 +1,117 @@
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import "../site-layout.css";
 
-const DENSITY_KEY = "drone_business_density";
-
-const navGroups = [
+const NAV_SECTIONS = [
+  {
+    title: "General",
+    items: [["/dashboard", "Dashboard"]]
+  },
   {
     title: "Gestion",
     items: [
+      ["/drones", "Drones"],
       ["/clients", "Clients"],
       ["/missions", "Missions"],
       ["/quotes", "Devis"],
       ["/invoices", "Factures"],
-      ["/thermography", "Thermographie"],
-      ["/drones", "Drones"],
       ["/insurances", "Assurances"]
-    ]
-  },
-  {
-    title: "Analyse",
-    items: [
-      ["/pipeline", "Pipeline"],
-      ["/forecast", "Previsionnel"],
-      ["/reviews", "Avis Google"],
-      ["/exports", "Exports"]
     ]
   },
   {
     title: "Administration",
     items: [
+      ["/exports", "Exports"],
       ["/documents", "Documents"],
       ["/settings", "Parametres"]
     ]
   }
 ];
 
-export default function Layout({ onLogout }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [compactMode, setCompactMode] = useState(() => localStorage.getItem(DENSITY_KEY) === "compact");
-  const lockedScrollYRef = useRef(0);
+const TOKEN_KEYS = ["token", "authToken", "droneBusinessToken", "drone_business_token"];
+
+export default function Layout({ children, onLogout }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const density = compactMode ? "compact" : "comfortable";
-    document.documentElement.setAttribute("data-density", density);
-    localStorage.setItem(DENSITY_KEY, density);
-  }, [compactMode]);
+    document.body.classList.toggle("menu-open", mobileOpen);
+    return () => document.body.classList.remove("menu-open");
+  }, [mobileOpen]);
 
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      lockedScrollYRef.current = window.scrollY || 0;
-      document.body.classList.add("menu-open");
-      document.body.style.top = `-${lockedScrollYRef.current}px`;
-    } else {
-      const top = Number.parseInt(document.body.style.top || "0", 10) || 0;
-      document.body.classList.remove("menu-open");
-      document.body.style.top = "";
-      if (top) window.scrollTo(0, Math.abs(top));
+  const renderedContent = useMemo(() => children ?? <Outlet />, [children]);
+
+  const closeMenu = () => setMobileOpen(false);
+
+  const handleLogout = () => {
+    closeMenu();
+
+    if (typeof onLogout === "function") {
+      onLogout();
+      return;
     }
-    return () => {
-      const top = Number.parseInt(document.body.style.top || "0", 10) || 0;
-      document.body.classList.remove("menu-open");
-      document.body.style.top = "";
-      if (top) window.scrollTo(0, Math.abs(top));
-    };
-  }, [mobileMenuOpen]);
+
+    TOKEN_KEYS.forEach((key) => {
+      try {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      } catch {
+        // no-op
+      }
+    });
+
+    window.location.href = "/login";
+  };
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="brand">Drone Business</div>
-        <div className="topbar-actions">
-          <button className="secondary menu-toggle" onClick={() => setMobileMenuOpen((v) => !v)}>
-            ☰ Menu
-          </button>
-          <button className="secondary compact-toggle" type="button" onClick={() => setCompactMode((v) => !v)}>
-            {compactMode ? "Mode confortable" : "Mode compact"}
-          </button>
-          <button className="secondary" onClick={onLogout}>
-            Déconnexion
-          </button>
-        </div>
-      </header>
+    <div className="site-shell">
+      <button
+        type="button"
+        className="menu-toggle site-menu-toggle btn btn-secondary"
+        onClick={() => setMobileOpen((open) => !open)}
+        aria-expanded={mobileOpen}
+        aria-controls="site-sidebar"
+      >
+        Menu
+      </button>
 
-      <div className="shell-grid">
-        <aside className={`sidebar ${mobileMenuOpen ? "open" : ""}`}>
-          <div className="sidebar-content">
-            <NavLink
-              key="/"
-              to="/"
-              end
-              className={({ isActive }) => `nav-link nav-link-main${isActive ? " active" : ""}`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Dashboard
-            </NavLink>
+      <div
+        className={`site-overlay ${mobileOpen ? "is-visible" : ""}`}
+        onClick={closeMenu}
+        aria-hidden="true"
+      />
 
-            {navGroups.map((group) => (
-              <div key={group.title} className="nav-group">
-                <p className="nav-group-title">{group.title}</p>
-                {group.items.map(([path, label]) => (
+      <aside id="site-sidebar" className={`site-sidebar ${mobileOpen ? "is-open" : ""}`}>
+        <div className="site-sidebar__brand">Drone Business</div>
+
+        <nav className="site-sidebar__nav">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.title} className="site-nav-section">
+              <div className="site-nav-section__title">{section.title}</div>
+              <div className="site-nav-links">
+                {section.items.map(([to, label]) => (
                   <NavLink
-                    key={path}
-                    to={path}
-                    className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
-                    onClick={() => setMobileMenuOpen(false)}
+                    key={to}
+                    to={to}
+                    onClick={closeMenu}
+                    className={({ isActive }) =>
+                      `site-nav-link ${isActive ? "is-active" : ""}`.trim()
+                    }
                   >
                     {label}
                   </NavLink>
                 ))}
               </div>
-            ))}
-            <div className="drawer-spacer" aria-hidden="true" />
-          </div>
-        </aside>
-        {mobileMenuOpen && (
-          <button className="sidebar-overlay" onClick={() => setMobileMenuOpen(false)} aria-label="Fermer le menu" />
-        )}
+            </div>
+          ))}
+        </nav>
 
-        <main className="surface main-panel">
-          <Outlet />
-        </main>
-      </div>
+        <button type="button" className="btn btn-secondary site-sidebar__logout" onClick={handleLogout}>
+          Deconnexion
+        </button>
+        <div className="site-sidebar__spacer" aria-hidden="true" />
+      </aside>
+
+      <main className="site-main">{renderedContent}</main>
     </div>
   );
 }
