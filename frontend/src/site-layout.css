@@ -164,7 +164,7 @@
   padding: 0;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #fff;
+  color: #111827;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   text-align: left;
@@ -173,8 +173,8 @@
 .site-nav-section__chevron {
   width: 10px;
   height: 10px;
-  border-right: 2px solid #fff;
-  border-bottom: 2px solid #fff;
+  border-right: 2px solid #111827;
+  border-bottom: 2px solid #111827;
   transform: rotate(45deg);
   transition: transform 160ms ease;
   flex: 0 0 auto;
@@ -186,8 +186,8 @@
 
 .site-nav-links {
   display: grid;
-  gap: 8px;
-  margin-top: 2px;
+  gap: 10px;
+  margin-top: 12px;
   max-height: 0;
   overflow: hidden;
   transition: max-height 180ms ease;
@@ -238,17 +238,6 @@
   background: color-mix(in srgb, var(--primary-color) 12%, var(--surface-strong));
   color: var(--primary-color);
   border: 1px solid color-mix(in srgb, var(--primary-color) 24%, var(--border));
-}
-
-.sidebar-profile-card {
-  position: sticky;
-  bottom: 0;
-  margin-top: 14px;
-  background: color-mix(in srgb, var(--surface-strong) 96%, var(--bg-color) 4%);
-}
-
-.sidebar-logout-btn {
-  grid-column: 1 / -1;
 }
 
 .workspace-breadcrumb {
@@ -334,6 +323,44 @@
   align-items: center;
   gap: 10px;
   justify-content: flex-end;
+}
+
+.topbar-user-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-strong);
+}
+
+.topbar-user-meta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.topbar-user-name {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.topbar-user-role {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.1;
+}
+
+.topbar-logout-btn {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
 }
 
 .simple-breadcrumb {
@@ -428,6 +455,16 @@
     display: block;
     height: calc(18px + env(safe-area-inset-bottom, 0px));
     flex: 0 0 auto;
+  }
+
+  .topbar-user-meta,
+  .topbar-logout-btn {
+    display: none;
+  }
+
+  .topbar-user-card {
+    padding: 4px;
+    border-radius: 14px;
   }
 }
 

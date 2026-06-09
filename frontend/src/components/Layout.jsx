@@ -195,14 +195,6 @@ export default function Layout({ children, onLogout }) {
           ))}
         </nav>
 
-        <div className="sidebar-profile-card simple-profile-card">
-          <div className="sidebar-profile-avatar">EO</div>
-          <div>
-            <div className="sidebar-profile-name">Enes Ozturk</div>
-            <div className="sidebar-profile-role">Administrateur</div>
-          </div>
-          <button type="button" className="btn btn-ghost sidebar-logout-btn" onClick={handleLogout}>Deconnexion</button>
-        </div>
         <div className="drawer-spacer layout-drawer-spacer" aria-hidden="true" />
       </aside>
 
@@ -250,8 +242,17 @@ export default function Layout({ children, onLogout }) {
             <button type="button" className="tool-chip" onClick={handleThemeToggle} aria-label="Changer le theme">
               {themeMode === "dark" ? "Clair" : "Sombre"}
             </button>
-            <div className="tool-profile compact-profile">
-              <div className="tool-profile-avatar">EO</div>
+            <div className="topbar-user-card">
+              <div className="tool-profile compact-profile">
+                <div className="tool-profile-avatar">EO</div>
+              </div>
+              <div className="topbar-user-meta">
+                <div className="topbar-user-name">Enes Ozturk</div>
+                <div className="topbar-user-role">Administrateur</div>
+              </div>
+              <button type="button" className="btn btn-ghost topbar-logout-btn" onClick={handleLogout}>
+                Deconnexion
+              </button>
             </div>
           </div>
         </header>
