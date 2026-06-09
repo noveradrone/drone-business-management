@@ -17,7 +17,6 @@ const STATUS_META = {
 
 const WIZARD_STEPS = [
   { id: "client", label: "Client" },
-  { id: "service", label: "Prestation" },
   { id: "details", label: "Details" },
   { id: "pricing", label: "Prix" },
   { id: "preview", label: "Apercu" }
@@ -44,73 +43,6 @@ const CURRENCY_OPTIONS = [
   { value: "EUR", label: "EUR", icon: "🇪🇺" },
   { value: "USD", label: "USD", icon: "🇺🇸" },
   { value: "GBP", label: "GBP", icon: "🇬🇧" }
-];
-
-const PRESET_SERVICES = [
-  {
-    id: "photo",
-    icon: "◌",
-    title: "Photo aerienne",
-    hint: "Prises de vue drone pour communication ou patrimoine.",
-    price: 180,
-    description: "Prestation de prise de vues aeriennes"
-  },
-  {
-    id: "video",
-    icon: "▷",
-    title: "Video drone",
-    hint: "Captation dynamique pour promotion, reseaux ou evenement.",
-    price: 320,
-    description: "Captation video drone et livraison des rushs"
-  },
-  {
-    id: "real-estate",
-    icon: "⌂",
-    title: "Immobilier",
-    hint: "Photos et sequences dediees aux annonces et programmes.",
-    price: 240,
-    description: "Pack aerien immobilier"
-  },
-  {
-    id: "event",
-    icon: "✦",
-    title: "Mariage / evenement",
-    hint: "Souvenir premium pour journees fortes et evenements prives.",
-    price: 450,
-    description: "Couverture aerienne d'evenement"
-  },
-  {
-    id: "inspection",
-    icon: "⟡",
-    title: "Inspection",
-    hint: "Observation technique et documentation visuelle du site.",
-    price: 290,
-    description: "Mission d'inspection drone"
-  },
-  {
-    id: "thermo",
-    icon: "◈",
-    title: "Thermographie",
-    hint: "Analyse thermique et rapport visuel professionnel.",
-    price: 520,
-    description: "Inspection thermographique drone"
-  },
-  {
-    id: "cleaning",
-    icon: "✳",
-    title: "Nettoyage drone",
-    hint: "Operation specifique avec preparation, securisation et rendu.",
-    price: 380,
-    description: "Intervention technique specialisee par drone"
-  },
-  {
-    id: "other",
-    icon: "+",
-    title: "Autre",
-    hint: "Prestation sur mesure a definir selon le besoin client.",
-    price: 0,
-    description: "Prestation drone sur mesure"
-  }
 ];
 
 const QUICK_CLIENT_INITIAL = {
@@ -274,7 +206,6 @@ export default function QuotesPage() {
   const [editingQuoteId, setEditingQuoteId] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
-  const [selectedPreset, setSelectedPreset] = useState("");
   const [clientSearch, setClientSearch] = useState("");
   const [quickClientOpen, setQuickClientOpen] = useState(false);
   const [quickClientForm, setQuickClientForm] = useState(QUICK_CLIENT_INITIAL);
@@ -400,7 +331,6 @@ export default function QuotesPage() {
     setForm(nextForm);
     setContext(buildInitialContext());
     setItems([{ description: "", quantity: 1, unit_price: 0 }]);
-    setSelectedPreset("");
     setWizardStep(0);
     setClientSearch("");
     setQuickClientOpen(false);
@@ -450,7 +380,6 @@ export default function QuotesPage() {
             }))
           : [{ description: "", quantity: 1, unit_price: 0 }]
       );
-      setSelectedPreset("");
       setWizardStep(0);
       setClientSearch("");
       setQuickClientOpen(false);
@@ -483,21 +412,6 @@ export default function QuotesPage() {
       )
     );
     setForm((prev) => ({ ...prev, tax_rate: Number(article.tax_rate || prev.tax_rate) }));
-  }
-
-  function selectPreset(preset) {
-    setSelectedPreset(preset.id);
-    setItems((prev) => {
-      if (!prev.length) {
-        return [{ description: preset.description, quantity: 1, unit_price: preset.price }];
-      }
-      const first = prev[0];
-      if (!normalizeText(first.description)) {
-        return [{ ...first, description: preset.description, unit_price: preset.price || first.unit_price }, ...prev.slice(1)];
-      }
-      return prev;
-    });
-    setWizardStep((step) => Math.max(step, 2));
   }
 
   function addItem() {
@@ -724,8 +638,8 @@ export default function QuotesPage() {
       setError("Choisis ou cree un client avant de continuer.");
       return;
     }
-    if (wizardStep === 1 && !selectedPreset && !normalizeText(items[0]?.description)) {
-      setError("Choisis une prestation ou renseigne une premiere ligne.");
+    if (wizardStep === 2 && !normalizeText(items[0]?.description)) {
+      setError("Renseigne au moins une ligne de prestation.");
       return;
     }
     setError("");
@@ -990,37 +904,10 @@ export default function QuotesPage() {
 
                 {wizardStep === 1 ? (
                   <>
-                    <p className="form-section-title">Etape 2 · Type de prestation</p>
+                    <p className="form-section-title">Etape 2 · Dossier rapide</p>
                     <div className="quote-wizard-copy">
-                      <p>Choisis un format de mission. L'assistant pre-remplit la premiere ligne pour aller plus vite.</p>
+                      <p>Devis sur mesure: renseigne seulement les informations utiles pour la mission, puis passe directement au prix.</p>
                     </div>
-                    <div className="quote-preset-grid">
-                      {PRESET_SERVICES.map((preset) => (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          className={`quote-preset-card ${selectedPreset === preset.id ? "is-selected" : ""}`}
-                          onClick={() => selectPreset(preset)}
-                        >
-                          <div className="quote-preset-card__head">
-                            <span className="quote-preset-icon" aria-hidden="true">
-                              {preset.icon}
-                            </span>
-                            <strong className="quote-preset-card__title">{preset.title}</strong>
-                          </div>
-                          <p className="quote-preset-card__hint">{preset.hint}</p>
-                          <small className="quote-preset-card__price">
-                            {preset.price ? `A partir de ${preset.price} EUR` : "Tarif libre"}
-                          </small>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                ) : null}
-
-                {wizardStep === 2 ? (
-                  <>
-                    <p className="form-section-title">Etape 3 · Dossier rapide</p>
                     <div className="form-grid-2">
                       <input
                         type="date"
@@ -1067,10 +954,10 @@ export default function QuotesPage() {
                   </>
                 ) : null}
 
-                {wizardStep === 3 ? (
+                {wizardStep === 2 ? (
                   <>
                     <div className="page-head quote-pricing-head">
-                      <h3>Etape 4 · Prix et prestations</h3>
+                      <h3>Etape 3 · Prix et prestations</h3>
                       <button type="button" className="secondary" onClick={addItem}>
                         + Ligne
                       </button>
@@ -1172,9 +1059,9 @@ export default function QuotesPage() {
                   </>
                 ) : null}
 
-                {wizardStep === 4 ? (
+                {wizardStep === 3 ? (
                   <>
-                    <p className="form-section-title">Etape 5 · Validation finale</p>
+                    <p className="form-section-title">Etape 4 · Validation finale</p>
                     <div className="quote-preview-block">
                       <div className="quote-preview-section">
                         <span className="data-row-label">Client</span>
@@ -1185,7 +1072,7 @@ export default function QuotesPage() {
                       </div>
                       <div className="quote-preview-section">
                         <span className="data-row-label">Perimetre</span>
-                        <strong>{selectedPreset ? PRESET_SERVICES.find((preset) => preset.id === selectedPreset)?.title : "Prestation libre"}</strong>
+                        <strong>Devis sur mesure</strong>
                         <span className="muted-copy">
                           {context.service_location || "Lieu a confirmer"}{context.service_date ? ` · ${context.service_date}` : ""}
                         </span>

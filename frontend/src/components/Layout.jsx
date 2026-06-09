@@ -75,6 +75,7 @@ export default function Layout({ children, onLogout }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [themeMode, setThemeMode] = useState(() => document.documentElement.dataset.mode || "light");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const [openSections, setOpenSections] = useState(() => buildOpenSections(window.location.pathname));
@@ -87,6 +88,7 @@ export default function Layout({ children, onLogout }) {
   useEffect(() => {
     setQuery("");
     setMobileOpen(false);
+    setUserMenuOpen(false);
     setOpenSections((prev) => {
       const next = { ...prev };
       for (const section of NAV_SECTIONS) {
@@ -97,6 +99,15 @@ export default function Layout({ children, onLogout }) {
       return next;
     });
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return undefined;
+    function handleClose() {
+      setUserMenuOpen(false);
+    }
+    document.addEventListener("click", handleClose);
+    return () => document.removeEventListener("click", handleClose);
+  }, [userMenuOpen]);
 
   const renderedContent = useMemo(() => children ?? <Outlet />, [children]);
   const breadcrumb = useMemo(() => buildBreadcrumb(location.pathname), [location.pathname]);
@@ -242,17 +253,31 @@ export default function Layout({ children, onLogout }) {
             <button type="button" className="tool-chip" onClick={handleThemeToggle} aria-label="Changer le theme">
               {themeMode === "dark" ? "Clair" : "Sombre"}
             </button>
-            <div className="topbar-user-card">
-              <div className="tool-profile compact-profile">
-                <div className="tool-profile-avatar">EO</div>
-              </div>
-              <div className="topbar-user-meta">
-                <div className="topbar-user-name">Enes Ozturk</div>
-                <div className="topbar-user-role">Administrateur</div>
-              </div>
-              <button type="button" className="btn btn-ghost topbar-logout-btn" onClick={handleLogout}>
-                Deconnexion
+            <div className={`topbar-user-menu ${userMenuOpen ? "is-open" : ""}`} onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                className="topbar-user-trigger"
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+                onClick={() => setUserMenuOpen((open) => !open)}
+              >
+                <div className="tool-profile compact-profile">
+                  <div className="tool-profile-avatar">EO</div>
+                </div>
+                <span className="topbar-user-trigger__name">Enes Ozturk</span>
+                <span className="topbar-user-trigger__chevron" aria-hidden="true" />
               </button>
+              {userMenuOpen ? (
+                <div className="topbar-user-dropdown" role="menu">
+                  <div className="topbar-user-dropdown__meta">
+                    <strong>Enes Ozturk</strong>
+                    <span>Administrateur</span>
+                  </div>
+                  <button type="button" className="topbar-user-dropdown__action" onClick={handleLogout}>
+                    Deconnexion
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
         </header>
