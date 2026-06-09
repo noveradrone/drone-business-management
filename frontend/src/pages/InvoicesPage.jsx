@@ -412,20 +412,6 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <details className="details-panel">
-        <summary>Détails statistiques</summary>
-        <div className="card-grid compact-grid">
-          <div className="card">
-            <p className="card-label">Total encaissé</p>
-            <p className="card-value">{Number(stats?.total_encaisse || 0).toFixed(2)} EUR</p>
-          </div>
-          <div className="card">
-            <p className="card-label">Délai moyen paiement</p>
-            <p className="card-value">{Number(stats?.delai_moyen_paiement || 0).toFixed(1)} jours</p>
-          </div>
-        </div>
-      </details>
-
       {error && <p className="error">{error}</p>}
 
       <details className="details-panel" open ref={createSectionRef}>
