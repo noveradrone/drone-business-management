@@ -176,7 +176,7 @@ export default function Layout({ children, onLogout }) {
                 aria-expanded={Boolean(openSections[section.title])}
               >
                 <span className="site-nav-section__title">{section.title}</span>
-                <span className="site-nav-section__chevron" aria-hidden="true">⌄</span>
+                <span className="site-nav-section__chevron" aria-hidden="true" />
               </button>
               <div className={`site-nav-links ${openSections[section.title] ? "is-open" : ""}`}>
                 {section.items.map((item) => (
