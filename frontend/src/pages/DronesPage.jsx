@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import CustomSelect from "../components/CustomSelect";
 import DataRowList from "../components/DataRowList";
 
 const defaultForm = {
@@ -163,14 +164,16 @@ export default function DronesPage() {
         </div>
         <div className="inline-filters">
           <input placeholder="Rechercher un drone" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-            <option value="name">Tri : Nom</option>
-            <option value="flight">Tri : Temps de vol</option>
-            <option value="status">Tri : Etat</option>
-          </select>
+          <CustomSelect value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
+          <CustomSelect
+            value={sortBy}
+            onChange={setSortBy}
+            options={[
+              { value: "name", label: "Tri : Nom" },
+              { value: "flight", label: "Tri : Temps de vol" },
+              { value: "status", label: "Tri : Etat" }
+            ]}
+          />
         </div>
       </section>
 
@@ -242,9 +245,11 @@ export default function DronesPage() {
                   <input placeholder="Marque" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} required />
                   <input placeholder="Modele" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} required />
                   <input placeholder="Numero de serie" value={form.serial_number} onChange={(e) => setForm({ ...form, serial_number: e.target.value })} required />
-                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                    {STATUS_OPTIONS.filter((option) => option.value !== "all").map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={form.status}
+                    onChange={(next) => setForm({ ...form, status: next })}
+                    options={STATUS_OPTIONS.filter((option) => option.value !== "all")}
+                  />
                 </div>
               </div>
 

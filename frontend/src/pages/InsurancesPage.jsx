@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import CustomSelect from "../components/CustomSelect";
 import DataRowList from "../components/DataRowList";
 
 export default function InsurancesPage() {
@@ -94,13 +95,14 @@ export default function InsurancesPage() {
             onChange={(e) => setForm({ ...form, policy_number: e.target.value })}
             required
           />
-          <select
+          <CustomSelect
             value={form.insured_entity_type}
-            onChange={(e) => setForm({ ...form, insured_entity_type: e.target.value })}
-          >
-            <option value="company">Entreprise</option>
-            <option value="drone">Drone</option>
-          </select>
+            onChange={(next) => setForm({ ...form, insured_entity_type: next })}
+            options={[
+              { value: "company", label: "Entreprise" },
+              { value: "drone", label: "Drone" }
+            ]}
+          />
           <input
             type="number"
             min="1"

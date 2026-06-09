@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import CustomSelect from "../components/CustomSelect";
 import DataRowList from "../components/DataRowList";
 
 const EMPTY_FORM = {
@@ -18,6 +19,11 @@ const FILTERS = [
   { value: "all", label: "Tous" },
   { value: "prospect", label: "Prospects" },
   { value: "client", label: "Clients" }
+];
+
+const PROSPECT_OPTIONS = [
+  { value: "1", label: "Prospect" },
+  { value: "0", label: "Client actif" }
 ];
 
 export default function ClientsPage() {
@@ -126,9 +132,7 @@ export default function ClientsPage() {
         </div>
         <div className="inline-filters">
           <input placeholder="Rechercher un client" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-            {FILTERS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          <CustomSelect value={filter} onChange={setFilter} options={FILTERS} />
         </div>
       </section>
 
@@ -205,14 +209,12 @@ export default function ClientsPage() {
                   <input placeholder="SIRET" value={form.siret} onChange={(e) => setForm({ ...form, siret: e.target.value })} />
                   <input placeholder="TVA" value={form.vat_number} onChange={(e) => setForm({ ...form, vat_number: e.target.value })} />
                   <input placeholder="Source lead" value={form.source_channel} onChange={(e) => setForm({ ...form, source_channel: e.target.value })} />
-                  <select
+                  <CustomSelect
                     className="form-span-2"
                     value={String(form.is_prospect)}
-                    onChange={(e) => setForm({ ...form, is_prospect: Number(e.target.value) })}
-                  >
-                    <option value="1">Prospect</option>
-                    <option value="0">Client actif</option>
-                  </select>
+                    onChange={(next) => setForm({ ...form, is_prospect: Number(next) })}
+                    options={PROSPECT_OPTIONS}
+                  />
                 </div>
               </div>
 

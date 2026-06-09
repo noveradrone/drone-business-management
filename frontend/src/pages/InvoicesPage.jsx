@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { api } from "../api";
+import CustomSelect from "../components/CustomSelect";
 import DataRowList from "../components/DataRowList";
+import SearchSelect from "../components/SearchSelect";
+import SegmentedControl from "../components/SegmentedControl";
 
 function download(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -20,6 +23,33 @@ const STATUS_META = {
   overdue: { label: "En retard", color: "#dc2626" },
   cancelled: { label: "Annulee", color: "#6b7280" }
 };
+
+const INVOICE_STATUS_OPTIONS = [
+  { value: "draft", label: "Brouillon" },
+  { value: "sent", label: "Envoyee" }
+];
+
+const INVOICE_FILTER_OPTIONS = [
+  { value: "all", label: "Tous statuts" },
+  { value: "draft", label: "Brouillon" },
+  { value: "sent", label: "Envoyee" },
+  { value: "partial", label: "En attente" },
+  { value: "paid", label: "Payee" },
+  { value: "overdue", label: "En retard" }
+];
+
+const CURRENCY_OPTIONS = [
+  { value: "EUR", label: "EUR", icon: "🇪🇺" },
+  { value: "USD", label: "USD", icon: "🇺🇸" },
+  { value: "GBP", label: "GBP", icon: "🇬🇧" }
+];
+
+const PAYMENT_METHOD_OPTIONS = [
+  { value: "Virement", label: "Virement" },
+  { value: "Especes", label: "Especes" },
+  { value: "Stripe", label: "Stripe" },
+  { value: "Autre", label: "Autre" }
+];
 
 function statusBadge(status) {
   const meta = STATUS_META[status] || { label: status || "-", color: "#6b7280" };
@@ -136,6 +166,18 @@ export default function InvoicesPage() {
       return matchQuery && matchStatus;
     });
   }, [invoices, query, statusFilter]);
+
+  const clientSelectOptions = useMemo(
+    () =>
+      clients.map((client) => ({
+        value: String(client.id),
+        label: client.company_name,
+        description: client.email || client.contact_name || "",
+        meta: client.phone || "",
+        avatar: (client.company_name || "?").slice(0, 2).toUpperCase()
+      })),
+    [clients]
+  );
 
   function updateItem(index, key, value) {
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)));
@@ -389,14 +431,14 @@ export default function InvoicesPage() {
       <details className="details-panel" open ref={createSectionRef}>
         <summary>Création facture</summary>
         <form className="form-grid" onSubmit={submit}>
-          <select value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })} required>
-            <option value="">Client</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.company_name}
-              </option>
-            ))}
-          </select>
+          <SearchSelect
+            value={form.client_id}
+            onChange={(next) => setForm({ ...form, client_id: next })}
+            options={clientSelectOptions}
+            placeholder="Choisir un client"
+            searchPlaceholder="Rechercher un client"
+            emptyText="Aucun client trouve"
+          />
           <input
             placeholder="Numero facture"
             value={form.invoice_number}
@@ -414,16 +456,14 @@ export default function InvoicesPage() {
             required
           />
           <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required />
-          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-            <option value="draft">Brouillon</option>
-            <option value="sent">Envoyee</option>
-          </select>
+          <SegmentedControl value={form.status} onChange={(next) => setForm({ ...form, status: next })} options={INVOICE_STATUS_OPTIONS} />
           <input type="number" min="0" step="0.01" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: e.target.value })} placeholder="TVA %" />
-          <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
-            <option value="EUR">EUR</option>
-            <option value="USD">USD</option>
-            <option value="GBP">GBP</option>
-          </select>
+          <CustomSelect
+            compact
+            value={form.currency}
+            onChange={(next) => setForm({ ...form, currency: next })}
+            options={CURRENCY_OPTIONS}
+          />
           <input placeholder="Acompte %" type="number" min="0" step="0.01" value={form.acompte_pourcentage} onChange={(e) => setForm({ ...form, acompte_pourcentage: e.target.value })} />
           <input placeholder="Acompte montant" type="number" min="0" step="0.01" value={form.acompte_montant} onChange={(e) => setForm({ ...form, acompte_montant: e.target.value })} />
           <input placeholder="Notes (PDF)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
@@ -501,14 +541,7 @@ export default function InvoicesPage() {
         </div>
         <div className="filter-row">
           <input placeholder="Recherche numero / client" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">Tous statuts</option>
-            <option value="draft">Brouillon</option>
-            <option value="sent">Envoyee</option>
-            <option value="partial">En attente</option>
-            <option value="paid">Payee</option>
-            <option value="overdue">En retard</option>
-          </select>
+          <CustomSelect value={statusFilter} onChange={setStatusFilter} options={INVOICE_FILTER_OPTIONS} />
         </div>
       </div>
 
@@ -625,12 +658,11 @@ export default function InvoicesPage() {
           <form className="form-grid invoice-payment-form" onSubmit={submitPayment}>
             <input type="date" value={paymentForm.payment_date} onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })} required />
             <input type="number" min="0.01" step="0.01" placeholder="Montant" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} required />
-            <select value={paymentForm.method} onChange={(e) => setPaymentForm({ ...paymentForm, method: e.target.value })}>
-              <option value="Virement">Virement</option>
-              <option value="Especes">Especes</option>
-              <option value="Stripe">Stripe</option>
-              <option value="Autre">Autre</option>
-            </select>
+            <CustomSelect
+              value={paymentForm.method}
+              onChange={(next) => setPaymentForm({ ...paymentForm, method: next })}
+              options={PAYMENT_METHOD_OPTIONS}
+            />
             <input placeholder="Reference" value={paymentForm.reference} onChange={(e) => setPaymentForm({ ...paymentForm, reference: e.target.value })} />
             <input placeholder="Notes" value={paymentForm.notes} onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })} />
             <button className="primary-action invoice-payment-submit">Enregistrer paiement</button>

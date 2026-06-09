@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
+import CustomSelect from "../components/CustomSelect";
 import DataRowList from "../components/DataRowList";
+import SearchSelect from "../components/SearchSelect";
+import SegmentedControl from "../components/SegmentedControl";
 
 const STATUS_META = {
   draft: { label: "Brouillon", color: "#f59e0b" },
@@ -10,6 +13,123 @@ const STATUS_META = {
   rejected: { label: "Refuse", color: "#6b7280" },
   converted: { label: "Converti", color: "#7c3aed" },
   expired: { label: "Expire", color: "#dc2626" }
+};
+
+const WIZARD_STEPS = [
+  { id: "client", label: "Client" },
+  { id: "service", label: "Prestation" },
+  { id: "details", label: "Details" },
+  { id: "pricing", label: "Prix" },
+  { id: "preview", label: "Apercu" }
+];
+
+const QUOTE_STATUS_OPTIONS = [
+  { value: "draft", label: "Brouillon" },
+  { value: "sent", label: "Envoye" },
+  { value: "accepted", label: "Accepte" },
+  { value: "rejected", label: "Refuse" }
+];
+
+const QUOTE_FILTER_OPTIONS = [
+  { value: "all", label: "Tous statuts" },
+  { value: "draft", label: "Brouillon" },
+  { value: "sent", label: "Envoye" },
+  { value: "accepted", label: "Accepte" },
+  { value: "converted", label: "Converti" },
+  { value: "rejected", label: "Refuse" },
+  { value: "expired", label: "Expire" }
+];
+
+const CURRENCY_OPTIONS = [
+  { value: "EUR", label: "EUR", icon: "🇪🇺" },
+  { value: "USD", label: "USD", icon: "🇺🇸" },
+  { value: "GBP", label: "GBP", icon: "🇬🇧" }
+];
+
+const PRESET_SERVICES = [
+  {
+    id: "photo",
+    icon: "◌",
+    title: "Photo aerienne",
+    hint: "Prises de vue drone pour communication ou patrimoine.",
+    price: 180,
+    description: "Prestation de prise de vues aeriennes"
+  },
+  {
+    id: "video",
+    icon: "▷",
+    title: "Video drone",
+    hint: "Captation dynamique pour promotion, reseaux ou evenement.",
+    price: 320,
+    description: "Captation video drone et livraison des rushs"
+  },
+  {
+    id: "real-estate",
+    icon: "⌂",
+    title: "Immobilier",
+    hint: "Photos et sequences dediees aux annonces et programmes.",
+    price: 240,
+    description: "Pack aerien immobilier"
+  },
+  {
+    id: "event",
+    icon: "✦",
+    title: "Mariage / evenement",
+    hint: "Souvenir premium pour journees fortes et evenements prives.",
+    price: 450,
+    description: "Couverture aerienne d'evenement"
+  },
+  {
+    id: "inspection",
+    icon: "⟡",
+    title: "Inspection",
+    hint: "Observation technique et documentation visuelle du site.",
+    price: 290,
+    description: "Mission d'inspection drone"
+  },
+  {
+    id: "thermo",
+    icon: "◈",
+    title: "Thermographie",
+    hint: "Analyse thermique et rapport visuel professionnel.",
+    price: 520,
+    description: "Inspection thermographique drone"
+  },
+  {
+    id: "cleaning",
+    icon: "✳",
+    title: "Nettoyage drone",
+    hint: "Operation specifique avec preparation, securisation et rendu.",
+    price: 380,
+    description: "Intervention technique specialisee par drone"
+  },
+  {
+    id: "other",
+    icon: "+",
+    title: "Autre",
+    hint: "Prestation sur mesure a definir selon le besoin client.",
+    price: 0,
+    description: "Prestation drone sur mesure"
+  }
+];
+
+const QUICK_CLIENT_INITIAL = {
+  company_name: "",
+  contact_name: "",
+  email: "",
+  phone: "",
+  billing_address: "",
+  siret: "",
+  vat_number: "",
+  source_channel: "Direct",
+  is_prospect: 0
+};
+
+const EMPTY_CONTEXT = {
+  service_date: "",
+  service_location: "",
+  estimated_duration: "",
+  client_note: ""
 };
 
 function todayIso() {
@@ -34,6 +154,65 @@ function buildInitialForm() {
     acompte_percent: 0,
     acompte_amount: 0,
     notes: ""
+  };
+}
+
+function buildInitialContext() {
+  return { ...EMPTY_CONTEXT };
+}
+
+function normalizeText(value) {
+  return String(value || "").trim();
+}
+
+function buildContextBlock(context) {
+  const lines = [];
+  if (normalizeText(context.service_date)) lines.push(`Date intervention: ${normalizeText(context.service_date)}`);
+  if (normalizeText(context.service_location)) lines.push(`Lieu: ${normalizeText(context.service_location)}`);
+  if (normalizeText(context.estimated_duration)) lines.push(`Duree estimee: ${normalizeText(context.estimated_duration)}`);
+  if (normalizeText(context.client_note)) lines.push(`Note client: ${normalizeText(context.client_note)}`);
+  return lines;
+}
+
+function mergeNotesWithContext(notes, context) {
+  const contextLines = buildContextBlock(context);
+  const cleanNotes = normalizeText(notes);
+  if (!contextLines.length) return cleanNotes;
+  return [...contextLines, cleanNotes].filter(Boolean).join("\n");
+}
+
+function extractContextFromNotes(notes) {
+  const lines = String(notes || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const context = buildInitialContext();
+  const freeNotes = [];
+
+  lines.forEach((line) => {
+    if (line.startsWith("Date intervention:")) {
+      context.service_date = line.replace("Date intervention:", "").trim();
+      return;
+    }
+    if (line.startsWith("Lieu:")) {
+      context.service_location = line.replace("Lieu:", "").trim();
+      return;
+    }
+    if (line.startsWith("Duree estimee:")) {
+      context.estimated_duration = line.replace("Duree estimee:", "").trim();
+      return;
+    }
+    if (line.startsWith("Note client:")) {
+      context.client_note = line.replace("Note client:", "").trim();
+      return;
+    }
+    freeNotes.push(line);
+  });
+
+  return {
+    context,
+    notes: freeNotes.join("\n")
   };
 }
 
@@ -62,9 +241,19 @@ function statusBadge(status) {
   );
 }
 
+function formatMoney(value, currency = "EUR") {
+  return `${Number(value || 0).toFixed(2)} ${currency}`;
+}
+
+function formatDateFr(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("fr-FR").format(date);
+}
+
 export default function QuotesPage() {
   const navigate = useNavigate();
-  const createSectionRef = useRef(null);
   const [quotes, setQuotes] = useState([]);
   const [clients, setClients] = useState([]);
   const [articles, setArticles] = useState([]);
@@ -81,8 +270,16 @@ export default function QuotesPage() {
   const [previewUrl, setPreviewUrl] = useState("");
   const [previewName, setPreviewName] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [quoteActionMenuId, setQuoteActionMenuId] = useState(null);
   const [editingQuoteId, setEditingQuoteId] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState(0);
+  const [selectedPreset, setSelectedPreset] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
+  const [quickClientOpen, setQuickClientOpen] = useState(false);
+  const [quickClientForm, setQuickClientForm] = useState(QUICK_CLIENT_INITIAL);
   const [form, setForm] = useState(buildInitialForm);
+  const [context, setContext] = useState(buildInitialContext);
   const [items, setItems] = useState([{ description: "", quantity: 1, unit_price: 0 }]);
 
   async function refreshNextNumber(dateValue) {
@@ -91,7 +288,7 @@ export default function QuotesPage() {
       const payload = await api.quotes.nextNumber(dateValue);
       setForm((prev) => ({ ...prev, quote_number: payload.quote_number || prev.quote_number }));
     } catch {
-      // Keep current value on failure.
+      // keep current value
     }
   }
 
@@ -136,12 +333,140 @@ export default function QuotesPage() {
     };
   }, [previewUrl]);
 
+  useEffect(() => {
+    if (!quoteActionMenuId) return undefined;
+    function handleClose() {
+      setQuoteActionMenuId(null);
+    }
+    document.addEventListener("click", handleClose);
+    return () => document.removeEventListener("click", handleClose);
+  }, [quoteActionMenuId]);
+
+  const totals = useMemo(() => {
+    const subtotal = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_price || 0), 0);
+    let discount = Number(form.discount_amount || 0);
+    if (!discount && Number(form.discount_percent || 0) > 0) {
+      discount = subtotal * (Number(form.discount_percent || 0) / 100);
+    }
+    discount = Math.min(subtotal, Math.max(0, discount));
+    const subtotalAfterDiscount = Math.max(0, subtotal - discount);
+    const total = subtotalAfterDiscount + subtotalAfterDiscount * (Number(form.tax_rate || 0) / 100);
+
+    let acompte = Number(form.acompte_amount || 0);
+    if (!acompte && Number(form.acompte_percent || 0) > 0) {
+      acompte = total * (Number(form.acompte_percent || 0) / 100);
+    }
+    acompte = Math.min(total, Math.max(0, acompte));
+
+    return {
+      subtotal,
+      discount,
+      total,
+      acompte,
+      balance: Math.max(0, total - acompte)
+    };
+  }, [form.acompte_amount, form.acompte_percent, form.discount_amount, form.discount_percent, form.tax_rate, items]);
+
+  const selectedClient = useMemo(
+    () => clients.find((client) => String(client.id) === String(form.client_id)) || null,
+    [clients, form.client_id]
+  );
+
+  const filteredClients = useMemo(() => {
+    const needle = clientSearch.trim().toLowerCase();
+    if (!needle) return clients;
+    return clients.filter((client) =>
+      `${client.company_name} ${client.contact_name || ""} ${client.email || ""} ${client.phone || ""}`
+        .toLowerCase()
+        .includes(needle)
+    );
+  }, [clients, clientSearch]);
+
+  const clientSelectOptions = useMemo(
+    () =>
+      filteredClients.map((client) => ({
+        value: String(client.id),
+        label: client.company_name,
+        description: client.email || client.contact_name || "",
+        meta: client.phone || "",
+        avatar: (client.company_name || "?").slice(0, 2).toUpperCase()
+      })),
+    [filteredClients]
+  );
+
+  function resetWizardState() {
+    const nextForm = buildInitialForm();
+    setEditingQuoteId(null);
+    setForm(nextForm);
+    setContext(buildInitialContext());
+    setItems([{ description: "", quantity: 1, unit_price: 0 }]);
+    setSelectedPreset("");
+    setWizardStep(0);
+    setClientSearch("");
+    setQuickClientOpen(false);
+    setQuickClientForm(QUICK_CLIENT_INITIAL);
+    refreshNextNumber(nextForm.quote_date);
+  }
+
+  function openCreateWizard() {
+    setError("");
+    resetWizardState();
+    setDrawerOpen(true);
+  }
+
+  function closeWizard() {
+    setDrawerOpen(false);
+    setPreviewOpen(false);
+    resetWizardState();
+  }
+
+  async function beginEdit(quote) {
+    setError("");
+    try {
+      const fullQuote = await api.quotes.get(quote.id);
+      const extracted = extractContextFromNotes(fullQuote.notes || "");
+      setEditingQuoteId(quote.id);
+      setForm({
+        client_id: String(fullQuote.client_id || ""),
+        quote_number: fullQuote.quote_number || "",
+        quote_date: fullQuote.quote_date || todayIso(),
+        valid_until: fullQuote.valid_until || defaultValidUntil(),
+        status: fullQuote.status || "draft",
+        tax_rate: Number(fullQuote.tax_rate || 0),
+        currency: fullQuote.currency || "EUR",
+        discount_percent: Number(fullQuote.discount_percent || 0),
+        discount_amount: Number(fullQuote.discount_amount || 0),
+        acompte_percent: Number(fullQuote.acompte_percent || 0),
+        acompte_amount: Number(fullQuote.acompte_amount || 0),
+        notes: extracted.notes || ""
+      });
+      setContext(extracted.context);
+      setItems(
+        fullQuote.items?.length
+          ? fullQuote.items.map((item) => ({
+              description: item.description || "",
+              quantity: Number(item.quantity || 1),
+              unit_price: Number(item.unit_price || 0)
+            }))
+          : [{ description: "", quantity: 1, unit_price: 0 }]
+      );
+      setSelectedPreset("");
+      setWizardStep(0);
+      setClientSearch("");
+      setQuickClientOpen(false);
+      setQuickClientForm(QUICK_CLIENT_INITIAL);
+      setDrawerOpen(true);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   function updateItem(index, key, value) {
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)));
   }
 
   function applyArticle(index, articleName) {
-    const article = articles.find((a) => a.name === articleName);
+    const article = articles.find((entry) => entry.name === articleName);
     if (!article) {
       updateItem(index, "description", articleName);
       return;
@@ -160,6 +485,21 @@ export default function QuotesPage() {
     setForm((prev) => ({ ...prev, tax_rate: Number(article.tax_rate || prev.tax_rate) }));
   }
 
+  function selectPreset(preset) {
+    setSelectedPreset(preset.id);
+    setItems((prev) => {
+      if (!prev.length) {
+        return [{ description: preset.description, quantity: 1, unit_price: preset.price }];
+      }
+      const first = prev[0];
+      if (!normalizeText(first.description)) {
+        return [{ ...first, description: preset.description, unit_price: preset.price || first.unit_price }, ...prev.slice(1)];
+      }
+      return prev;
+    });
+    setWizardStep((step) => Math.max(step, 2));
+  }
+
   function addItem() {
     setItems((prev) => [...prev, { description: "", quantity: 1, unit_price: 0 }]);
   }
@@ -168,118 +508,101 @@ export default function QuotesPage() {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }
 
-  async function beginEdit(quote) {
+  function buildFilteredItems() {
+    return items
+      .filter((item) => normalizeText(item.description))
+      .map((item) => ({
+        description: normalizeText(item.description),
+        quantity: Number(item.quantity || 0),
+        unit_price: Number(item.unit_price || 0)
+      }));
+  }
+
+  function buildPayload() {
+    return {
+      ...form,
+      client_id: Number(form.client_id),
+      tax_rate: Number(form.tax_rate),
+      discount_percent: Number(form.discount_percent || 0),
+      discount_amount: Number(form.discount_amount || 0),
+      acompte_percent: Number(form.acompte_percent || 0),
+      acompte_amount: Number(form.acompte_amount || 0),
+      notes: mergeNotesWithContext(form.notes, context),
+      items: buildFilteredItems()
+    };
+  }
+
+  async function persistQuote() {
+    const filteredItems = buildFilteredItems();
+    if (!form.client_id) {
+      setError("Choisis un client avant d'enregistrer le devis.");
+      setWizardStep(0);
+      return null;
+    }
+    if (!filteredItems.length) {
+      setError("Ajoute au moins une ligne de prestation.");
+      setWizardStep(3);
+      return null;
+    }
+
+    setSubmitting(true);
     setError("");
     try {
-      const fullQuote = await api.quotes.get(quote.id);
-      setEditingQuoteId(quote.id);
-      setForm({
-        client_id: String(fullQuote.client_id || ""),
-        quote_number: fullQuote.quote_number || "",
-        quote_date: fullQuote.quote_date || todayIso(),
-        valid_until: fullQuote.valid_until || defaultValidUntil(),
-        status: fullQuote.status || "draft",
-        tax_rate: Number(fullQuote.tax_rate || 0),
-        currency: fullQuote.currency || "EUR",
-        discount_percent: Number(fullQuote.discount_percent || 0),
-        discount_amount: Number(fullQuote.discount_amount || 0),
-        acompte_percent: Number(fullQuote.acompte_percent || 0),
-        acompte_amount: Number(fullQuote.acompte_amount || 0),
-        notes: fullQuote.notes || ""
-      });
-      setItems(
-        fullQuote.items?.length
-          ? fullQuote.items.map((item) => ({
-              description: item.description || "",
-              quantity: Number(item.quantity || 1),
-              unit_price: Number(item.unit_price || 0)
-            }))
-          : [{ description: "", quantity: 1, unit_price: 0 }]
-      );
-      createSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const payload = buildPayload();
+      const result = editingQuoteId ? await api.quotes.update(editingQuoteId, payload) : await api.quotes.create(payload);
+      const quoteRecord = result?.id ? result : null;
+      await load();
+      return quoteRecord || (editingQuoteId ? await api.quotes.get(editingQuoteId) : null);
+    } catch (err) {
+      setError(err.message);
+      return null;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function saveDraft() {
+    const quoteRecord = await persistQuote();
+    if (!quoteRecord) return;
+    closeWizard();
+  }
+
+  async function saveAndDownloadPdf() {
+    const quoteRecord = await persistQuote();
+    if (!quoteRecord?.id) return;
+    try {
+      const blob = await api.quotes.pdf(quoteRecord.id);
+      download(blob, `devis-${quoteRecord.quote_number || form.quote_number}.pdf`);
+      closeWizard();
     } catch (e) {
       setError(e.message);
     }
   }
 
-  async function resetFormState() {
-    const nextForm = buildInitialForm();
-    setEditingQuoteId(null);
-    setForm(nextForm);
-    setItems([{ description: "", quantity: 1, unit_price: 0 }]);
-    await refreshNextNumber(nextForm.quote_date);
+  async function saveAndSendQuote() {
+    const quoteRecord = await persistQuote();
+    if (!quoteRecord?.id) return;
+    try {
+      await api.quotes.send(quoteRecord.id);
+      await load();
+      closeWizard();
+    } catch (e) {
+      setError(e.message);
+    }
   }
 
-  async function cancelEdit() {
-    setError("");
-    await resetFormState();
-  }
-
-  const totals = useMemo(() => {
-    const subtotal = items.reduce((sum, i) => sum + Number(i.quantity || 0) * Number(i.unit_price || 0), 0);
-    let discount = Number(form.discount_amount || 0);
-    if (!discount && Number(form.discount_percent || 0) > 0) {
-      discount = subtotal * (Number(form.discount_percent || 0) / 100);
-    }
-    discount = Math.min(subtotal, Math.max(0, discount));
-    const subtotalAfterDiscount = Math.max(0, subtotal - discount);
-    const total = subtotalAfterDiscount + subtotalAfterDiscount * (Number(form.tax_rate || 0) / 100);
-
-    let acompte = Number(form.acompte_amount || 0);
-    if (!acompte && Number(form.acompte_percent || 0) > 0) {
-      acompte = total * (Number(form.acompte_percent || 0) / 100);
-    }
-    acompte = Math.min(total, Math.max(0, acompte));
-    return {
-      subtotal,
-      discount,
-      total,
-      acompte,
-      balance: Math.max(0, total - acompte)
-    };
-  }, [items, form.discount_amount, form.discount_percent, form.tax_rate, form.acompte_amount, form.acompte_percent]);
-
-  async function submit(e) {
+  async function submitQuickClient(e) {
     e.preventDefault();
     setError("");
-    const filteredItems = items
-      .filter((i) => i.description.trim())
-      .map((i) => ({
-        description: i.description.trim(),
-        quantity: Number(i.quantity),
-        unit_price: Number(i.unit_price)
-      }));
-
-    if (filteredItems.length === 0) {
-      setError("Ajoute au moins une ligne d'article.");
-      return;
-    }
-
-    setSubmitting(true);
     try {
-      const payload = {
-        ...form,
-        client_id: Number(form.client_id),
-        tax_rate: Number(form.tax_rate),
-        discount_percent: Number(form.discount_percent || 0),
-        discount_amount: Number(form.discount_amount || 0),
-        acompte_percent: Number(form.acompte_percent || 0),
-        acompte_amount: Number(form.acompte_amount || 0),
-        items: filteredItems
-      };
-
-      if (editingQuoteId) {
-        await api.quotes.update(editingQuoteId, payload);
-      } else {
-        await api.quotes.create(payload);
-      }
-
-      await resetFormState();
+      const created = await api.clients.create(quickClientForm);
       await load();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
+      setForm((prev) => ({ ...prev, client_id: String(created.id) }));
+      setQuickClientOpen(false);
+      setQuickClientForm(QUICK_CLIENT_INITIAL);
+      setWizardStep(1);
+    } catch (e2) {
+      setError(e2.message);
     }
   }
 
@@ -368,224 +691,586 @@ export default function QuotesPage() {
     }
   }
 
+  function goToStep(index) {
+    setWizardStep(index);
+  }
+
+  function getPrimaryQuoteAction(quote) {
+    if (quote.converted_invoice_id) {
+      return {
+        label: "Voir",
+        className: "secondary",
+        onClick: () => openConvertedInvoice(quote)
+      };
+    }
+
+    if (quote.status === "sent" || quote.status === "accepted") {
+      return {
+        label: "Voir",
+        className: "secondary",
+        onClick: () => previewPdf(quote)
+      };
+    }
+
+    return {
+      label: "Modifier",
+      className: "primary-action",
+      onClick: () => beginEdit(quote)
+    };
+  }
+
+  function nextStep() {
+    if (wizardStep === 0 && !form.client_id) {
+      setError("Choisis ou cree un client avant de continuer.");
+      return;
+    }
+    if (wizardStep === 1 && !selectedPreset && !normalizeText(items[0]?.description)) {
+      setError("Choisis une prestation ou renseigne une premiere ligne.");
+      return;
+    }
+    setError("");
+    setWizardStep((step) => Math.min(step + 1, WIZARD_STEPS.length - 1));
+  }
+
+  function previousStep() {
+    setError("");
+    setWizardStep((step) => Math.max(step - 1, 0));
+  }
+
   return (
     <div className="quotes-page">
-      <div className="page-head">
-        <h2>Devis</h2>
-        <button
-          className="secondary"
-          type="button"
-          onClick={() => createSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-        >
-          Creer devis
-        </button>
-      </div>
-      <p className="page-summary">Module devis aligné sur Factures: statuts, filtres, PDF et conversion en facture.</p>
-
-      <div className="card-grid metrics-row">
-        <div className="card">
-          <p className="card-label">Total devis</p>
-          <p className="card-value">{Number(stats?.total_quotes || 0)}</p>
+      <div className="page-header">
+        <div>
+          <p className="login-eyebrow">Finance</p>
         </div>
-        <div className="card">
-          <p className="card-label">Envoyes</p>
-          <p className="card-value">{Number(stats?.sent_quotes || 0)}</p>
-        </div>
-        <div className="card">
-          <p className="card-label">Acceptes</p>
-          <p className="card-value">{Number(stats?.accepted_quotes || 0)}</p>
+        <h2 className="page-title">Devis simples et rapides a creer</h2>
+        <div className="page-action">
+          <button type="button" className="primary-action" onClick={openCreateWizard}>
+            + Creer un devis
+          </button>
         </div>
       </div>
 
-      <details className="details-panel">
-        <summary>Details statistiques</summary>
-        <div className="card-grid compact-grid">
-          <div className="card">
-            <p className="card-label">Expires</p>
-            <p className="card-value">{Number(stats?.expired_quotes || 0)}</p>
+      <p className="page-summary">
+        Une interface guidee pour preparer un devis propre en quelques etapes, sans noyer l'utilisateur dans un
+        formulaire geant.
+      </p>
+
+      {error ? <p className="error">{error}</p> : null}
+
+      <section className="summary-band quote-kpi-band">
+        <div className="summary-band-grid quote-kpi-grid">
+          <div className="summary-band-item">
+            <span className="card-label">Total devis</span>
+            <strong>{Number(stats?.total_quotes || 0)}</strong>
           </div>
-          <div className="card">
-            <p className="card-label">Montant cumule</p>
-            <p className="card-value">{Number(stats?.total_amount || 0).toFixed(2)} EUR</p>
+          <div className="summary-band-item">
+            <span className="card-label">Envoyes</span>
+            <strong>{Number(stats?.sent_quotes || 0)}</strong>
+          </div>
+          <div className="summary-band-item">
+            <span className="card-label">Acceptes</span>
+            <strong>{Number(stats?.accepted_quotes || 0)}</strong>
+          </div>
+          <div className="summary-band-item">
+            <span className="card-label">Montant potentiel</span>
+            <strong>{formatMoney(stats?.total_amount || 0)}</strong>
           </div>
         </div>
-      </details>
+      </section>
 
-      {error && <p className="error">{error}</p>}
-
-      <details className="details-panel" open ref={createSectionRef}>
-        <summary>{editingQuoteId ? "Modification devis" : "Creation devis"}</summary>
-        <form className="form-grid" onSubmit={submit}>
-          {editingQuoteId ? (
-            <p className="section-note" style={{ gridColumn: "1 / -1" }}>
-              Le devis selectionne est en cours de modification.
-            </p>
-          ) : null}
-          <select value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })} required>
-            <option value="">Client</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.company_name}
-              </option>
-            ))}
-          </select>
-          <input value={form.quote_number} onChange={(e) => setForm({ ...form, quote_number: e.target.value })} placeholder="Numero devis" required />
+      <section className="card toolbar-card">
+        <div>
+          <p className="card-label">Pilotage commercial</p>
+          <h3>Retrouve vite un devis, un client ou une plage de montant.</h3>
+        </div>
+        <div className="inline-filters">
           <input
-            type="date"
-            value={form.quote_date}
-            onChange={async (e) => {
-              const v = e.target.value;
-              setForm((prev) => ({ ...prev, quote_date: v }));
-              await refreshNextNumber(v);
-            }}
-            required
+            placeholder="Recherche numero ou client"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
           />
-          <input type="date" value={form.valid_until} onChange={(e) => setForm({ ...form, valid_until: e.target.value })} required />
-          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-            <option value="draft">Brouillon</option>
-            <option value="sent">Envoye</option>
-            <option value="accepted">Accepte</option>
-            <option value="rejected">Refuse</option>
-          </select>
-          <input type="number" min="0" step="0.01" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: e.target.value })} placeholder="TVA %" />
-          <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
-            <option value="EUR">EUR</option>
-            <option value="USD">USD</option>
-            <option value="GBP">GBP</option>
-          </select>
-          <input type="number" min="0" step="0.01" value={form.discount_percent} onChange={(e) => setForm({ ...form, discount_percent: e.target.value })} placeholder="Remise %" />
-          <input type="number" min="0" step="0.01" value={form.discount_amount} onChange={(e) => setForm({ ...form, discount_amount: e.target.value })} placeholder="Remise montant" />
-          <input type="number" min="0" step="0.01" value={form.acompte_percent} onChange={(e) => setForm({ ...form, acompte_percent: e.target.value })} placeholder="Acompte %" />
-          <input type="number" min="0" step="0.01" value={form.acompte_amount} onChange={(e) => setForm({ ...form, acompte_amount: e.target.value })} placeholder="Acompte montant" />
-          <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Notes (optionnel)" />
-
-          <div style={{ gridColumn: "1 / -1" }} className="card">
-            <div className="page-head" style={{ marginBottom: 8 }}>
-              <h2 style={{ fontSize: "1rem" }}>Lignes devis</h2>
-              <button type="button" className="secondary" onClick={addItem}>
-                Ajouter une ligne
-              </button>
-            </div>
-            {items.map((item, index) => (
-              <div key={index} className="line-item-row">
-                <input
-                  list="quote-articles"
-                  placeholder="Article ou description"
-                  value={item.description}
-                  onChange={(e) => applyArticle(index, e.target.value)}
-                  required={index === 0}
-                />
-                <input type="number" min="0" step="0.01" value={item.quantity} onChange={(e) => updateItem(index, "quantity", e.target.value)} placeholder="Qte" />
-                <input type="number" min="0" step="0.01" value={item.unit_price} onChange={(e) => updateItem(index, "unit_price", e.target.value)} placeholder="Prix unitaire" />
-                <button type="button" className="secondary" onClick={() => removeItem(index)} disabled={items.length === 1}>
-                  Suppr.
-                </button>
-              </div>
-            ))}
-            <datalist id="quote-articles">
-              {articles.map((a) => (
-                <option key={a.id} value={a.name} />
-              ))}
-            </datalist>
-            <p style={{ margin: "8px 0 0", color: "#5b6473" }}>
-              Total brouillon: {totals.total.toFixed(2)} EUR, acompte: {totals.acompte.toFixed(2)} EUR, solde estime: {totals.balance.toFixed(2)} EUR
-            </p>
-          </div>
-
-          <div className="form-actions quote-edit-actions" style={{ gridColumn: "1 / -1" }}>
-            <button className="primary-action" disabled={submitting}>
-              {submitting ? (editingQuoteId ? "Enregistrement..." : "Creation...") : editingQuoteId ? "Enregistrer le devis" : "Creer le devis"}
-            </button>
-            {editingQuoteId ? (
-              <button type="button" className="secondary" onClick={cancelEdit} disabled={submitting}>
-                Annuler
-              </button>
-            ) : null}
-          </div>
-        </form>
-      </details>
-
-      <div className="card" style={{ margin: "14px 0" }}>
-        <div className="page-head" style={{ marginBottom: 8 }}>
-          <h2 style={{ fontSize: "1rem" }}>Liste des devis</h2>
-        </div>
-        <div className="filter-row" style={{ marginBottom: 8 }}>
-          <input placeholder="Recherche numero / client" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">Tous statuts</option>
-            <option value="draft">Brouillon</option>
-            <option value="sent">Envoye</option>
-            <option value="accepted">Accepte</option>
-            <option value="converted">Converti</option>
-            <option value="rejected">Refuse</option>
-            <option value="expired">Expire</option>
-          </select>
-        </div>
-        <div className="form-grid">
+          <CustomSelect value={statusFilter} onChange={setStatusFilter} options={QUOTE_FILTER_OPTIONS} />
           <input type="date" value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} />
           <input type="date" value={periodTo} onChange={(e) => setPeriodTo(e.target.value)} />
-          <input placeholder="Montant min" type="number" min="0" step="0.01" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} />
-          <input placeholder="Montant max" type="number" min="0" step="0.01" value={amountMax} onChange={(e) => setAmountMax(e.target.value)} />
+          <input
+            placeholder="Montant min"
+            type="number"
+            min="0"
+            step="0.01"
+            value={amountMin}
+            onChange={(e) => setAmountMin(e.target.value)}
+          />
+          <input
+            placeholder="Montant max"
+            type="number"
+            min="0"
+            step="0.01"
+            value={amountMax}
+            onChange={(e) => setAmountMax(e.target.value)}
+          />
         </div>
-      </div>
+      </section>
 
       <DataRowList
         items={quotes}
         className="quote-row-list"
         emptyMessage="Aucun devis."
-        renderTitle={(q) => q.quote_number}
-        renderSubtitle={(q) => q.company_name}
-        renderDetails={(q) => (
+        renderTitle={(quote) => quote.quote_number}
+        renderSubtitle={(quote) => quote.company_name}
+        renderDetails={(quote) => (
           <div className="data-row-info-grid">
             <div className="data-row-info">
               <span className="data-row-label">Date</span>
-              <span className="data-row-value">{q.quote_date}</span>
+              <span className="data-row-value">{formatDateFr(quote.quote_date)}</span>
             </div>
             <div className="data-row-info">
               <span className="data-row-label">Validite</span>
-              <span className="data-row-value">{q.valid_until || "-"}</span>
+              <span className="data-row-value">{formatDateFr(quote.valid_until)}</span>
             </div>
             <div className="data-row-info">
               <span className="data-row-label">Total</span>
-              <span className="data-row-value">
-                {Number(q.total || 0).toFixed(2)} {q.currency || "EUR"}
-              </span>
+              <span className="data-row-value">{formatMoney(quote.total || 0, quote.currency || "EUR")}</span>
             </div>
           </div>
         )}
-        renderMeta={(q) => (
+        renderMeta={(quote) => (
           <>
-            {statusBadge(q.status)}
-            {q.converted_invoice_number ? <span className="data-row-chip">Facture {q.converted_invoice_number}</span> : null}
+            {statusBadge(quote.status)}
+            {quote.converted_invoice_number ? <span className="data-row-chip">Facture {quote.converted_invoice_number}</span> : null}
           </>
         )}
-        renderActions={(q) => (
-          <>
-            <button type="button" className="secondary" onClick={() => beginEdit(q)}>
-              Modifier
-            </button>
-            <button type="button" className="secondary" onClick={() => previewPdf(q)} disabled={previewLoading}>
-              {previewLoading ? "Ouverture..." : "Previsualiser PDF"}
-            </button>
-            <button type="button" className="secondary" onClick={() => downloadPdf(q)}>Telecharger PDF</button>
-            <button type="button" className="secondary" onClick={() => sendQuote(q)}>Envoyer</button>
-            {q.converted_invoice_id ? (
-              <button type="button" className="primary-action" onClick={() => openConvertedInvoice(q)}>
-                Voir facture
+        renderActions={(quote) => {
+          const primaryAction = getPrimaryQuoteAction(quote);
+          const menuOpen = quoteActionMenuId === quote.id;
+          return (
+            <div className="quote-card-actions" onClick={(e) => e.stopPropagation()}>
+              <button type="button" className={primaryAction.className} onClick={primaryAction.onClick}>
+                {primaryAction.label}
               </button>
-            ) : (
-              <button type="button" className="primary-action" onClick={() => convertQuote(q)}>
-                Convertir facture
-              </button>
-            )}
-            <button type="button" className="danger" onClick={() => removeQuote(q)}>
-              Supprimer
-            </button>
-          </>
-        )}
+              <div className={`quote-actions-menu ${menuOpen ? "is-open" : ""}`}>
+                <button
+                  type="button"
+                  className="quote-actions-menu__trigger"
+                  aria-label="Ouvrir les actions du devis"
+                  aria-expanded={menuOpen}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setQuoteActionMenuId((current) => (current === quote.id ? null : quote.id));
+                  }}
+                >
+                  ⋯
+                </button>
+                {menuOpen ? (
+                  <div className="quote-actions-menu__panel">
+                    <button type="button" onClick={() => previewPdf(quote)} disabled={previewLoading}>
+                      {previewLoading ? "Ouverture..." : "Previsualiser PDF"}
+                    </button>
+                    <button type="button" onClick={() => downloadPdf(quote)}>
+                      Telecharger PDF
+                    </button>
+                    <button type="button" onClick={() => sendQuote(quote)}>
+                      Envoyer
+                    </button>
+                    {quote.converted_invoice_id ? (
+                      <button type="button" onClick={() => openConvertedInvoice(quote)}>
+                        Voir facture
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => convertQuote(quote)}>
+                        Convertir facture
+                      </button>
+                    )}
+                    <button type="button" className="is-danger" onClick={() => removeQuote(quote)}>
+                      Supprimer
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          );
+        }}
       />
 
-      {previewOpen && (
+      {drawerOpen ? (
+        <div className="modal-backdrop" onClick={closeWizard}>
+          <aside className="drawer-sheet drawer-sheet-wide quote-wizard-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="drawer-header quote-wizard-header">
+              <div>
+                <p className="card-label">Assistant devis</p>
+                <h3>{editingQuoteId ? "Modifier le devis" : "Creer un devis en 5 etapes"}</h3>
+                <p>
+                  Choisis le client, la prestation et le prix. L'assistant garde la meme logique metier, mais la
+                  saisie devient beaucoup plus lisible.
+                </p>
+              </div>
+              <button type="button" className="btn btn-ghost drawer-close" onClick={closeWizard}>
+                ✕
+              </button>
+            </div>
+
+            <div className="quote-wizard-progress">
+              {WIZARD_STEPS.map((step, index) => (
+                <button
+                  key={step.id}
+                  type="button"
+                  className={`quote-step-pill ${wizardStep === index ? "is-active" : ""} ${
+                    wizardStep > index ? "is-complete" : ""
+                  }`}
+                  onClick={() => goToStep(index)}
+                >
+                  <span className="quote-step-pill__index">{index + 1}</span>
+                  <span>{step.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="quote-wizard-layout">
+              <section className="form-section quote-wizard-main">
+                {wizardStep === 0 ? (
+                  <>
+                    <p className="form-section-title">Etape 1 · Choix du client</p>
+                    <div className="quote-wizard-copy">
+                      <p>Recherche rapide, selection simple, ou creation d'un client express sans quitter le devis.</p>
+                    </div>
+                    <input
+                      placeholder="Rechercher un client"
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                    />
+                    <SearchSelect
+                      value={form.client_id}
+                      onChange={(next) => setForm({ ...form, client_id: next })}
+                      options={clientSelectOptions}
+                      placeholder="Choisir un client"
+                      searchPlaceholder="Rechercher un client"
+                      emptyText="Aucun client trouve"
+                    />
+                    <div className="wizard-inline-actions">
+                      <button type="button" className="secondary" onClick={() => setQuickClientOpen((open) => !open)}>
+                        {quickClientOpen ? "Fermer le client rapide" : "+ Nouveau client rapide"}
+                      </button>
+                    </div>
+                    {quickClientOpen ? (
+                      <form className="form-panel quote-inline-form" onSubmit={submitQuickClient}>
+                        <div className="form-grid-2">
+                          <input
+                            placeholder="Entreprise"
+                            value={quickClientForm.company_name}
+                            onChange={(e) => setQuickClientForm({ ...quickClientForm, company_name: e.target.value })}
+                            required
+                          />
+                          <input
+                            placeholder="Contact"
+                            value={quickClientForm.contact_name}
+                            onChange={(e) => setQuickClientForm({ ...quickClientForm, contact_name: e.target.value })}
+                          />
+                          <input
+                            type="email"
+                            placeholder="Email"
+                            value={quickClientForm.email}
+                            onChange={(e) => setQuickClientForm({ ...quickClientForm, email: e.target.value })}
+                          />
+                          <input
+                            type="tel"
+                            inputMode="tel"
+                            placeholder="Telephone"
+                            value={quickClientForm.phone}
+                            onChange={(e) => setQuickClientForm({ ...quickClientForm, phone: e.target.value })}
+                          />
+                        </div>
+                        <button type="submit" className="primary-action">
+                          Ajouter ce client
+                        </button>
+                      </form>
+                    ) : null}
+                  </>
+                ) : null}
+
+                {wizardStep === 1 ? (
+                  <>
+                    <p className="form-section-title">Etape 2 · Type de prestation</p>
+                    <div className="quote-wizard-copy">
+                      <p>Choisis un format de mission. L'assistant pre-remplit la premiere ligne pour aller plus vite.</p>
+                    </div>
+                    <div className="quote-preset-grid">
+                      {PRESET_SERVICES.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          className={`quote-preset-card ${selectedPreset === preset.id ? "is-selected" : ""}`}
+                          onClick={() => selectPreset(preset)}
+                        >
+                          <span className="quote-preset-icon">{preset.icon}</span>
+                          <strong>{preset.title}</strong>
+                          <span>{preset.hint}</span>
+                          <small>{preset.price ? `A partir de ${preset.price} EUR` : "Tarif libre"}</small>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+
+                {wizardStep === 2 ? (
+                  <>
+                    <p className="form-section-title">Etape 3 · Dossier rapide</p>
+                    <div className="form-grid-2">
+                      <input
+                        type="date"
+                        value={form.quote_date}
+                        onChange={async (e) => {
+                          const value = e.target.value;
+                          setForm((prev) => ({ ...prev, quote_date: value }));
+                          await refreshNextNumber(value);
+                        }}
+                      />
+                      <input
+                        type="date"
+                        value={form.valid_until}
+                        onChange={(e) => setForm({ ...form, valid_until: e.target.value })}
+                      />
+                      <input
+                        placeholder="Date intervention"
+                        type="date"
+                        value={context.service_date}
+                        onChange={(e) => setContext((prev) => ({ ...prev, service_date: e.target.value }))}
+                      />
+                      <input
+                        placeholder="Lieu"
+                        value={context.service_location}
+                        onChange={(e) => setContext((prev) => ({ ...prev, service_location: e.target.value }))}
+                      />
+                      <input
+                        placeholder="Duree estimee"
+                        value={context.estimated_duration}
+                        onChange={(e) => setContext((prev) => ({ ...prev, estimated_duration: e.target.value }))}
+                      />
+                      <SegmentedControl value={form.status} onChange={(next) => setForm({ ...form, status: next })} options={QUOTE_STATUS_OPTIONS} />
+                    </div>
+                    <textarea
+                      placeholder="Notes client ou contexte de la mission"
+                      value={context.client_note}
+                      onChange={(e) => setContext((prev) => ({ ...prev, client_note: e.target.value }))}
+                    />
+                    <textarea
+                      placeholder="Notes internes ou remarques complementaires"
+                      value={form.notes}
+                      onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    />
+                  </>
+                ) : null}
+
+                {wizardStep === 3 ? (
+                  <>
+                    <div className="page-head quote-pricing-head">
+                      <h3>Etape 4 · Prix et prestations</h3>
+                      <button type="button" className="secondary" onClick={addItem}>
+                        + Ligne
+                      </button>
+                    </div>
+                    <div className="quote-line-list">
+                      {items.map((item, index) => (
+                        <div key={index} className="quote-line-card">
+                          <div className="quote-line-card__head">
+                            <strong>Ligne {index + 1}</strong>
+                            <button
+                              type="button"
+                              className="ghost"
+                              onClick={() => removeItem(index)}
+                              disabled={items.length === 1}
+                            >
+                              Retirer
+                            </button>
+                          </div>
+                          <div className="quote-line-grid">
+                            <input
+                              list="quote-articles"
+                              placeholder="Description"
+                              value={item.description}
+                              onChange={(e) => applyArticle(index, e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="Quantite"
+                              value={item.quantity}
+                              onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="Prix unitaire"
+                              value={item.unit_price}
+                              onChange={(e) => updateItem(index, "unit_price", e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <datalist id="quote-articles">
+                      {articles.map((article) => (
+                        <option key={article.id} value={article.name} />
+                      ))}
+                    </datalist>
+                    <div className="quote-price-grid">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="TVA %"
+                        value={form.tax_rate}
+                        onChange={(e) => setForm((prev) => ({ ...prev, tax_rate: e.target.value }))}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Remise %"
+                        value={form.discount_percent}
+                        onChange={(e) => setForm((prev) => ({ ...prev, discount_percent: e.target.value }))}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Remise montant"
+                        value={form.discount_amount}
+                        onChange={(e) => setForm((prev) => ({ ...prev, discount_amount: e.target.value }))}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Acompte %"
+                        value={form.acompte_percent}
+                        onChange={(e) => setForm((prev) => ({ ...prev, acompte_percent: e.target.value }))}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Acompte montant"
+                        value={form.acompte_amount}
+                        onChange={(e) => setForm((prev) => ({ ...prev, acompte_amount: e.target.value }))}
+                      />
+                      <CustomSelect
+                        compact
+                        value={form.currency}
+                        onChange={(next) => setForm((prev) => ({ ...prev, currency: next }))}
+                        options={CURRENCY_OPTIONS}
+                      />
+                    </div>
+                  </>
+                ) : null}
+
+                {wizardStep === 4 ? (
+                  <>
+                    <p className="form-section-title">Etape 5 · Validation finale</p>
+                    <div className="quote-preview-block">
+                      <div className="quote-preview-section">
+                        <span className="data-row-label">Client</span>
+                        <strong>{selectedClient?.company_name || "Aucun client choisi"}</strong>
+                        <span className="muted-copy">
+                          {selectedClient?.contact_name || "Contact non renseigne"}{selectedClient?.email ? ` · ${selectedClient.email}` : ""}
+                        </span>
+                      </div>
+                      <div className="quote-preview-section">
+                        <span className="data-row-label">Perimetre</span>
+                        <strong>{selectedPreset ? PRESET_SERVICES.find((preset) => preset.id === selectedPreset)?.title : "Prestation libre"}</strong>
+                        <span className="muted-copy">
+                          {context.service_location || "Lieu a confirmer"}{context.service_date ? ` · ${context.service_date}` : ""}
+                        </span>
+                      </div>
+                      <div className="quote-preview-lines">
+                        {buildFilteredItems().map((item, index) => (
+                          <div key={`${item.description}-${index}`} className="quote-preview-line">
+                            <span>{item.description}</span>
+                            <span>
+                              {Number(item.quantity || 0)} × {formatMoney(item.unit_price || 0, form.currency)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+              </section>
+
+              <aside className="card quote-summary-card">
+                <p className="card-label">Resume du devis</p>
+                <div className="quote-summary-stack">
+                  <div className="quote-summary-row">
+                    <span>Numero</span>
+                    <strong>{form.quote_number || "-"}</strong>
+                  </div>
+                  <div className="quote-summary-row">
+                    <span>Client</span>
+                    <strong>{selectedClient?.company_name || "A selectionner"}</strong>
+                  </div>
+                  <div className="quote-summary-row">
+                    <span>Sous-total</span>
+                    <strong>{formatMoney(totals.subtotal, form.currency)}</strong>
+                  </div>
+                  <div className="quote-summary-row">
+                    <span>Remise</span>
+                    <strong>{formatMoney(totals.discount, form.currency)}</strong>
+                  </div>
+                  <div className="quote-summary-row">
+                    <span>Total TTC</span>
+                    <strong>{formatMoney(totals.total, form.currency)}</strong>
+                  </div>
+                  <div className="quote-summary-row">
+                    <span>Acompte</span>
+                    <strong>{formatMoney(totals.acompte, form.currency)}</strong>
+                  </div>
+                  <div className="quote-summary-row quote-summary-row-balance">
+                    <span>Solde estime</span>
+                    <strong>{formatMoney(totals.balance, form.currency)}</strong>
+                  </div>
+                  <div className="quote-summary-meta">
+                    {statusBadge(form.status)}
+                    <span className="data-row-chip">{buildFilteredItems().length} ligne(s)</span>
+                  </div>
+                </div>
+              </aside>
+            </div>
+
+            <div className="quote-wizard-actions">
+              <button type="button" className="secondary" onClick={closeWizard}>
+                Annuler
+              </button>
+              <div className="quote-wizard-actions__group">
+                {wizardStep > 0 ? (
+                  <button type="button" className="secondary" onClick={previousStep}>
+                    Retour
+                  </button>
+                ) : null}
+                {wizardStep < WIZARD_STEPS.length - 1 ? (
+                  <button type="button" className="primary-action" onClick={nextStep}>
+                    Continuer
+                  </button>
+                ) : (
+                  <>
+                    <button type="button" className="secondary" onClick={saveDraft} disabled={submitting}>
+                      {submitting ? "Enregistrement..." : "Enregistrer brouillon"}
+                    </button>
+                    <button type="button" className="secondary" onClick={saveAndDownloadPdf} disabled={submitting}>
+                      Generer PDF
+                    </button>
+                    <button type="button" className="primary-action" onClick={saveAndSendQuote} disabled={submitting}>
+                      Envoyer au client
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {previewOpen ? (
         <div className="modal-backdrop" onClick={closePreview}>
           <div className="modal-card modal-card-pdf" onClick={(e) => e.stopPropagation()}>
             <div className="page-head" style={{ marginBottom: 12 }}>
@@ -608,7 +1293,7 @@ export default function QuotesPage() {
             )}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

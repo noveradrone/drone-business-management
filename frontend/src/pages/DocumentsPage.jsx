@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
+import CustomSelect from "../components/CustomSelect";
 
 function formatBytes(bytes) {
   const size = Number(bytes || 0);
@@ -200,11 +201,15 @@ export default function DocumentsPage() {
       <div className="card" style={{ marginBottom: 12 }}>
         <div className="filter-row">
           <input placeholder="Rechercher par nom" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-            <option value="recent">Plus recents</option>
-            <option value="oldest">Plus anciens</option>
-            <option value="name">Nom A-Z</option>
-          </select>
+          <CustomSelect
+            value={sortBy}
+            onChange={setSortBy}
+            options={[
+              { value: "recent", label: "Plus recents" },
+              { value: "oldest", label: "Plus anciens" },
+              { value: "name", label: "Nom A-Z" }
+            ]}
+          />
         </div>
       </div>
 

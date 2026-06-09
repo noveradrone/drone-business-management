@@ -28,6 +28,11 @@ const SHADOWS = {
   strong: "0 18px 42px rgba(15, 23, 42, 0.18)"
 };
 
+const YES_NO_OPTIONS = [
+  { value: "1", label: "Oui" },
+  { value: "0", label: "Non" }
+];
+
 function SegmentedControl({ options, value, onChange }) {
   return (
     <div className="segmented-control" role="group">
@@ -341,60 +346,47 @@ export default function SettingsPage() {
             <input placeholder="Mention TVA non applicable" value={form.vat_exemption_mention || ""} onChange={(e) => setForm({ ...form, vat_exemption_mention: e.target.value })} />
             <label>
               Afficher TVA
-              <select value={String(Number(form.show_vat || 0))} onChange={(e) => setForm({ ...form, show_vat: Number(e.target.value) })}>
-                <option value="1">Oui</option>
-                <option value="0">Non</option>
-              </select>
+              <SegmentedControl value={String(Number(form.show_vat || 0))} onChange={(next) => setForm({ ...form, show_vat: Number(next) })} options={YES_NO_OPTIONS} />
             </label>
             <label>
               Afficher mention TVA non applicable
-              <select
+              <SegmentedControl
                 value={String(Number(form.show_vat_exemption_mention || 0))}
-                onChange={(e) => setForm({ ...form, show_vat_exemption_mention: Number(e.target.value) })}
-              >
-                <option value="1">Oui</option>
-                <option value="0">Non</option>
-              </select>
+                onChange={(next) => setForm({ ...form, show_vat_exemption_mention: Number(next) })}
+                options={YES_NO_OPTIONS}
+              />
             </label>
             <label>
               Afficher penalites de retard
-              <select
+              <SegmentedControl
                 value={String(Number(form.show_late_penalties || 0))}
-                onChange={(e) => setForm({ ...form, show_late_penalties: Number(e.target.value) })}
-              >
-                <option value="1">Oui</option>
-                <option value="0">Non</option>
-              </select>
+                onChange={(next) => setForm({ ...form, show_late_penalties: Number(next) })}
+                options={YES_NO_OPTIONS}
+              />
             </label>
             <label>
               Afficher indemnite forfaitaire 40EUR
-              <select
+              <SegmentedControl
                 value={String(Number(form.show_fixed_indemnity || 0))}
-                onChange={(e) => setForm({ ...form, show_fixed_indemnity: Number(e.target.value) })}
-              >
-                <option value="1">Oui</option>
-                <option value="0">Non</option>
-              </select>
+                onChange={(next) => setForm({ ...form, show_fixed_indemnity: Number(next) })}
+                options={YES_NO_OPTIONS}
+              />
             </label>
             <label>
               Afficher coordonnees bancaires
-              <select
+              <SegmentedControl
                 value={String(Number(form.show_bank_details || 0))}
-                onChange={(e) => setForm({ ...form, show_bank_details: Number(e.target.value) })}
-              >
-                <option value="1">Oui</option>
-                <option value="0">Non</option>
-              </select>
+                onChange={(next) => setForm({ ...form, show_bank_details: Number(next) })}
+                options={YES_NO_OPTIONS}
+              />
             </label>
             <label>
               Afficher la mention d'assurance
-              <select
+              <SegmentedControl
                 value={String(Number(form.show_insurance_mention || 0))}
-                onChange={(e) => setForm({ ...form, show_insurance_mention: Number(e.target.value) })}
-              >
-                <option value="1">Oui</option>
-                <option value="0">Non</option>
-              </select>
+                onChange={(next) => setForm({ ...form, show_insurance_mention: Number(next) })}
+                options={YES_NO_OPTIONS}
+              />
             </label>
             <button type="button" onClick={() => saveCompanySection("Facturation")} disabled={saving} style={{ gridColumn: "1 / -1" }}>
               {saving ? "Enregistrement..." : "Enregistrer Facturation"}
@@ -411,23 +403,19 @@ export default function SettingsPage() {
             <input type="number" min="0" step="0.01" placeholder="Objectif mensuel (EUR)" value={form.monthly_revenue_target || 0} onChange={(e) => setForm({ ...form, monthly_revenue_target: e.target.value })} />
             <label>
               Afficher mention validite devis
-              <select
+              <SegmentedControl
                 value={String(Number(form.quote_show_validity_notice || 0))}
-                onChange={(e) => setForm({ ...form, quote_show_validity_notice: Number(e.target.value) })}
-              >
-                <option value="1">Oui</option>
-                <option value="0">Non</option>
-              </select>
+                onChange={(next) => setForm({ ...form, quote_show_validity_notice: Number(next) })}
+                options={YES_NO_OPTIONS}
+              />
             </label>
             <label>
               Afficher bloc Bon pour accord
-              <select
+              <SegmentedControl
                 value={String(Number(form.quote_show_signature_block || 0))}
-                onChange={(e) => setForm({ ...form, quote_show_signature_block: Number(e.target.value) })}
-              >
-                <option value="1">Oui</option>
-                <option value="0">Non</option>
-              </select>
+                onChange={(next) => setForm({ ...form, quote_show_signature_block: Number(next) })}
+                options={YES_NO_OPTIONS}
+              />
             </label>
             <button type="button" onClick={() => saveCompanySection("Devis")} disabled={saving} style={{ gridColumn: "1 / -1" }}>
               {saving ? "Enregistrement..." : "Enregistrer Devis"}

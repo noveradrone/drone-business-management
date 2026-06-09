@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import CustomSelect from "../components/CustomSelect";
 import DataRowList from "../components/DataRowList";
+import SearchSelect from "../components/SearchSelect";
 
 const packOptions = ["Essentiel", "Premium", "Instagram"];
 const statusOptions = ["planned", "in_progress", "completed", "cancelled"];
@@ -30,6 +32,13 @@ const categoryTypes = ["open", "specific", "certified"];
 const openSubCategories = ["A1", "A2", "A3"];
 const specificTypes = ["STS-01", "STS-02", "PDRA", "SORA", "OTHER"];
 const pdraTypes = ["PDRA-S01", "PDRA-S02"];
+const prepStatusOptions = prepStatuses.map((status) => ({ value: status, label: STATUS_LABELS[status] || status }));
+const missionStatusOptions = statusOptions.map((status) => ({ value: status, label: MISSION_STATUS_LABELS[status] || status }));
+const packSelectOptions = packOptions.map((pack) => ({ value: pack, label: pack }));
+const categoryTypeOptions = categoryTypes.map((value) => ({ value, label: value }));
+const openSubCategoryOptions = openSubCategories.map((value) => ({ value, label: value }));
+const specificTypeOptions = specificTypes.map((value) => ({ value, label: value }));
+const pdraTypeOptions = pdraTypes.map((value) => ({ value, label: value }));
 
 function boolToChecked(value) {
   return value === 1 || value === true;
@@ -405,6 +414,22 @@ export default function MissionsPage() {
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
+  const clientSelectOptions = clients.map((client) => ({
+    value: String(client.id),
+    label: client.company_name,
+    description: client.email || client.contact_name || "",
+    meta: client.phone || "",
+    avatar: (client.company_name || "?").slice(0, 2).toUpperCase()
+  }));
+
+  const droneSelectOptions = drones.map((drone) => ({
+    value: String(drone.id),
+    label: `${drone.brand} ${drone.model}`,
+    description: drone.serial_number ? `S/N ${drone.serial_number}` : "",
+    meta: drone.status || "",
+    avatar: `${drone.brand || ""}`.slice(0, 2).toUpperCase() || "DR"
+  }));
+
   return (
     <div className="missions-page">
       <div className="page-head">
@@ -416,39 +441,13 @@ export default function MissionsPage() {
       {error && <p className="error">{error}</p>}
 
       <form className="form-grid" onSubmit={submit}>
-        <select value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })} required>
-          <option value="">Client</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.company_name}
-            </option>
-          ))}
-        </select>
-        <select value={form.drone_id} onChange={(e) => setForm({ ...form, drone_id: e.target.value })} required>
-          <option value="">Drone</option>
-          {drones.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.brand} {d.model} ({d.serial_number})
-            </option>
-          ))}
-        </select>
+        <SearchSelect value={form.client_id} onChange={(next) => setForm({ ...form, client_id: next })} options={clientSelectOptions} placeholder="Client" searchPlaceholder="Rechercher un client" />
+        <SearchSelect value={form.drone_id} onChange={(next) => setForm({ ...form, drone_id: next })} options={droneSelectOptions} placeholder="Drone" searchPlaceholder="Rechercher un drone" />
         <input type="date" value={form.mission_date} onChange={(e) => setForm({ ...form, mission_date: e.target.value })} required />
         <input placeholder="Lieu" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} required />
         <input type="number" min="1" placeholder="Duree (min)" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} required />
-        <select value={form.selected_pack} onChange={(e) => setForm({ ...form, selected_pack: e.target.value })}>
-          {packOptions.map((pack) => (
-            <option key={pack} value={pack}>
-              {pack}
-            </option>
-          ))}
-        </select>
-        <select value={form.mission_status} onChange={(e) => setForm({ ...form, mission_status: e.target.value })}>
-          {statusOptions.map((status) => (
-            <option key={status} value={status}>
-              {MISSION_STATUS_LABELS[status] || status}
-            </option>
-          ))}
-        </select>
+        <CustomSelect value={form.selected_pack} onChange={(next) => setForm({ ...form, selected_pack: next })} options={packSelectOptions} />
+        <CustomSelect value={form.mission_status} onChange={(next) => setForm({ ...form, mission_status: next })} options={missionStatusOptions} />
 
         <details className="details-panel" style={{ gridColumn: "1 / -1" }}>
           <summary>Options avancées</summary>
@@ -556,29 +555,11 @@ export default function MissionsPage() {
                   <h3>Classification mission</h3>
                   <div className="form-stack prep-form-stack">
                     <div className="form-grid-2">
-                      <select value={preparation.category_type || "open"} onChange={(e) => updatePreparationField("category_type", e.target.value)}>
-                        {categoryTypes.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
+                      <CustomSelect value={preparation.category_type || "open"} onChange={(next) => updatePreparationField("category_type", next)} options={categoryTypeOptions} />
                       {preparation.category_type === "open" ? (
-                        <select value={preparation.open_subcategory || "A3"} onChange={(e) => updatePreparationField("open_subcategory", e.target.value)}>
-                          {openSubCategories.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                        <CustomSelect value={preparation.open_subcategory || "A3"} onChange={(next) => updatePreparationField("open_subcategory", next)} options={openSubCategoryOptions} />
                       ) : preparation.category_type === "specific" ? (
-                        <select value={preparation.specific_type || "STS-01"} onChange={(e) => updatePreparationField("specific_type", e.target.value)}>
-                          {specificTypes.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                        <CustomSelect value={preparation.specific_type || "STS-01"} onChange={(next) => updatePreparationField("specific_type", next)} options={specificTypeOptions} />
                       ) : (
                         <input placeholder="Sous-categorie/scenario" disabled />
                       )}
@@ -586,13 +567,7 @@ export default function MissionsPage() {
 
                     {preparation.category_type === "specific" && preparation.specific_type === "PDRA" ? (
                       <div className="form-grid-2">
-                        <select value={preparation.pdra_type || "PDRA-S01"} onChange={(e) => updatePreparationField("pdra_type", e.target.value)}>
-                          {pdraTypes.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                        <CustomSelect value={preparation.pdra_type || "PDRA-S01"} onChange={(next) => updatePreparationField("pdra_type", next)} options={pdraTypeOptions} />
                       </div>
                     ) : null}
 
@@ -665,53 +640,23 @@ export default function MissionsPage() {
                   <div className="form-grid prep-status-grid">
                     <label>
                       FlyBy
-                      <select value={preparation.flyby_status || "todo"} onChange={(e) => updatePreparationField("flyby_status", e.target.value)}>
-                        {prepStatuses.map((s) => (
-                          <option key={s} value={s}>
-                            {STATUS_LABELS[s]}
-                          </option>
-                        ))}
-                      </select>
+                      <CustomSelect value={preparation.flyby_status || "todo"} onChange={(next) => updatePreparationField("flyby_status", next)} options={prepStatusOptions} />
                     </label>
                     <label>
                       AlphaTango
-                      <select value={preparation.alphatango_status || "todo"} onChange={(e) => updatePreparationField("alphatango_status", e.target.value)}>
-                        {prepStatuses.map((s) => (
-                          <option key={s} value={s}>
-                            {STATUS_LABELS[s]}
-                          </option>
-                        ))}
-                      </select>
+                      <CustomSelect value={preparation.alphatango_status || "todo"} onChange={(next) => updatePreparationField("alphatango_status", next)} options={prepStatusOptions} />
                     </label>
                     <label>
                       Mairie
-                      <select value={preparation.municipality_status || "todo"} onChange={(e) => updatePreparationField("municipality_status", e.target.value)}>
-                        {prepStatuses.map((s) => (
-                          <option key={s} value={s}>
-                            {STATUS_LABELS[s]}
-                          </option>
-                        ))}
-                      </select>
+                      <CustomSelect value={preparation.municipality_status || "todo"} onChange={(next) => updatePreparationField("municipality_status", next)} options={prepStatusOptions} />
                     </label>
                     <label>
                       Proprietaire
-                      <select value={preparation.landowner_status || "todo"} onChange={(e) => updatePreparationField("landowner_status", e.target.value)}>
-                        {prepStatuses.map((s) => (
-                          <option key={s} value={s}>
-                            {STATUS_LABELS[s]}
-                          </option>
-                        ))}
-                      </select>
+                      <CustomSelect value={preparation.landowner_status || "todo"} onChange={(next) => updatePreparationField("landowner_status", next)} options={prepStatusOptions} />
                     </label>
                     <label>
                       Militaire
-                      <select value={preparation.military_status || "todo"} onChange={(e) => updatePreparationField("military_status", e.target.value)}>
-                        {prepStatuses.map((s) => (
-                          <option key={s} value={s}>
-                            {STATUS_LABELS[s]}
-                          </option>
-                        ))}
-                      </select>
+                      <CustomSelect value={preparation.military_status || "todo"} onChange={(next) => updatePreparationField("military_status", next)} options={prepStatusOptions} />
                     </label>
                   </div>
                   <div className="actions-cell" style={{ marginTop: 10 }}>
