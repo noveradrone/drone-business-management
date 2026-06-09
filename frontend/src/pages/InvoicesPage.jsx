@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { api } from "../api";
 import CustomSelect from "../components/CustomSelect";
@@ -23,6 +23,13 @@ const STATUS_META = {
   overdue: { label: "En retard", color: "#dc2626" },
   cancelled: { label: "Annulee", color: "#6b7280" }
 };
+
+const WIZARD_STEPS = [
+  { id: "client", label: "Client" },
+  { id: "details", label: "Dossier" },
+  { id: "pricing", label: "Prix" },
+  { id: "preview", label: "Validation" }
+];
 
 const INVOICE_STATUS_OPTIONS = [
   { value: "draft", label: "Brouillon" },
@@ -51,19 +58,50 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: "Autre", label: "Autre" }
 ];
 
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function defaultDueDate() {
+  return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function buildInitialForm() {
+  return {
+    client_id: "",
+    invoice_number: "",
+    invoice_date: todayIso(),
+    due_date: defaultDueDate(),
+    status: "draft",
+    tax_rate: 20,
+    currency: "EUR",
+    acompte_pourcentage: 0,
+    acompte_montant: 0,
+    notes: "",
+    note_interne: ""
+  };
+}
+
+function formatMoney(value, currency = "EUR") {
+  return `${Number(value || 0).toFixed(2)} ${currency}`;
+}
+
+function formatDateFr(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("fr-FR").format(date);
+}
+
 function statusBadge(status) {
   const meta = STATUS_META[status] || { label: status || "-", color: "#6b7280" };
   return (
     <span
+      className={`quote-status-badge quote-status-badge-${status || "default"}`}
       style={{
-        display: "inline-block",
-        borderRadius: 999,
-        padding: "4px 10px",
-        fontWeight: 700,
-        fontSize: 12,
-        background: `${meta.color}1A`,
-        color: meta.color,
-        border: `1px solid ${meta.color}55`
+        "--quote-badge-color": meta.color,
+        "--quote-badge-background": `${meta.color}14`,
+        "--quote-badge-border": `${meta.color}45`
       }}
     >
       {meta.label}
@@ -73,7 +111,6 @@ function statusBadge(status) {
 
 export default function InvoicesPage() {
   const location = useLocation();
-  const createSectionRef = useRef(null);
   const [invoices, setInvoices] = useState([]);
   const [clients, setClients] = useState([]);
   const [articles, setArticles] = useState([]);
@@ -86,6 +123,9 @@ export default function InvoicesPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState(0);
+  const [clientSearch, setClientSearch] = useState("");
   const [articleForm, setArticleForm] = useState({
     name: "",
     description: "",
@@ -94,26 +134,14 @@ export default function InvoicesPage() {
   });
 
   const [paymentForm, setPaymentForm] = useState({
-    payment_date: new Date().toISOString().slice(0, 10),
+    payment_date: todayIso(),
     amount: "",
     method: "Virement",
     reference: "",
     notes: ""
   });
 
-  const [form, setForm] = useState({
-    client_id: "",
-    invoice_number: "",
-    invoice_date: new Date().toISOString().slice(0, 10),
-    due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    status: "draft",
-    tax_rate: 20,
-    currency: "EUR",
-    acompte_pourcentage: 0,
-    acompte_montant: 0,
-    notes: "",
-    note_interne: ""
-  });
+  const [form, setForm] = useState(buildInitialForm);
   const [items, setItems] = useState([{ description: "", quantity: 1, unit_price: 0 }]);
 
   async function refreshNextNumber(dateValue) {
@@ -159,32 +187,89 @@ export default function InvoicesPage() {
   }, [location.search, invoices, selectedInvoiceId]);
 
   const filteredInvoices = useMemo(() => {
-    return invoices.filter((i) => {
-      const text = `${i.invoice_number} ${i.company_name}`.toLowerCase();
+    return invoices.filter((invoice) => {
+      const text = `${invoice.invoice_number} ${invoice.company_name}`.toLowerCase();
       const matchQuery = text.includes(query.toLowerCase());
-      const matchStatus = statusFilter === "all" ? true : i.status === statusFilter;
+      const matchStatus = statusFilter === "all" ? true : invoice.status === statusFilter;
       return matchQuery && matchStatus;
     });
   }, [invoices, query, statusFilter]);
 
+  const filteredClients = useMemo(() => {
+    const needle = clientSearch.trim().toLowerCase();
+    if (!needle) return clients;
+    return clients.filter((client) =>
+      `${client.company_name} ${client.contact_name || ""} ${client.email || ""} ${client.phone || ""}`
+        .toLowerCase()
+        .includes(needle)
+    );
+  }, [clients, clientSearch]);
+
   const clientSelectOptions = useMemo(
     () =>
-      clients.map((client) => ({
+      filteredClients.map((client) => ({
         value: String(client.id),
         label: client.company_name,
         description: client.email || client.contact_name || "",
         meta: client.phone || "",
         avatar: (client.company_name || "?").slice(0, 2).toUpperCase()
       })),
-    [clients]
+    [filteredClients]
   );
+
+  const selectedClient = useMemo(
+    () => clients.find((client) => String(client.id) === String(form.client_id)) || null,
+    [clients, form.client_id]
+  );
+
+  function resetWizardState() {
+    const nextForm = buildInitialForm();
+    setForm(nextForm);
+    setItems([{ description: "", quantity: 1, unit_price: 0 }]);
+    setWizardStep(0);
+    setClientSearch("");
+    refreshNextNumber(nextForm.invoice_date);
+  }
+
+  function openCreateWizard() {
+    setError("");
+    resetWizardState();
+    setDrawerOpen(true);
+  }
+
+  function closeWizard() {
+    setDrawerOpen(false);
+    resetWizardState();
+  }
+
+  function goToStep(index) {
+    setWizardStep(index);
+  }
+
+  function nextStep() {
+    if (wizardStep === 0 && !form.client_id) {
+      setError("Choisis un client avant de continuer.");
+      return;
+    }
+    if (wizardStep === 2 && !items.some((item) => String(item.description || "").trim())) {
+      setError("Ajoute au moins une ligne d'article avant de continuer.");
+      return;
+    }
+    setError("");
+    setWizardStep((step) => Math.min(step + 1, WIZARD_STEPS.length - 1));
+  }
+
+  function previousStep() {
+    setError("");
+    setWizardStep((step) => Math.max(step - 1, 0));
+  }
 
   function updateItem(index, key, value) {
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)));
   }
 
   function applyArticle(index, articleName) {
-    const article = articles.find((a) => a.name === articleName);
+    const article = articles.find((articleEntry) => articleEntry.name === articleName);
     if (!article) {
       updateItem(index, "description", articleName);
       return;
@@ -211,8 +296,18 @@ export default function InvoicesPage() {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function buildFilteredItems() {
+    return items
+      .filter((item) => String(item.description || "").trim())
+      .map((item) => ({
+        description: String(item.description || "").trim(),
+        quantity: Number(item.quantity || 0),
+        unit_price: Number(item.unit_price || 0)
+      }));
+  }
+
   const draftTotals = useMemo(() => {
-    const subtotal = items.reduce((sum, i) => sum + Number(i.quantity || 0) * Number(i.unit_price || 0), 0);
+    const subtotal = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_price || 0), 0);
     const total = subtotal + subtotal * (Number(form.tax_rate || 0) / 100);
     let acompte = Number(form.acompte_montant || 0);
     if (!acompte && Number(form.acompte_pourcentage || 0) > 0) {
@@ -223,55 +318,54 @@ export default function InvoicesPage() {
     return { subtotal, total, acompte, solde };
   }, [items, form.tax_rate, form.acompte_montant, form.acompte_pourcentage]);
 
-  async function submit(e) {
-    e.preventDefault();
-    setError("");
-    const filteredItems = items
-      .filter((i) => i.description.trim())
-      .map((i) => ({
-        description: i.description.trim(),
-        quantity: Number(i.quantity),
-        unit_price: Number(i.unit_price)
-      }));
-
-    if (filteredItems.length === 0) {
+  async function persistInvoice(overrides = {}) {
+    const filteredItems = buildFilteredItems();
+    if (!form.client_id) {
+      setError("Choisis un client avant d'enregistrer la facture.");
+      setWizardStep(0);
+      return null;
+    }
+    if (!filteredItems.length) {
       setError("Ajoute au moins une ligne d'article.");
-      return;
+      setWizardStep(2);
+      return null;
     }
 
     setSubmitting(true);
+    setError("");
     try {
-      await api.invoices.create({
+      const payload = {
         ...form,
+        ...overrides,
         client_id: Number(form.client_id),
         tax_rate: Number(form.tax_rate),
         acompte_pourcentage: Number(form.acompte_pourcentage || 0),
         acompte_montant: Number(form.acompte_montant || 0),
         items: filteredItems
-      });
-
-      const nextDate = new Date().toISOString().slice(0, 10);
-      const nextDue = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      setForm({
-        client_id: "",
-        invoice_number: "",
-        invoice_date: nextDate,
-        due_date: nextDue,
-        status: "draft",
-        tax_rate: 20,
-        currency: "EUR",
-        acompte_pourcentage: 0,
-        acompte_montant: 0,
-        notes: "",
-        note_interne: ""
-      });
-      setItems([{ description: "", quantity: 1, unit_price: 0 }]);
-      await refreshNextNumber(nextDate);
+      };
+      const created = await api.invoices.create(payload);
       await load();
+      return created || null;
     } catch (err) {
       setError(err.message);
+      return null;
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function saveDraft() {
+    const created = await persistInvoice({ status: "draft" });
+    if (!created) return;
+    closeWizard();
+  }
+
+  async function createInvoice() {
+    const created = await persistInvoice();
+    if (!created) return;
+    closeWizard();
+    if (created?.id) {
+      await loadInvoiceDetails(created.id);
     }
   }
 
@@ -327,7 +421,7 @@ export default function InvoicesPage() {
   async function markAsPaid(invoice) {
     setError("");
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayIso();
       await api.invoices.markPaid(invoice.id, {
         date_paiement: today,
         moyen_paiement: "Virement"
@@ -385,200 +479,109 @@ export default function InvoicesPage() {
 
   return (
     <div className="invoices-page">
-      <div className="page-head">
-        <h2>Factures</h2>
-        <button
-          className="secondary"
-          type="button"
-          onClick={() => createSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-        >
-          Créer une facture
-        </button>
-      </div>
-      <p className="page-summary">Suivi simple des factures, paiements et retards.</p>
-
-      <div className="card-grid metrics-row">
-        <div className="card">
-          <p className="card-label">Total facture</p>
-          <p className="card-value">{Number(stats?.total_facture || 0).toFixed(2)} EUR</p>
+      <div className="page-header">
+        <div>
+          <p className="login-eyebrow">Finance</p>
         </div>
-        <div className="card">
-          <p className="card-label">Total restant</p>
-          <p className="card-value">{Number(stats?.total_restant || 0).toFixed(2)} EUR</p>
-        </div>
-        <div className="card">
-          <p className="card-label">Factures en retard</p>
-          <p className="card-value">{Number(stats?.factures_en_retard || 0)}</p>
-        </div>
-      </div>
-
-      {error && <p className="error">{error}</p>}
-
-      <details className="details-panel" open ref={createSectionRef}>
-        <summary>Création facture</summary>
-        <form className="form-grid" onSubmit={submit}>
-          <SearchSelect
-            value={form.client_id}
-            onChange={(next) => setForm({ ...form, client_id: next })}
-            options={clientSelectOptions}
-            placeholder="Choisir un client"
-            searchPlaceholder="Rechercher un client"
-            emptyText="Aucun client trouve"
-          />
-          <input
-            placeholder="Numero facture"
-            value={form.invoice_number}
-            onChange={(e) => setForm({ ...form, invoice_number: e.target.value })}
-            required
-          />
-          <input
-            type="date"
-            value={form.invoice_date}
-            onChange={async (e) => {
-              const v = e.target.value;
-              setForm((prev) => ({ ...prev, invoice_date: v }));
-              await refreshNextNumber(v);
-            }}
-            required
-          />
-          <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required />
-          <SegmentedControl value={form.status} onChange={(next) => setForm({ ...form, status: next })} options={INVOICE_STATUS_OPTIONS} />
-          <input type="number" min="0" step="0.01" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: e.target.value })} placeholder="TVA %" />
-          <CustomSelect
-            compact
-            value={form.currency}
-            onChange={(next) => setForm({ ...form, currency: next })}
-            options={CURRENCY_OPTIONS}
-          />
-          <input placeholder="Acompte %" type="number" min="0" step="0.01" value={form.acompte_pourcentage} onChange={(e) => setForm({ ...form, acompte_pourcentage: e.target.value })} />
-          <input placeholder="Acompte montant" type="number" min="0" step="0.01" value={form.acompte_montant} onChange={(e) => setForm({ ...form, acompte_montant: e.target.value })} />
-          <input placeholder="Notes (PDF)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-          {isAdmin && (
-            <input placeholder="Note interne (admin)" value={form.note_interne} onChange={(e) => setForm({ ...form, note_interne: e.target.value })} />
-          )}
-
-          <div style={{ gridColumn: "1 / -1" }} className="card">
-            <div className="page-head" style={{ marginBottom: 8 }}>
-              <h2 style={{ fontSize: "1rem" }}>Articles facture</h2>
-              <button type="button" className="secondary" onClick={addItem}>
-                Ajouter une ligne
-              </button>
-            </div>
-            {items.map((item, index) => (
-              <div key={index} className="line-item-row">
-                <input
-                  list="invoice-articles"
-                  placeholder="Article ou description"
-                  value={item.description}
-                  onChange={(e) => applyArticle(index, e.target.value)}
-                  required={index === 0}
-                />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Qte"
-                  value={item.quantity}
-                  onChange={(e) => updateItem(index, "quantity", e.target.value)}
-                />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Prix unitaire"
-                  value={item.unit_price}
-                  onChange={(e) => updateItem(index, "unit_price", e.target.value)}
-                />
-                <button type="button" className="secondary" onClick={() => removeItem(index)} disabled={items.length === 1}>
-                  Suppr.
-                </button>
-              </div>
-            ))}
-            <datalist id="invoice-articles">
-              {articles.map((a) => (
-                <option key={a.id} value={a.name} />
-              ))}
-            </datalist>
-            <p style={{ margin: "8px 0 0", color: "#5b6473" }}>
-              Brouillon: total {draftTotals.total.toFixed(2)} EUR, acompte {draftTotals.acompte.toFixed(2)} EUR, solde {draftTotals.solde.toFixed(2)} EUR
-            </p>
-          </div>
-
-          <button className="primary-action" style={{ gridColumn: "1 / -1" }} disabled={submitting}>
-            {submitting ? "Creation..." : "Creer la facture"}
+        <h2 className="page-title">Factures simples a creer et a suivre</h2>
+        <div className="page-action">
+          <button type="button" className="primary-action" onClick={openCreateWizard}>
+            + Creer une facture
           </button>
-        </form>
-      </details>
-
-      <details className="details-panel">
-        <summary>Articles prédéfinis (base)</summary>
-        <form className="form-grid" onSubmit={createArticle}>
-          <input placeholder="Article: nom" value={articleForm.name} onChange={(e) => setArticleForm({ ...articleForm, name: e.target.value })} required />
-          <input placeholder="Article: description" value={articleForm.description} onChange={(e) => setArticleForm({ ...articleForm, description: e.target.value })} />
-          <input type="number" min="0" step="0.01" placeholder="Article: prix" value={articleForm.price} onChange={(e) => setArticleForm({ ...articleForm, price: e.target.value })} required />
-          <input type="number" min="0" step="0.01" placeholder="Article: TVA %" value={articleForm.tax_rate} onChange={(e) => setArticleForm({ ...articleForm, tax_rate: e.target.value })} />
-          <button style={{ gridColumn: "1 / -1" }}>Ajouter article predefini</button>
-        </form>
-      </details>
-
-      <div className="card" style={{ margin: "14px 0" }}>
-        <div className="page-head" style={{ marginBottom: 8 }}>
-          <h2 style={{ fontSize: "1rem" }}>Liste des factures</h2>
         </div>
-        <div className="filter-row">
+      </div>
+
+      <p className="page-summary">
+        La creation de facture suit maintenant le meme principe que les devis: moins de champs d'un coup, plus de
+        clarte, et un resume vivant a droite.
+      </p>
+
+      <section className="summary-band quote-kpi-band">
+        <div className="summary-band-grid quote-kpi-grid">
+          <div className="summary-band-item">
+            <span className="card-label">Total facture</span>
+            <strong>{formatMoney(stats?.total_facture || 0)}</strong>
+          </div>
+          <div className="summary-band-item">
+            <span className="card-label">Total restant</span>
+            <strong>{formatMoney(stats?.total_restant || 0)}</strong>
+          </div>
+          <div className="summary-band-item">
+            <span className="card-label">Factures en retard</span>
+            <strong>{Number(stats?.factures_en_retard || 0)}</strong>
+          </div>
+          <div className="summary-band-item">
+            <span className="card-label">Encaisse</span>
+            <strong>{formatMoney(stats?.total_encaisse || 0)}</strong>
+          </div>
+        </div>
+      </section>
+
+      {error ? <p className="error">{error}</p> : null}
+
+      <section className="card toolbar-card">
+        <div>
+          <p className="card-label">Pilotage facturation</p>
+          <h3>Retrouve vite une facture, un client ou un statut avant de passer au paiement.</h3>
+        </div>
+        <div className="inline-filters">
           <input placeholder="Recherche numero / client" value={query} onChange={(e) => setQuery(e.target.value)} />
           <CustomSelect value={statusFilter} onChange={setStatusFilter} options={INVOICE_FILTER_OPTIONS} />
         </div>
-      </div>
+      </section>
 
       <DataRowList
         items={filteredInvoices}
         emptyMessage="Aucune facture."
-        renderTitle={(i) => i.invoice_number}
-        renderSubtitle={(i) => i.company_name}
-        renderDetails={(i) => {
-          const due = Math.max(0, Number(i.total || 0) - Number(i.amount_received || 0));
+        renderTitle={(invoice) => invoice.invoice_number}
+        renderSubtitle={(invoice) => invoice.company_name}
+        renderDetails={(invoice) => {
+          const due = Math.max(0, Number(invoice.total || 0) - Number(invoice.amount_received || 0));
           return (
             <div className="data-row-info-grid">
               <div className="data-row-info">
                 <span className="data-row-label">Date</span>
-                <span className="data-row-value">{i.invoice_date}</span>
+                <span className="data-row-value">{formatDateFr(invoice.invoice_date)}</span>
               </div>
               <div className="data-row-info">
                 <span className="data-row-label">Echeance</span>
-                <span className="data-row-value">{i.due_date}</span>
+                <span className="data-row-value">{formatDateFr(invoice.due_date)}</span>
               </div>
               <div className="data-row-info">
                 <span className="data-row-label">Total</span>
-                <span className="data-row-value">{Number(i.total || 0).toFixed(2)} {i.currency}</span>
+                <span className="data-row-value">{formatMoney(invoice.total || 0, invoice.currency || "EUR")}</span>
               </div>
               <div className="data-row-info">
                 <span className="data-row-label">Recu</span>
-                <span className="data-row-value">{Number(i.amount_received || 0).toFixed(2)} {i.currency}</span>
+                <span className="data-row-value">{formatMoney(invoice.amount_received || 0, invoice.currency || "EUR")}</span>
               </div>
               <div className="data-row-info">
                 <span className="data-row-label">Reste</span>
-                <span className="data-row-value">{due.toFixed(2)} {i.currency}</span>
+                <span className="data-row-value">{formatMoney(due, invoice.currency || "EUR")}</span>
               </div>
             </div>
           );
         }}
-        renderMeta={(i) => (
+        renderMeta={(invoice) => (
           <>
-            {statusBadge(i.status)}
-            <span className="data-row-chip">Relances: {i.nombre_relances || 0}</span>
+            {statusBadge(invoice.status)}
+            <span className="data-row-chip">Relances: {invoice.nombre_relances || 0}</span>
           </>
         )}
-        renderActions={(i) => (
+        renderActions={(invoice) => (
           <>
-            <button className="secondary" onClick={() => downloadInvoicePdf(i)}>PDF</button>
-            <button className="secondary" onClick={() => loadInvoiceDetails(i.id)}>Paiement</button>
-            {i.status !== "paid" && (
-              <button type="button" className="secondary" onClick={() => markAsPaid(i)}>
+            <button className="secondary" onClick={() => loadInvoiceDetails(invoice.id)}>
+              Paiement
+            </button>
+            <button className="secondary" onClick={() => downloadInvoicePdf(invoice)}>
+              PDF
+            </button>
+            {invoice.status !== "paid" ? (
+              <button type="button" className="secondary" onClick={() => markAsPaid(invoice)}>
                 Marquer payee
               </button>
-            )}
-            <button type="button" className="danger" onClick={() => removeInvoice(i)}>
+            ) : null}
+            <button type="button" className="danger" onClick={() => removeInvoice(invoice)}>
               Supprimer
             </button>
           </>
@@ -586,70 +589,86 @@ export default function InvoicesPage() {
       />
 
       <details className="details-panel">
-        <summary>Détails encaissements et impayés</summary>
-        <div className="card-grid compact-grid" style={{ marginTop: 12 }}>
-          <div className="card">
-            <p className="card-label">Encaissements mensuels</p>
-            <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
-              {(stats?.encaissements_mensuels || []).slice(0, 6).map((row) => (
-                <div key={`enc-${row.month}`} style={{ display: "grid", gridTemplateColumns: "86px 1fr auto", gap: 8, alignItems: "center" }}>
-                  <span>{row.month}</span>
-                  <div style={{ height: 8, borderRadius: 99, background: "#e6eef8", overflow: "hidden" }}>
-                    <div style={{ width: `${Math.min(100, Number(row.amount || 0) / 100)}%`, height: "100%", background: "#0071e3" }} />
-                  </div>
-                  <span>{Number(row.amount || 0).toFixed(0)}€</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="card">
-            <p className="card-label">Factures impayees</p>
-            <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
-              {(stats?.impayes_mensuels || []).slice(0, 6).map((row) => (
-                <div key={`imp-${row.month}`} style={{ display: "grid", gridTemplateColumns: "86px 1fr auto", gap: 8, alignItems: "center" }}>
-                  <span>{row.month}</span>
-                  <div style={{ height: 8, borderRadius: 99, background: "#fde8e8", overflow: "hidden" }}>
-                    <div style={{ width: `${Math.min(100, Number(row.unpaid || 0) / 100)}%`, height: "100%", background: "#dc2626" }} />
-                  </div>
-                  <span>{Number(row.unpaid || 0).toFixed(0)}€</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <summary>Articles prédéfinis (base)</summary>
+        <form className="form-grid" onSubmit={createArticle}>
+          <input
+            placeholder="Article: nom"
+            value={articleForm.name}
+            onChange={(e) => setArticleForm({ ...articleForm, name: e.target.value })}
+            required
+          />
+          <input
+            placeholder="Article: description"
+            value={articleForm.description}
+            onChange={(e) => setArticleForm({ ...articleForm, description: e.target.value })}
+          />
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Article: prix"
+            value={articleForm.price}
+            onChange={(e) => setArticleForm({ ...articleForm, price: e.target.value })}
+            required
+          />
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Article: TVA %"
+            value={articleForm.tax_rate}
+            onChange={(e) => setArticleForm({ ...articleForm, tax_rate: e.target.value })}
+          />
+          <button style={{ gridColumn: "1 / -1" }}>Ajouter article predefini</button>
+        </form>
       </details>
 
-      {selectedInvoiceId && (
+      {selectedInvoiceId ? (
         <div className="card invoice-payment-panel">
           <div className="page-head invoice-payment-head">
-            <h2 style={{ fontSize: "1rem" }}>
-              Encaissements facture {selectedInvoice?.invoice_number || selectedInvoiceId}
-            </h2>
+            <h2 style={{ fontSize: "1rem" }}>Encaissements facture {selectedInvoice?.invoice_number || selectedInvoiceId}</h2>
             {loadingDetails ? (
               <span className="pill">Chargement...</span>
             ) : (
-              <span className="pill invoice-balance-pill">Reste: {dueSelected.toFixed(2)} {selectedInvoice?.currency || "EUR"}</span>
+              <span className="pill invoice-balance-pill">
+                Reste: {dueSelected.toFixed(2)} {selectedInvoice?.currency || "EUR"}
+              </span>
             )}
           </div>
 
-          {selectedInvoice?.profitability && (
+          {selectedInvoice?.profitability ? (
             <div className="card" style={{ marginBottom: 10 }}>
               <p className="card-label">Rentabilite mission liee</p>
               <p style={{ margin: 0 }}>
-                Cout estime: {Number(selectedInvoice.profitability.cost_estimated || 0).toFixed(2)} EUR | Marge brute: {Number(selectedInvoice.profitability.gross_margin || 0).toFixed(2)} EUR | % marge: {Number(selectedInvoice.profitability.margin_percent || 0).toFixed(2)}%
+                Cout estime: {Number(selectedInvoice.profitability.cost_estimated || 0).toFixed(2)} EUR | Marge brute:{" "}
+                {Number(selectedInvoice.profitability.gross_margin || 0).toFixed(2)} EUR | % marge:{" "}
+                {Number(selectedInvoice.profitability.margin_percent || 0).toFixed(2)}%
               </p>
             </div>
-          )}
+          ) : null}
 
           <form className="form-grid invoice-payment-form" onSubmit={submitPayment}>
-            <input type="date" value={paymentForm.payment_date} onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })} required />
-            <input type="number" min="0.01" step="0.01" placeholder="Montant" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} required />
-            <CustomSelect
-              value={paymentForm.method}
-              onChange={(next) => setPaymentForm({ ...paymentForm, method: next })}
-              options={PAYMENT_METHOD_OPTIONS}
+            <input
+              type="date"
+              value={paymentForm.payment_date}
+              onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })}
+              required
             />
-            <input placeholder="Reference" value={paymentForm.reference} onChange={(e) => setPaymentForm({ ...paymentForm, reference: e.target.value })} />
+            <input
+              type="number"
+              min="0.01"
+              step="0.01"
+              placeholder="Montant"
+              value={paymentForm.amount}
+              onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+              required
+            />
+            <CustomSelect value={paymentForm.method} onChange={(next) => setPaymentForm({ ...paymentForm, method: next })} options={PAYMENT_METHOD_OPTIONS} />
+            <input
+              placeholder="Reference"
+              value={paymentForm.reference}
+              onChange={(e) => setPaymentForm({ ...paymentForm, reference: e.target.value })}
+            />
             <input placeholder="Notes" value={paymentForm.notes} onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })} />
             <button className="primary-action invoice-payment-submit">Enregistrer paiement</button>
           </form>
@@ -658,28 +677,303 @@ export default function InvoicesPage() {
             items={selectedInvoice?.payments || []}
             className="payment-row-list"
             emptyMessage="Aucun paiement enregistre."
-            renderTitle={(p) => `${Number(p.amount || 0).toFixed(2)} ${selectedInvoice?.currency || "EUR"}`}
-            renderSubtitle={(p) => p.payment_date}
-            renderDetails={(p) => (
+            renderTitle={(payment) => `${Number(payment.amount || 0).toFixed(2)} ${selectedInvoice?.currency || "EUR"}`}
+            renderSubtitle={(payment) => payment.payment_date}
+            renderDetails={(payment) => (
               <div className="data-row-info-grid">
                 <div className="data-row-info">
                   <span className="data-row-label">Mode</span>
-                  <span className="data-row-value">{p.method || "-"}</span>
+                  <span className="data-row-value">{payment.method || "-"}</span>
                 </div>
                 <div className="data-row-info">
                   <span className="data-row-label">Reference</span>
-                  <span className="data-row-value">{p.reference || "-"}</span>
+                  <span className="data-row-value">{payment.reference || "-"}</span>
                 </div>
               </div>
             )}
-            renderActions={(p) => (
-              <button className="secondary" onClick={() => downloadReceiptPdf(selectedInvoiceId, p)}>
+            renderActions={(payment) => (
+              <button className="secondary" onClick={() => downloadReceiptPdf(selectedInvoiceId, payment)}>
                 Recu PDF
               </button>
             )}
           />
         </div>
-      )}
+      ) : null}
+
+      {drawerOpen ? (
+        <div className="modal-backdrop" onClick={closeWizard}>
+          <aside className="drawer-sheet drawer-sheet-wide quote-wizard-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="drawer-header quote-wizard-header">
+              <div>
+                <p className="card-label">Assistant facture</p>
+                <h3>Creer une facture sans formulaire geant</h3>
+                <p>
+                  Meme logique que pour les devis: on avance par etapes, on garde un resume vivant a droite et on
+                  valide seulement ce qui est utile.
+                </p>
+              </div>
+              <button type="button" className="btn btn-ghost drawer-close" onClick={closeWizard}>
+                ✕
+              </button>
+            </div>
+
+            <div className="quote-wizard-progress">
+              {WIZARD_STEPS.map((step, index) => (
+                <button
+                  key={step.id}
+                  type="button"
+                  className={`quote-step-pill ${wizardStep === index ? "is-active" : ""} ${
+                    wizardStep > index ? "is-complete" : ""
+                  }`}
+                  onClick={() => goToStep(index)}
+                >
+                  <span className="quote-step-pill__index">{index + 1}</span>
+                  <span>{step.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="quote-wizard-layout">
+              <section className="form-section quote-wizard-main">
+                {wizardStep === 0 ? (
+                  <>
+                    <p className="form-section-title">Etape 1 · Choix du client</p>
+                    <div className="quote-wizard-copy">
+                      <p>Selectionne le client d'abord. Toute la facture se preparera ensuite avec le bon contexte.</p>
+                    </div>
+                    <input placeholder="Rechercher un client" value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} />
+                    <SearchSelect
+                      value={form.client_id}
+                      onChange={(next) => setForm((prev) => ({ ...prev, client_id: next }))}
+                      options={clientSelectOptions}
+                      placeholder="Choisir un client"
+                      searchPlaceholder="Rechercher un client"
+                      emptyText="Aucun client trouve"
+                    />
+                  </>
+                ) : null}
+
+                {wizardStep === 1 ? (
+                  <>
+                    <p className="form-section-title">Etape 2 · Dossier rapide</p>
+                    <div className="quote-wizard-copy">
+                      <p>Renseigne les dates, le statut et les notes utiles avant de passer au prix.</p>
+                    </div>
+                    <div className="form-grid-2">
+                      <input
+                        type="date"
+                        value={form.invoice_date}
+                        onChange={async (e) => {
+                          const value = e.target.value;
+                          setForm((prev) => ({ ...prev, invoice_date: value }));
+                          await refreshNextNumber(value);
+                        }}
+                      />
+                      <input type="date" value={form.due_date} onChange={(e) => setForm((prev) => ({ ...prev, due_date: e.target.value }))} />
+                      <input
+                        placeholder="Numero facture"
+                        value={form.invoice_number}
+                        onChange={(e) => setForm((prev) => ({ ...prev, invoice_number: e.target.value }))}
+                      />
+                      <SegmentedControl value={form.status} onChange={(next) => setForm((prev) => ({ ...prev, status: next }))} options={INVOICE_STATUS_OPTIONS} />
+                    </div>
+                    <textarea
+                      placeholder="Notes visibles sur la facture"
+                      value={form.notes}
+                      onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    />
+                    {isAdmin ? (
+                      <textarea
+                        placeholder="Note interne (admin uniquement)"
+                        value={form.note_interne}
+                        onChange={(e) => setForm((prev) => ({ ...prev, note_interne: e.target.value }))}
+                      />
+                    ) : null}
+                  </>
+                ) : null}
+
+                {wizardStep === 2 ? (
+                  <>
+                    <div className="page-head quote-pricing-head">
+                      <h3>Etape 3 · Prix et articles</h3>
+                      <button type="button" className="secondary" onClick={addItem}>
+                        + Ligne
+                      </button>
+                    </div>
+                    <div className="quote-line-list">
+                      {items.map((item, index) => (
+                        <div key={index} className="quote-line-card">
+                          <div className="quote-line-card__head">
+                            <strong>Ligne {index + 1}</strong>
+                            <button type="button" className="ghost" onClick={() => removeItem(index)} disabled={items.length === 1}>
+                              Retirer
+                            </button>
+                          </div>
+                          <div className="quote-line-grid">
+                            <input
+                              list="invoice-articles"
+                              placeholder="Article ou description"
+                              value={item.description}
+                              onChange={(e) => applyArticle(index, e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="Quantite"
+                              value={item.quantity}
+                              onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="Prix unitaire"
+                              value={item.unit_price}
+                              onChange={(e) => updateItem(index, "unit_price", e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <datalist id="invoice-articles">
+                      {articles.map((article) => (
+                        <option key={article.id} value={article.name} />
+                      ))}
+                    </datalist>
+                    <div className="quote-price-grid">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="TVA %"
+                        value={form.tax_rate}
+                        onChange={(e) => setForm((prev) => ({ ...prev, tax_rate: e.target.value }))}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Acompte %"
+                        value={form.acompte_pourcentage}
+                        onChange={(e) => setForm((prev) => ({ ...prev, acompte_pourcentage: e.target.value }))}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Acompte montant"
+                        value={form.acompte_montant}
+                        onChange={(e) => setForm((prev) => ({ ...prev, acompte_montant: e.target.value }))}
+                      />
+                      <CustomSelect
+                        compact
+                        value={form.currency}
+                        onChange={(next) => setForm((prev) => ({ ...prev, currency: next }))}
+                        options={CURRENCY_OPTIONS}
+                      />
+                    </div>
+                  </>
+                ) : null}
+
+                {wizardStep === 3 ? (
+                  <>
+                    <p className="form-section-title">Etape 4 · Validation finale</p>
+                    <div className="quote-preview-block">
+                      <div className="quote-preview-section">
+                        <span className="data-row-label">Client</span>
+                        <strong>{selectedClient?.company_name || "Aucun client choisi"}</strong>
+                        <span className="muted-copy">
+                          {selectedClient?.contact_name || "Contact non renseigne"}
+                          {selectedClient?.email ? ` · ${selectedClient.email}` : ""}
+                        </span>
+                      </div>
+                      <div className="quote-preview-section">
+                        <span className="data-row-label">Facturation</span>
+                        <strong>{form.invoice_number || "Numero a definir"}</strong>
+                        <span className="muted-copy">
+                          Facture du {formatDateFr(form.invoice_date)} · echeance {formatDateFr(form.due_date)}
+                        </span>
+                      </div>
+                      <div className="quote-preview-lines">
+                        {buildFilteredItems().map((item, index) => (
+                          <div key={`${item.description}-${index}`} className="quote-preview-line">
+                            <span>{item.description}</span>
+                            <span>
+                              {Number(item.quantity || 0)} × {formatMoney(item.unit_price || 0, form.currency)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+              </section>
+
+              <aside className="card quote-summary-card">
+                <p className="card-label">Resume de la facture</p>
+                <div className="quote-summary-stack">
+                  <div className="quote-summary-row">
+                    <span>Numero</span>
+                    <strong>{form.invoice_number || "-"}</strong>
+                  </div>
+                  <div className="quote-summary-row">
+                    <span>Client</span>
+                    <strong>{selectedClient?.company_name || "A selectionner"}</strong>
+                  </div>
+                  <div className="quote-summary-row">
+                    <span>Sous-total</span>
+                    <strong>{formatMoney(draftTotals.subtotal, form.currency)}</strong>
+                  </div>
+                  <div className="quote-summary-row">
+                    <span>Total TTC</span>
+                    <strong>{formatMoney(draftTotals.total, form.currency)}</strong>
+                  </div>
+                  <div className="quote-summary-row">
+                    <span>Acompte</span>
+                    <strong>{formatMoney(draftTotals.acompte, form.currency)}</strong>
+                  </div>
+                  <div className="quote-summary-row quote-summary-row-balance">
+                    <span>Solde</span>
+                    <strong>{formatMoney(draftTotals.solde, form.currency)}</strong>
+                  </div>
+                  <div className="quote-summary-meta">
+                    {statusBadge(form.status)}
+                    <span className="data-row-chip">{buildFilteredItems().length} ligne(s)</span>
+                  </div>
+                </div>
+              </aside>
+            </div>
+
+            <div className="quote-wizard-actions">
+              <button type="button" className="secondary" onClick={closeWizard}>
+                Annuler
+              </button>
+              <div className="quote-wizard-actions__group">
+                {wizardStep > 0 ? (
+                  <button type="button" className="secondary" onClick={previousStep}>
+                    Retour
+                  </button>
+                ) : null}
+                {wizardStep < WIZARD_STEPS.length - 1 ? (
+                  <button type="button" className="primary-action" onClick={nextStep}>
+                    Continuer
+                  </button>
+                ) : (
+                  <>
+                    <button type="button" className="secondary" onClick={saveDraft} disabled={submitting}>
+                      {submitting ? "Enregistrement..." : "Enregistrer brouillon"}
+                    </button>
+                    <button type="button" className="primary-action" onClick={createInvoice} disabled={submitting}>
+                      {submitting ? "Creation..." : "Creer la facture"}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
     </div>
   );
 }
