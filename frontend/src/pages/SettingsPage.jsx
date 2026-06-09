@@ -296,33 +296,53 @@ export default function SettingsPage() {
 
       {activeTab === "entreprise" && (
         <div className="card">
-          <h3>Identite entreprise</h3>
-          <p className="documents-intro">Les champs vides ne seront plus affiches dans les PDF.</p>
-          <form className="form-grid" onSubmit={(e) => e.preventDefault()}>
-            <input placeholder="Nom entreprise (optionnel)" value={form.company_name || ""} onChange={(e) => setForm({ ...form, company_name: e.target.value })} />
-            <input placeholder="Forme juridique" value={form.legal_form || ""} onChange={(e) => setForm({ ...form, legal_form: e.target.value })} />
-            <input placeholder="Capital" value={form.capital_amount || ""} onChange={(e) => setForm({ ...form, capital_amount: e.target.value })} />
-            <input placeholder="Adresse" value={form.address_line1 || ""} onChange={(e) => setForm({ ...form, address_line1: e.target.value })} />
-            <input placeholder="Code postal" value={form.zip_code || ""} onChange={(e) => setForm({ ...form, zip_code: e.target.value })} />
-            <input placeholder="Ville" value={form.city || ""} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-            <input placeholder="Pays" value={form.country || ""} onChange={(e) => setForm({ ...form, country: e.target.value })} />
-            <input placeholder="Telephone" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            <input placeholder="Email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            <input placeholder="Site web" value={form.website || ""} onChange={(e) => setForm({ ...form, website: e.target.value })} />
-
-            <div className="card" style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>Logo (PNG/JPG, optionnel)</label>
-              <input type="file" accept="image/png,image/jpeg,image/jpg" onChange={onFileChange} />
-              {form.logo_data_url ? (
-                <div style={{ marginTop: 10 }}>
-                  <img src={form.logo_data_url} alt="logo" style={{ maxHeight: 100, objectFit: "contain" }} />
+          <div className="settings-company-head">
+            <div>
+              <h3>Identite entreprise</h3>
+              <p className="documents-intro">Les champs vides ne seront plus affiches dans les PDF.</p>
+            </div>
+            <span className="data-row-chip">Bloc utilise pour devis, factures et recus</span>
+          </div>
+          <form className="settings-company-form" onSubmit={(e) => e.preventDefault()}>
+            <div className="settings-company-layout">
+              <section className="form-panel settings-company-panel">
+                <p className="form-section-title">Informations principales</p>
+                <div className="form-grid-2 settings-company-grid">
+                  <input placeholder="Nom entreprise (optionnel)" value={form.company_name || ""} onChange={(e) => setForm({ ...form, company_name: e.target.value })} />
+                  <input placeholder="Forme juridique" value={form.legal_form || ""} onChange={(e) => setForm({ ...form, legal_form: e.target.value })} />
+                  <input placeholder="Capital" value={form.capital_amount || ""} onChange={(e) => setForm({ ...form, capital_amount: e.target.value })} />
+                  <input placeholder="Adresse" value={form.address_line1 || ""} onChange={(e) => setForm({ ...form, address_line1: e.target.value })} />
+                  <input placeholder="Code postal" value={form.zip_code || ""} onChange={(e) => setForm({ ...form, zip_code: e.target.value })} />
+                  <input placeholder="Ville" value={form.city || ""} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+                  <input placeholder="Pays" value={form.country || ""} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+                  <input placeholder="Telephone" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                  <input placeholder="Email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                  <input placeholder="Site web" value={form.website || ""} onChange={(e) => setForm({ ...form, website: e.target.value })} />
                 </div>
-              ) : null}
+              </section>
+
+              <aside className="form-panel settings-company-panel settings-company-logo-panel">
+                <p className="form-section-title">Identite visuelle</p>
+                <label className="settings-company-logo-label">Logo (PNG/JPG, optionnel)</label>
+                <input className="settings-company-file" type="file" accept="image/png,image/jpeg,image/jpg" onChange={onFileChange} />
+                <div className="settings-company-logo-preview">
+                  {form.logo_data_url ? (
+                    <img src={form.logo_data_url} alt="logo" className="settings-company-logo-image" />
+                  ) : (
+                    <div className="settings-company-logo-empty">
+                      <strong>Apercu logo</strong>
+                      <span>Ajoute ton logo pour l'utiliser dans les PDF.</span>
+                    </div>
+                  )}
+                </div>
+              </aside>
             </div>
 
-            <button type="button" onClick={() => saveCompanySection("Entreprise")} disabled={saving} style={{ gridColumn: "1 / -1" }}>
-              {saving ? "Enregistrement..." : "Enregistrer Entreprise"}
-            </button>
+            <div className="settings-company-actions">
+              <button type="button" className="primary-action" onClick={() => saveCompanySection("Entreprise")} disabled={saving}>
+                {saving ? "Enregistrement..." : "Enregistrer l'identite entreprise"}
+              </button>
+            </div>
           </form>
         </div>
       )}

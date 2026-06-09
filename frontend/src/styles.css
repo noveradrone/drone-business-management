@@ -2654,6 +2654,95 @@ textarea {
   gap: 24px;
 }
 
+.settings-company-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.settings-company-head h3 {
+  margin: 0 0 8px;
+}
+
+.settings-company-head .documents-intro {
+  margin: 0;
+  text-align: left;
+  max-width: 60ch;
+}
+
+.settings-company-form {
+  display: grid;
+  gap: 20px;
+}
+
+.settings-company-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.settings-company-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-company-grid {
+  gap: 16px;
+}
+
+.settings-company-logo-panel {
+  align-content: start;
+}
+
+.settings-company-logo-label {
+  display: block;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.settings-company-file {
+  width: 100%;
+}
+
+.settings-company-logo-preview {
+  min-height: 240px;
+  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--primary-color) 10%, var(--border));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 96%, transparent), color-mix(in srgb, var(--bg-color) 54%, var(--surface-strong)));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.settings-company-logo-image {
+  max-width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+}
+
+.settings-company-logo-empty {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+  color: var(--muted);
+}
+
+.settings-company-logo-empty strong {
+  color: var(--text);
+}
+
+.settings-company-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 .hero-panel {
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
@@ -4271,6 +4360,10 @@ button,
 }
 
 @media (max-width: 1180px) {
+  .settings-company-layout {
+    grid-template-columns: 1fr;
+  }
+
   .quote-wizard-layout {
     grid-template-columns: 1fr;
   }
@@ -4285,6 +4378,19 @@ button,
 }
 
 @media (max-width: 900px) {
+  .settings-company-head,
+  .settings-company-actions {
+    justify-content: stretch;
+  }
+
+  .settings-company-actions {
+    justify-content: stretch;
+  }
+
+  .settings-company-actions .primary-action {
+    width: 100%;
+  }
+
   .quote-wizard-sheet {
     top: 0;
     right: 0;
