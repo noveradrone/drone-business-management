@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import DataRowList from "../components/DataRowList";
 
 const defaultForm = {
   brand: "",
@@ -173,54 +174,55 @@ export default function DronesPage() {
         </div>
       </section>
 
-      <section className="fleet-grid">
-        {visibleDrones.map((drone) => {
+      <DataRowList
+        items={visibleDrones}
+        className="drone-row-list"
+        emptyMessage="Aucun drone."
+        renderTitle={(drone) => `${drone.brand} ${drone.model}`}
+        renderSubtitle={(drone) => `S/N ${drone.serial_number}`}
+        renderDetails={(drone) => (
+          <div className="data-row-info-grid">
+            <div className="data-row-info">
+              <span className="data-row-label">État</span>
+              <span className="data-row-value">{statusLabel(drone.status)}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Temps de vol</span>
+              <span className="data-row-value">{Number(drone.total_flight_hours || 0).toFixed(1)} h</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Cycles</span>
+              <span className="data-row-value">{Number(drone.total_cycles || 0)}</span>
+            </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Maintenance</span>
+              <span className="data-row-value">{drone.last_maintenance_date || "À définir"}</span>
+            </div>
+          </div>
+        )}
+        renderMeta={(drone) => {
           const health = scoreHealth(drone);
           return (
-            <article key={drone.id} className="fleet-card">
-              <div className="fleet-card-top">
-                <div>
-                  <p className="card-label">{statusLabel(drone.status)}</p>
-                  <h3>{drone.brand} {drone.model}</h3>
-                  <p className="muted-copy" style={{ margin: "6px 0 0" }}>S/N {drone.serial_number}</p>
-                </div>
-                <span className="status-badge">{health}% sante</span>
-              </div>
-
-              <div className="metrics-inline">
-                <div className="metric-inline">
-                  <span className="muted-copy">Temps de vol</span>
-                  <strong>{Number(drone.total_flight_hours || 0).toFixed(1)} h</strong>
-                </div>
-                <div className="metric-inline">
-                  <span className="muted-copy">Cycles</span>
-                  <strong>{Number(drone.total_cycles || 0)}</strong>
-                </div>
-                <div className="metric-inline">
-                  <span className="muted-copy">Maintenance</span>
-                  <strong>{drone.last_maintenance_date || "A definir"}</strong>
-                </div>
-                <div className="metric-inline">
-                  <span className="muted-copy">Seuils</span>
-                  <strong>{drone.battery_cycle_threshold || 300} / {Number(drone.propeller_hours_threshold || 120).toFixed(0)}</strong>
-                </div>
-              </div>
-
-              <div>
+            <>
+              <span className="status-badge">{health}% santé</span>
+              <div className="data-row-progress">
                 <div className="health-bar"><span style={{ width: `${health}%` }} /></div>
-                <p className="muted-copy" style={{ margin: "8px 0 0" }}>{drone.notes || "Aucune note de maintenance renseignée."}</p>
+                <span className="data-row-note">
+                  {drone.notes || "Aucune note de maintenance renseignée."}
+                </span>
               </div>
-
-              <div className="toolbar-actions">
-                <button type="button" className="secondary" onClick={() => openEdit(drone)}>Modifier</button>
-                <button type="button" className="secondary">Historique</button>
-                <button type="button" className="secondary">Maintenance</button>
-                <button type="button" className="danger" onClick={() => removeDrone(drone)}>Supprimer</button>
-              </div>
-            </article>
+            </>
           );
-        })}
-      </section>
+        }}
+        renderActions={(drone) => (
+          <>
+            <button type="button" className="secondary" onClick={() => openEdit(drone)}>Modifier</button>
+            <button type="button" className="secondary">Historique</button>
+            <button type="button" className="secondary">Maintenance</button>
+            <button type="button" className="danger" onClick={() => removeDrone(drone)}>Supprimer</button>
+          </>
+        )}
+      />
 
       {drawerOpen ? (
         <div className="modal-backdrop" onClick={closeDrawer}>

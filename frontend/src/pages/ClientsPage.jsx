@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import DataRowList from "../components/DataRowList";
 
 const EMPTY_FORM = {
   company_name: "",
@@ -131,50 +132,49 @@ export default function ClientsPage() {
         </div>
       </section>
 
-      <section className="crm-grid">
-        {visibleClients.map((client) => (
-          <article key={client.id} className="crm-card">
-            <div className="crm-card-top">
-              <div>
-                <p className="card-label">{Number(client.is_prospect) === 1 ? "Prospect" : "Client actif"}</p>
-                <h3>{client.company_name}</h3>
-                <p className="muted-copy" style={{ margin: "6px 0 0" }}>{client.contact_name || "Contact non renseigne"}</p>
-              </div>
-              <span className="status-badge">{Number(client.is_prospect) === 1 ? "Prospect" : "Client"}</span>
+      <DataRowList
+        items={visibleClients}
+        className="client-row-list"
+        emptyMessage="Aucun client."
+        renderTitle={(client) => client.company_name}
+        renderSubtitle={(client) => client.contact_name || "Contact non renseigné"}
+        renderDetails={(client) => (
+          <div className="data-row-info-grid">
+            <div className="data-row-info">
+              <span className="data-row-label">Email</span>
+              <span className="data-row-value">{client.email || "-"}</span>
             </div>
-
-            <div className="metrics-inline">
-              <div className="metric-inline">
-                <span className="muted-copy">Email</span>
-                <strong>{client.email || "-"}</strong>
-              </div>
-              <div className="metric-inline">
-                <span className="muted-copy">Telephone</span>
-                <strong>{client.phone || "-"}</strong>
-              </div>
-              <div className="metric-inline">
-                <span className="muted-copy">SIRET</span>
-                <strong>{client.siret || "-"}</strong>
-              </div>
-              <div className="metric-inline">
-                <span className="muted-copy">Source</span>
-                <strong>{client.source_channel || "Direct"}</strong>
-              </div>
+            <div className="data-row-info">
+              <span className="data-row-label">Téléphone</span>
+              <span className="data-row-value">{client.phone || "-"}</span>
             </div>
-
-            <p className="muted-copy" style={{ margin: 0 }}>{client.billing_address || "Aucune adresse de facturation renseignée."}</p>
-
-            <div className="toolbar-actions">
-              {client.phone ? <a className="action-link-btn secondary" href={`tel:${client.phone}`}>Appeler</a> : null}
-              {client.email ? <a className="action-link-btn secondary" href={`mailto:${client.email}`}>Email</a> : null}
-              <button type="button" className="secondary" onClick={() => startEdit(client)}>Modifier</button>
-              <button type="button" className="secondary">Créer devis</button>
-              <button type="button" className="secondary">Créer mission</button>
-              <button type="button" className="danger" onClick={() => removeClient(client)}>Supprimer</button>
+            <div className="data-row-info">
+              <span className="data-row-label">SIRET</span>
+              <span className="data-row-value">{client.siret || "-"}</span>
             </div>
-          </article>
-        ))}
-      </section>
+            <div className="data-row-info">
+              <span className="data-row-label">Source</span>
+              <span className="data-row-value">{client.source_channel || "Direct"}</span>
+            </div>
+          </div>
+        )}
+        renderMeta={(client) => (
+          <>
+            <span className="status-badge">{Number(client.is_prospect) === 1 ? "Prospect" : "Client actif"}</span>
+            {client.billing_address ? <span className="data-row-note">{client.billing_address}</span> : null}
+          </>
+        )}
+        renderActions={(client) => (
+          <>
+            {client.phone ? <a className="action-link-btn secondary" href={`tel:${client.phone}`}>Appeler</a> : null}
+            {client.email ? <a className="action-link-btn secondary" href={`mailto:${client.email}`}>Email</a> : null}
+            <button type="button" className="secondary" onClick={() => startEdit(client)}>Modifier</button>
+            <button type="button" className="secondary">Créer devis</button>
+            <button type="button" className="secondary">Créer mission</button>
+            <button type="button" className="danger" onClick={() => removeClient(client)}>Supprimer</button>
+          </>
+        )}
+      />
 
       {drawerOpen ? (
         <div className="modal-backdrop" onClick={closeDrawer}>

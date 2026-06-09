@@ -75,40 +75,42 @@ export default function DashboardPage() {
 
   return (
     <div className="dashboard-page">
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <p className="login-eyebrow">Cockpit opérationnel</p>
-          <h2>Une vue d’ensemble claire sur ta flotte, ta finance et tes priorités terrain.</h2>
-          <p>
-            Le dashboard centralise ce qui compte aujourd’hui : chiffre d’affaires, encaissements,
-            charge mission et alertes de maintenance. L’objectif est d’aller plus vite, sans chercher l’info.
-          </p>
+      <div className="page-header">
+        <div>
+          <p className="login-eyebrow">Dashboard</p>
         </div>
-        <div className="card stack">
-          <div>
-            <p className="card-label">Objectif du mois</p>
-            <p className="card-value">{percent(kpis.targetProgressPercent)}</p>
-          </div>
-          <div className="health-bar"><span style={{ width: `${Math.min(100, Number(kpis.targetProgressPercent || 0))}%` }} /></div>
-          <div className="metrics-inline">
-            <div className="metric-inline">
-              <span className="muted-copy">CA mois</span>
-              <strong>{currency(kpis.revenueCurrentMonth)}</strong>
-            </div>
-            <div className="metric-inline">
-              <span className="muted-copy">Panier moyen</span>
-              <strong>{currency(kpis.averageBasket)}</strong>
-            </div>
-          </div>
+        <h2 className="page-title">Vue d’ensemble de l’activité</h2>
+        <div className="page-action">
           <button className="btn" type="button" onClick={() => navigate("/invoices")}>Créer une facture</button>
         </div>
+      </div>
+      <p className="page-summary">
+        Un cockpit simple pour suivre l’activité, les encaissements et les alertes sans chercher l’information.
+      </p>
+
+      <section className="card summary-band">
+        <div className="summary-band-grid">
+          <div className="summary-band-item">
+            <span className="data-row-label">Objectif du mois</span>
+            <strong>{percent(kpis.targetProgressPercent)}</strong>
+          </div>
+          <div className="summary-band-item">
+            <span className="data-row-label">CA du mois</span>
+            <strong>{currency(kpis.revenueCurrentMonth)}</strong>
+          </div>
+          <div className="summary-band-item">
+            <span className="data-row-label">Panier moyen</span>
+            <strong>{currency(kpis.averageBasket)}</strong>
+          </div>
+        </div>
+        <div className="health-bar"><span style={{ width: `${Math.min(100, Number(kpis.targetProgressPercent || 0))}%` }} /></div>
       </section>
 
       <section className="kpi-grid">
         <article className="card kpi-card">
           <div className="kpi-head">
             <span className="kpi-icon">€</span>
-            <span className="kpi-trend">+{percent(12.4)}</span>
+            <span className="kpi-trend">12 mois</span>
           </div>
           <p className="card-label">CA total 12 mois</p>
           <p className="card-value">{currency(kpis.revenueLast12Months)}</p>
@@ -116,7 +118,7 @@ export default function DashboardPage() {
         <article className="card kpi-card">
           <div className="kpi-head">
             <span className="kpi-icon">⇡</span>
-            <span className="kpi-trend">+{percent(6.8)}</span>
+            <span className="kpi-trend">Reçus</span>
           </div>
           <p className="card-label">Encaissements</p>
           <p className="card-value">{currency(kpis.receivable)}</p>
@@ -124,7 +126,7 @@ export default function DashboardPage() {
         <article className="card kpi-card">
           <div className="kpi-head">
             <span className="kpi-icon">✦</span>
-            <span className="kpi-trend">{Number(kpis.missions || 0)} actives</span>
+            <span className="kpi-trend">En cours</span>
           </div>
           <p className="card-label">Missions actives</p>
           <p className="card-value">{Number(kpis.missions || 0)}</p>
@@ -132,7 +134,7 @@ export default function DashboardPage() {
         <article className="card kpi-card">
           <div className="kpi-head">
             <span className="kpi-icon">!</span>
-            <span className="kpi-trend" style={{ color: "var(--danger)" }}>{Number(kpis.overdueInvoices || 0)} alertes</span>
+            <span className="kpi-trend" style={{ color: "var(--danger)" }}>À traiter</span>
           </div>
           <p className="card-label">Factures en retard</p>
           <p className="card-value">{Number(kpis.overdueInvoices || 0)}</p>

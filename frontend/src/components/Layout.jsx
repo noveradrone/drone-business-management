@@ -14,26 +14,26 @@ const NAV_SECTIONS = [
   {
     title: "Gestion",
     items: [
-      { to: "/dashboard", label: "Dashboard", icon: "⌂", keywords: ["accueil", "kpi", "tableau"] },
-      { to: "/drones", label: "Drones", icon: "◫", keywords: ["flotte", "maintenance", "drone"] },
-      { to: "/clients", label: "Clients", icon: "◎", keywords: ["crm", "prospect", "client"] },
-      { to: "/missions", label: "Missions", icon: "✦", keywords: ["vol", "planning", "kanban"] }
+      { to: "/dashboard", label: "Dashboard", keywords: ["accueil", "kpi", "tableau"] },
+      { to: "/drones", label: "Drones", keywords: ["flotte", "maintenance", "drone"] },
+      { to: "/clients", label: "Clients", keywords: ["crm", "prospect", "client"] },
+      { to: "/missions", label: "Missions", keywords: ["vol", "planning"] }
     ]
   },
   {
     title: "Finance",
     items: [
-      { to: "/quotes", label: "Devis", icon: "¤", keywords: ["quote", "proposition"] },
-      { to: "/invoices", label: "Factures", icon: "▣", keywords: ["paiement", "encaissement", "invoice"] }
+      { to: "/quotes", label: "Devis", keywords: ["quote", "proposition"] },
+      { to: "/invoices", label: "Factures", keywords: ["paiement", "encaissement", "invoice"] }
     ]
   },
   {
     title: "Administration",
     items: [
-      { to: "/documents", label: "Documents", icon: "☰", keywords: ["pdf", "kbis", "manex"] },
-      { to: "/insurances", label: "Assurances", icon: "⛨", keywords: ["contrat", "expiration", "rc pro"] },
-      { to: "/exports", label: "Exports", icon: "⇪", keywords: ["csv", "export"] },
-      { to: "/settings", label: "Parametres", icon: "⚙", keywords: ["theme", "societe", "securite"] }
+      { to: "/documents", label: "Documents", keywords: ["pdf", "kbis", "manex"] },
+      { to: "/insurances", label: "Assurances", keywords: ["contrat", "expiration", "rc pro"] },
+      { to: "/exports", label: "Exports", keywords: ["csv", "export"] },
+      { to: "/settings", label: "Parametres", keywords: ["theme", "societe", "securite"] }
     ]
   }
 ];
@@ -60,10 +60,7 @@ function searchItems(query) {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return [];
   return NAV_SECTIONS.flatMap((section) => section.items)
-    .filter((item) => {
-      const haystack = [item.label, ...(item.keywords || [])].join(" ").toLowerCase();
-      return haystack.includes(normalized);
-    })
+    .filter((item) => [item.label, ...(item.keywords || [])].join(" ").toLowerCase().includes(normalized))
     .slice(0, 6);
 }
 
@@ -85,9 +82,10 @@ export default function Layout({ children, onLogout }) {
   }, [location.pathname]);
 
   const renderedContent = useMemo(() => children ?? <Outlet />, [children]);
-  const closeMenu = () => setMobileOpen(false);
   const breadcrumb = useMemo(() => buildBreadcrumb(location.pathname), [location.pathname]);
   const results = useMemo(() => searchItems(query), [query]);
+
+  const closeMenu = () => setMobileOpen(false);
 
   const handleLogout = () => {
     closeMenu();
@@ -133,18 +131,17 @@ export default function Layout({ children, onLogout }) {
         aria-expanded={mobileOpen}
         aria-controls="site-sidebar"
       >
-        ☰ Menu
+        Menu
       </button>
 
       <div className={`site-overlay ${mobileOpen ? "is-visible" : ""}`} onClick={closeMenu} aria-hidden="true" />
 
       <aside id="site-sidebar" className={`site-sidebar modern-sidebar ${mobileOpen ? "is-open" : ""}`}>
-        <div className="sidebar-brand-card">
+        <div className="sidebar-brand-card simple-brand-card">
           <div className="sidebar-brand-mark">ND</div>
           <div>
             <p className="sidebar-brand-label">Drone Business</p>
             <h1 className="sidebar-brand-title">Novera Drone</h1>
-            <p className="sidebar-brand-meta">Operations Console</p>
           </div>
         </div>
 
@@ -157,11 +154,10 @@ export default function Layout({ children, onLogout }) {
                   <NavLink
                     key={item.to}
                     to={item.to}
-                    title={item.label}
                     onClick={closeMenu}
                     className={({ isActive }) => `site-nav-link modern-nav-link ${isActive ? "is-active" : ""}`.trim()}
                   >
-                    <span className="nav-icon" aria-hidden="true">{item.icon}</span>
+                    <span className="nav-icon nav-icon-minimal" aria-hidden="true" />
                     <span>{item.label}</span>
                   </NavLink>
                 ))}
@@ -170,11 +166,11 @@ export default function Layout({ children, onLogout }) {
           ))}
         </nav>
 
-        <div className="sidebar-profile-card">
+        <div className="sidebar-profile-card simple-profile-card">
           <div className="sidebar-profile-avatar">EO</div>
           <div>
-            <div className="sidebar-profile-name">Equipe Novera</div>
-            <div className="sidebar-profile-role">Admin</div>
+            <div className="sidebar-profile-name">Enes Ozturk</div>
+            <div className="sidebar-profile-role">Administrateur</div>
           </div>
           <button type="button" className="btn btn-ghost sidebar-logout-btn" onClick={handleLogout}>Deconnexion</button>
         </div>
@@ -182,15 +178,24 @@ export default function Layout({ children, onLogout }) {
       </aside>
 
       <div className="site-workspace">
-        <header className="workspace-topbar">
-          <div className="topbar-search-wrap">
-            <div className="topbar-search-shell">
+        <header className="workspace-topbar simple-topbar">
+          <div className="workspace-breadcrumb simple-breadcrumb" aria-label="Breadcrumb">
+            {breadcrumb.map((crumb, index) => (
+              <span key={`${crumb}-${index}`} className="breadcrumb-item">
+                {index > 0 ? <span className="breadcrumb-separator">/</span> : null}
+                <span>{crumb}</span>
+              </span>
+            ))}
+          </div>
+
+          <div className="topbar-search-wrap compact-search-wrap">
+            <div className="topbar-search-shell compact-search-shell">
               <span className="topbar-search-icon" aria-hidden="true">⌕</span>
               <input
                 className="topbar-search-input"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Rechercher une page, un module, une action..."
+                placeholder="Rechercher..."
               />
             </div>
             {query && results.length ? (
@@ -205,7 +210,6 @@ export default function Layout({ children, onLogout }) {
                       setQuery("");
                     }}
                   >
-                    <span className="nav-icon">{item.icon}</span>
                     <span>{item.label}</span>
                   </button>
                 ))}
@@ -213,28 +217,12 @@ export default function Layout({ children, onLogout }) {
             ) : null}
           </div>
 
-          <div className="workspace-breadcrumb" aria-label="Breadcrumb">
-            {breadcrumb.map((crumb, index) => (
-              <span key={`${crumb}-${index}`} className="breadcrumb-item">
-                {index > 0 ? <span className="breadcrumb-separator">/</span> : null}
-                <span>{crumb}</span>
-              </span>
-            ))}
-          </div>
-
-          <div className="workspace-tools">
-            <button type="button" className="tool-chip notification-chip" aria-label="Notifications">
-              ⌁ <span>3</span>
-            </button>
+          <div className="workspace-tools compact-tools">
             <button type="button" className="tool-chip" onClick={handleThemeToggle} aria-label="Changer le theme">
-              {themeMode === "dark" ? "☀ Clair" : "☾ Sombre"}
+              {themeMode === "dark" ? "Clair" : "Sombre"}
             </button>
-            <div className="tool-profile">
+            <div className="tool-profile compact-profile">
               <div className="tool-profile-avatar">EO</div>
-              <div className="tool-profile-copy">
-                <strong>Enes Ozturk</strong>
-                <span>Workspace principal</span>
-              </div>
             </div>
           </div>
         </header>
