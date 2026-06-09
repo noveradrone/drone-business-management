@@ -205,7 +205,11 @@ export default function ClientsPage() {
                   <input placeholder="SIRET" value={form.siret} onChange={(e) => setForm({ ...form, siret: e.target.value })} />
                   <input placeholder="TVA" value={form.vat_number} onChange={(e) => setForm({ ...form, vat_number: e.target.value })} />
                   <input placeholder="Source lead" value={form.source_channel} onChange={(e) => setForm({ ...form, source_channel: e.target.value })} />
-                  <select value={String(form.is_prospect)} onChange={(e) => setForm({ ...form, is_prospect: Number(e.target.value) })}>
+                  <select
+                    className="form-span-2"
+                    value={String(form.is_prospect)}
+                    onChange={(e) => setForm({ ...form, is_prospect: Number(e.target.value) })}
+                  >
                     <option value="1">Prospect</option>
                     <option value="0">Client actif</option>
                   </select>

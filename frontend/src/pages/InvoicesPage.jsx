@@ -601,15 +601,15 @@ export default function InvoicesPage() {
       </details>
 
       {selectedInvoiceId && (
-        <div className="card" style={{ marginTop: 14 }}>
-          <div className="page-head">
+        <div className="card invoice-payment-panel">
+          <div className="page-head invoice-payment-head">
             <h2 style={{ fontSize: "1rem" }}>
               Encaissements facture {selectedInvoice?.invoice_number || selectedInvoiceId}
             </h2>
             {loadingDetails ? (
               <span className="pill">Chargement...</span>
             ) : (
-              <span className="pill">Reste: {dueSelected.toFixed(2)} {selectedInvoice?.currency || "EUR"}</span>
+              <span className="pill invoice-balance-pill">Reste: {dueSelected.toFixed(2)} {selectedInvoice?.currency || "EUR"}</span>
             )}
           </div>
 
@@ -622,7 +622,7 @@ export default function InvoicesPage() {
             </div>
           )}
 
-          <form className="form-grid" onSubmit={submitPayment}>
+          <form className="form-grid invoice-payment-form" onSubmit={submitPayment}>
             <input type="date" value={paymentForm.payment_date} onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })} required />
             <input type="number" min="0.01" step="0.01" placeholder="Montant" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} required />
             <select value={paymentForm.method} onChange={(e) => setPaymentForm({ ...paymentForm, method: e.target.value })}>
@@ -633,11 +633,12 @@ export default function InvoicesPage() {
             </select>
             <input placeholder="Reference" value={paymentForm.reference} onChange={(e) => setPaymentForm({ ...paymentForm, reference: e.target.value })} />
             <input placeholder="Notes" value={paymentForm.notes} onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })} />
-            <button className="primary-action">Enregistrer paiement</button>
+            <button className="primary-action invoice-payment-submit">Enregistrer paiement</button>
           </form>
 
           <DataRowList
             items={selectedInvoice?.payments || []}
+            className="payment-row-list"
             emptyMessage="Aucun paiement enregistre."
             renderTitle={(p) => `${Number(p.amount || 0).toFixed(2)} ${selectedInvoice?.currency || "EUR"}`}
             renderSubtitle={(p) => p.payment_date}

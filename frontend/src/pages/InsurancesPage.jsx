@@ -73,79 +73,85 @@ export default function InsurancesPage() {
   }
 
   return (
-    <div>
+    <div className="insurances-page">
       <div className="page-head">
         <h2>Assurances</h2>
       </div>
 
       {error && <p className="error">{error}</p>}
 
-      <form className="form-grid" onSubmit={submit}>
-        <input
-          placeholder="Assureur"
-          value={form.provider}
-          onChange={(e) => setForm({ ...form, provider: e.target.value })}
-          required
-        />
-        <input
-          placeholder="Numéro de police"
-          value={form.policy_number}
-          onChange={(e) => setForm({ ...form, policy_number: e.target.value })}
-          required
-        />
-        <select
-          value={form.insured_entity_type}
-          onChange={(e) => setForm({ ...form, insured_entity_type: e.target.value })}
-        >
-          <option value="company">company</option>
-          <option value="drone">drone</option>
-        </select>
-        <input
-          type="number"
-          min="1"
-          inputMode="numeric"
-          placeholder="ID entité (optionnel)"
-          value={form.insured_entity_id}
-          onChange={(e) => setForm({ ...form, insured_entity_id: e.target.value })}
-        />
-        <input
-          type="date"
-          value={form.valid_from}
-          onChange={(e) => setForm({ ...form, valid_from: e.target.value })}
-          required
-        />
-        <input
-          type="date"
-          value={form.valid_until}
-          onChange={(e) => setForm({ ...form, valid_until: e.target.value })}
-          required
-        />
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          inputMode="decimal"
-          placeholder="Prime (optionnel)"
-          value={form.premium_amount}
-          onChange={(e) => setForm({ ...form, premium_amount: e.target.value })}
-        />
-        <input
-          placeholder="Couvertures (optionnel)"
-          value={form.coverage_details}
-          onChange={(e) => setForm({ ...form, coverage_details: e.target.value })}
-        />
-        <input
-          placeholder="Notes (optionnel)"
-          value={form.notes}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
-        />
-        <button style={{ gridColumn: "1 / -1" }} disabled={submitting}>
-          {submitting ? "Création..." : "Créer le contrat"}
-        </button>
-      </form>
+      <section className="card insurance-form-card">
+        <form className="form-grid insurance-form-grid" onSubmit={submit}>
+          <input
+            placeholder="Assureur"
+            value={form.provider}
+            onChange={(e) => setForm({ ...form, provider: e.target.value })}
+            required
+          />
+          <input
+            placeholder="Numéro de police"
+            value={form.policy_number}
+            onChange={(e) => setForm({ ...form, policy_number: e.target.value })}
+            required
+          />
+          <select
+            value={form.insured_entity_type}
+            onChange={(e) => setForm({ ...form, insured_entity_type: e.target.value })}
+          >
+            <option value="company">Entreprise</option>
+            <option value="drone">Drone</option>
+          </select>
+          <input
+            type="number"
+            min="1"
+            inputMode="numeric"
+            placeholder="ID entité (optionnel)"
+            value={form.insured_entity_id}
+            onChange={(e) => setForm({ ...form, insured_entity_id: e.target.value })}
+          />
+          <input
+            type="date"
+            value={form.valid_from}
+            onChange={(e) => setForm({ ...form, valid_from: e.target.value })}
+            required
+          />
+          <input
+            type="date"
+            value={form.valid_until}
+            onChange={(e) => setForm({ ...form, valid_until: e.target.value })}
+            required
+          />
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            placeholder="Prime (optionnel)"
+            value={form.premium_amount}
+            onChange={(e) => setForm({ ...form, premium_amount: e.target.value })}
+          />
+          <input
+            placeholder="Couvertures (optionnel)"
+            value={form.coverage_details}
+            onChange={(e) => setForm({ ...form, coverage_details: e.target.value })}
+          />
+          <input
+            className="insurance-notes-input"
+            placeholder="Notes (optionnel)"
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          />
+          <div className="insurance-form-actions">
+            <button className="primary-action" disabled={submitting}>
+              {submitting ? "Création..." : "Créer le contrat"}
+            </button>
+          </div>
+        </form>
+      </section>
 
       <DataRowList
         items={insurances}
+        className="insurance-row-list"
         emptyMessage="Aucun contrat d'assurance."
         renderTitle={(i) => i.provider}
         renderSubtitle={(i) => i.policy_number}

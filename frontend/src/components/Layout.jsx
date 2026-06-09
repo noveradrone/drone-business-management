@@ -14,26 +14,26 @@ const NAV_SECTIONS = [
   {
     title: "Gestion",
     items: [
-      { to: "/dashboard", label: "Dashboard", keywords: ["accueil", "kpi", "tableau"] },
-      { to: "/drones", label: "Drones", keywords: ["flotte", "maintenance", "drone"] },
-      { to: "/clients", label: "Clients", keywords: ["crm", "prospect", "client"] },
-      { to: "/missions", label: "Missions", keywords: ["vol", "planning"] }
+      { to: "/dashboard", label: "Dashboard", icon: "⌂", keywords: ["accueil", "kpi", "tableau"] },
+      { to: "/drones", label: "Drones", icon: "✈", keywords: ["flotte", "maintenance", "drone"] },
+      { to: "/clients", label: "Clients", icon: "◉", keywords: ["crm", "prospect", "client"] },
+      { to: "/missions", label: "Missions", icon: "◎", keywords: ["vol", "planning"] }
     ]
   },
   {
     title: "Finance",
     items: [
-      { to: "/quotes", label: "Devis", keywords: ["quote", "proposition"] },
-      { to: "/invoices", label: "Factures", keywords: ["paiement", "encaissement", "invoice"] }
+      { to: "/quotes", label: "Devis", icon: "◫", keywords: ["quote", "proposition"] },
+      { to: "/invoices", label: "Factures", icon: "€", keywords: ["paiement", "encaissement", "invoice"] }
     ]
   },
   {
     title: "Administration",
     items: [
-      { to: "/documents", label: "Documents", keywords: ["pdf", "kbis", "manex"] },
-      { to: "/insurances", label: "Assurances", keywords: ["contrat", "expiration", "rc pro"] },
-      { to: "/exports", label: "Exports", keywords: ["csv", "export"] },
-      { to: "/settings", label: "Parametres", keywords: ["theme", "societe", "securite"] }
+      { to: "/documents", label: "Documents", icon: "▤", keywords: ["pdf", "kbis", "manex"] },
+      { to: "/insurances", label: "Assurances", icon: "⛨", keywords: ["contrat", "expiration", "rc pro"] },
+      { to: "/exports", label: "Exports", icon: "⇩", keywords: ["csv", "export"] },
+      { to: "/settings", label: "Parametres", icon: "⚙", keywords: ["theme", "societe", "securite"] }
     ]
   }
 ];
@@ -186,7 +186,7 @@ export default function Layout({ children, onLogout }) {
                     onClick={closeMenu}
                     className={({ isActive }) => `site-nav-link modern-nav-link ${isActive ? "is-active" : ""}`.trim()}
                   >
-                    <span className="nav-icon nav-icon-minimal" aria-hidden="true" />
+                    <span className="nav-icon nav-icon-minimal" aria-hidden="true">{item.icon || "•"}</span>
                     <span>{item.label}</span>
                   </NavLink>
                 ))}
