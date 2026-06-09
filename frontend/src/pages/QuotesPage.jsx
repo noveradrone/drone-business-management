@@ -816,6 +816,7 @@ export default function QuotesPage() {
         items={quotes}
         className="quote-row-list"
         emptyMessage="Aucun devis."
+        getItemClassName={(quote) => (quoteActionMenuId === quote.id ? "has-open-menu" : "")}
         renderTitle={(quote) => quote.quote_number}
         renderSubtitle={(quote) => quote.company_name}
         renderDetails={(quote) => (
@@ -863,25 +864,25 @@ export default function QuotesPage() {
                 </button>
                 {menuOpen ? (
                   <div className="quote-actions-menu__panel">
-                    <button type="button" onClick={() => previewPdf(quote)} disabled={previewLoading}>
+                    <button type="button" className="quote-actions-menu__item" onClick={() => previewPdf(quote)} disabled={previewLoading}>
                       {previewLoading ? "Ouverture..." : "Previsualiser PDF"}
                     </button>
-                    <button type="button" onClick={() => downloadPdf(quote)}>
+                    <button type="button" className="quote-actions-menu__item" onClick={() => downloadPdf(quote)}>
                       Telecharger PDF
                     </button>
-                    <button type="button" onClick={() => sendQuote(quote)}>
+                    <button type="button" className="quote-actions-menu__item" onClick={() => sendQuote(quote)}>
                       Envoyer
                     </button>
                     {quote.converted_invoice_id ? (
-                      <button type="button" onClick={() => openConvertedInvoice(quote)}>
+                      <button type="button" className="quote-actions-menu__item" onClick={() => openConvertedInvoice(quote)}>
                         Voir facture
                       </button>
                     ) : (
-                      <button type="button" onClick={() => convertQuote(quote)}>
+                      <button type="button" className="quote-actions-menu__item" onClick={() => convertQuote(quote)}>
                         Convertir facture
                       </button>
                     )}
-                    <button type="button" className="is-danger" onClick={() => removeQuote(quote)}>
+                    <button type="button" className="quote-actions-menu__item is-danger" onClick={() => removeQuote(quote)}>
                       Supprimer
                     </button>
                   </div>
@@ -1001,10 +1002,16 @@ export default function QuotesPage() {
                           className={`quote-preset-card ${selectedPreset === preset.id ? "is-selected" : ""}`}
                           onClick={() => selectPreset(preset)}
                         >
-                          <span className="quote-preset-icon">{preset.icon}</span>
-                          <strong>{preset.title}</strong>
-                          <span>{preset.hint}</span>
-                          <small>{preset.price ? `A partir de ${preset.price} EUR` : "Tarif libre"}</small>
+                          <div className="quote-preset-card__head">
+                            <span className="quote-preset-icon" aria-hidden="true">
+                              {preset.icon}
+                            </span>
+                            <strong className="quote-preset-card__title">{preset.title}</strong>
+                          </div>
+                          <p className="quote-preset-card__hint">{preset.hint}</p>
+                          <small className="quote-preset-card__price">
+                            {preset.price ? `A partir de ${preset.price} EUR` : "Tarif libre"}
+                          </small>
                         </button>
                       ))}
                     </div>

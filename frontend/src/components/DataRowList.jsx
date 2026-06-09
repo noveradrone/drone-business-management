@@ -7,6 +7,7 @@ export default function DataRowList({
   renderDetails,
   renderMeta,
   renderActions,
+  getItemClassName,
   className = ""
 }) {
   if (!items.length) {
@@ -16,7 +17,10 @@ export default function DataRowList({
   return (
     <div className={`data-row-list ${className}`.trim()}>
       {items.map((item, index) => (
-        <article key={getKey(item, index)} className="data-row-card">
+        <article
+          key={getKey(item, index)}
+          className={`data-row-card ${getItemClassName ? getItemClassName(item, index) : ""}`.trim()}
+        >
           <div className="data-row-main">
             <h3 className="data-row-title">{renderTitle ? renderTitle(item, index) : "-"}</h3>
             {renderSubtitle ? <p className="data-row-subtitle">{renderSubtitle(item, index)}</p> : null}
