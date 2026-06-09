@@ -123,10 +123,10 @@ export default function Layout({ children, onLogout }) {
   };
 
   return (
-    <div className="site-shell modern-shell">
+    <div className="app-shell layout-shell">
       <button
         type="button"
-        className="menu-toggle site-menu-toggle btn btn-ghost"
+        className="menu-toggle layout-menu-toggle btn btn-ghost"
         onClick={() => setMobileOpen((open) => !open)}
         aria-expanded={mobileOpen}
         aria-controls="site-sidebar"
@@ -134,9 +134,9 @@ export default function Layout({ children, onLogout }) {
         Menu
       </button>
 
-      <div className={`site-overlay ${mobileOpen ? "is-visible" : ""}`} onClick={closeMenu} aria-hidden="true" />
+      <div className={`layout-overlay ${mobileOpen ? "is-visible" : ""}`} onClick={closeMenu} aria-hidden="true" />
 
-      <aside id="site-sidebar" className={`site-sidebar modern-sidebar ${mobileOpen ? "is-open" : ""}`}>
+      <aside id="site-sidebar" className={`sidebar layout-sidebar ${mobileOpen ? "open" : ""}`}>
         <div className="sidebar-brand-card simple-brand-card">
           <div className="sidebar-brand-mark">ND</div>
           <div>
@@ -174,11 +174,11 @@ export default function Layout({ children, onLogout }) {
           </div>
           <button type="button" className="btn btn-ghost sidebar-logout-btn" onClick={handleLogout}>Deconnexion</button>
         </div>
-        <div className="site-sidebar__spacer" aria-hidden="true" />
+        <div className="drawer-spacer layout-drawer-spacer" aria-hidden="true" />
       </aside>
 
-      <div className="site-workspace">
-        <header className="workspace-topbar simple-topbar">
+      <div className="app-main layout-main">
+        <header className="topbar layout-topbar">
           <div className="workspace-breadcrumb simple-breadcrumb" aria-label="Breadcrumb">
             {breadcrumb.map((crumb, index) => (
               <span key={`${crumb}-${index}`} className="breadcrumb-item">
@@ -227,7 +227,7 @@ export default function Layout({ children, onLogout }) {
           </div>
         </header>
 
-        <main className="site-main modern-main">{renderedContent}</main>
+        <main className="site-main page-content layout-page-content">{renderedContent}</main>
       </div>
     </div>
   );
