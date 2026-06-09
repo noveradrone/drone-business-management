@@ -1,0 +1,87 @@
+:root {
+  --page-gap: 18px;
+  --section-gap: 16px;
+  --card-gap: 14px;
+  --item-gap: 12px;
+}
+
+.site-main > * + * {
+  margin-top: var(--page-gap);
+}
+
+.site-main section + section,
+.site-main article + article,
+.site-main .page-header + *,
+.site-main .page-head + *,
+.site-main .section-header + *,
+.site-main .block-title + * {
+  margin-top: var(--section-gap);
+}
+
+.site-main :where(
+  [class*="grid"],
+  [class*="list"],
+  [class*="stack"],
+  [class*="cards"],
+  [class*="rows"],
+  [class*="sections"],
+  [class*="groups"],
+  [class*="actions"]
+) {
+  gap: var(--card-gap);
+}
+
+.site-main :where(
+  [class*="card"],
+  [class*="panel"],
+  [class*="block"],
+  [class*="widget"],
+  [class*="tile"],
+  [class*="summary"]
+) {
+  margin: 0;
+}
+
+.site-main :where(
+  [class*="card"],
+  [class*="panel"],
+  [class*="block"],
+  [class*="widget"],
+  [class*="tile"]
+) + :where(
+  [class*="card"],
+  [class*="panel"],
+  [class*="block"],
+  [class*="widget"],
+  [class*="tile"]
+) {
+  margin-top: var(--card-gap);
+}
+
+.site-main :where(form, .form, [class*="form"]) > * + * {
+  margin-top: var(--item-gap);
+}
+
+.site-main :where(.btn-group, .actions-row, .action-row, .form-actions, .quote-edit-actions, .invoice-actions) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.site-main :where(ul, ol):not(.site-nav-links) {
+  padding-left: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --page-gap: 14px;
+    --section-gap: 12px;
+    --card-gap: 12px;
+    --item-gap: 10px;
+  }
+
+  .site-main :where(.btn-group, .actions-row, .action-row, .form-actions, .quote-edit-actions, .invoice-actions) {
+    gap: 10px;
+  }
+}

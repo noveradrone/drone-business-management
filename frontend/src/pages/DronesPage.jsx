@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
-import DataRowList from "../components/DataRowList";
 
 const defaultForm = {
   brand: "",
@@ -16,12 +15,40 @@ const defaultForm = {
   propeller_hours_threshold: 120
 };
 
+const STATUS_OPTIONS = [
+  { value: "all", label: "Tous" },
+  { value: "active", label: "Actif" },
+  { value: "maintenance", label: "Maintenance" },
+  { value: "grounded", label: "Au sol" },
+  { value: "retired", label: "Hors service" }
+];
+
+function scoreHealth(drone) {
+  const cycleThreshold = Number(drone.battery_cycle_threshold || 300);
+  const propThreshold = Number(drone.propeller_hours_threshold || 120);
+  const cycleRatio = cycleThreshold ? Number(drone.total_cycles || 0) / cycleThreshold : 0;
+  const hourRatio = propThreshold ? Number(drone.total_flight_hours || 0) / propThreshold : 0;
+  const usage = Math.max(cycleRatio, hourRatio);
+  return Math.max(8, Math.min(100, Math.round((1 - usage) * 100)));
+}
+
+function statusLabel(value) {
+  return {
+    active: "Actif",
+    maintenance: "Maintenance",
+    grounded: "Au sol",
+    retired: "Hors service"
+  }[value] || value;
+}
+
 export default function DronesPage() {
   const [drones, setDrones] = useState([]);
   const [form, setForm] = useState(defaultForm);
-  const [editOpen, setEditOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingDrone, setEditingDrone] = useState(null);
-  const [editForm, setEditForm] = useState(defaultForm);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("name");
   const [error, setError] = useState("");
 
   async function load() {
@@ -36,26 +63,15 @@ export default function DronesPage() {
     load();
   }, []);
 
-  async function submit(e) {
-    e.preventDefault();
-    setError("");
-    try {
-      await api.drones.create({
-        ...form,
-        purchase_price: form.purchase_price === "" ? null : Number(form.purchase_price),
-        battery_cycle_threshold: Number(form.battery_cycle_threshold || 300),
-        propeller_hours_threshold: Number(form.propeller_hours_threshold || 120)
-      });
-      setForm(defaultForm);
-      await load();
-    } catch (e) {
-      setError(e.message);
-    }
+  function openCreate() {
+    setEditingDrone(null);
+    setForm(defaultForm);
+    setDrawerOpen(true);
   }
 
-  function startEdit(drone) {
+  function openEdit(drone) {
     setEditingDrone(drone);
-    setEditForm({
+    setForm({
       brand: drone.brand || "",
       model: drone.model || "",
       serial_number: drone.serial_number || "",
@@ -68,32 +84,32 @@ export default function DronesPage() {
       battery_cycle_threshold: drone.battery_cycle_threshold ?? 300,
       propeller_hours_threshold: drone.propeller_hours_threshold ?? 120
     });
-    setEditOpen(true);
+    setDrawerOpen(true);
   }
 
-  async function saveEdit(e) {
-    e.preventDefault();
-    if (!editingDrone) return;
-    setError("");
-    try {
-      await api.drones.update(editingDrone.id, {
-        ...editForm,
-        purchase_price: editForm.purchase_price === "" ? null : Number(editForm.purchase_price),
-        battery_cycle_threshold: Number(editForm.battery_cycle_threshold || 300),
-        propeller_hours_threshold: Number(editForm.propeller_hours_threshold || 120)
-      });
-      setEditOpen(false);
-      setEditingDrone(null);
-      await load();
-    } catch (e2) {
-      setError(e2.message);
-    }
-  }
-
-  function cancelEdit() {
-    setEditOpen(false);
+  function closeDrawer() {
+    setDrawerOpen(false);
     setEditingDrone(null);
-    setEditForm(defaultForm);
+    setForm(defaultForm);
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    setError("");
+    const payload = {
+      ...form,
+      purchase_price: form.purchase_price === "" ? null : Number(form.purchase_price),
+      battery_cycle_threshold: Number(form.battery_cycle_threshold || 300),
+      propeller_hours_threshold: Number(form.propeller_hours_threshold || 120)
+    };
+    try {
+      if (editingDrone) await api.drones.update(editingDrone.id, payload);
+      else await api.drones.create(payload);
+      closeDrawer();
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
   }
 
   async function removeDrone(drone) {
@@ -107,104 +123,154 @@ export default function DronesPage() {
     }
   }
 
-  return (
-    <div>
-      <div className="page-head">
-        <h2>Drones</h2>
-      </div>
+  const visibleDrones = useMemo(() => {
+    const rows = drones.filter((drone) => {
+      const haystack = `${drone.brand} ${drone.model} ${drone.serial_number}`.toLowerCase();
+      const matchesQuery = haystack.includes(query.toLowerCase());
+      const matchesStatus = statusFilter === "all" ? true : drone.status === statusFilter;
+      return matchesQuery && matchesStatus;
+    });
 
-      <form className="form-grid" onSubmit={submit}>
-        <input placeholder="Marque" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} required />
-        <input placeholder="Modele" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} required />
-        <input placeholder="Numero de serie" value={form.serial_number} onChange={(e) => setForm({ ...form, serial_number: e.target.value })} required />
-        <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-          <option value="active">Actif</option>
-          <option value="maintenance">Maintenance</option>
-          <option value="grounded">Au sol</option>
-          <option value="retired">Retire</option>
-        </select>
-        <input type="date" placeholder="Date achat" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} />
-        <input type="number" min="0" step="0.01" placeholder="Prix achat" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} />
-        <input type="date" placeholder="Derniere maintenance" value={form.last_maintenance_date} onChange={(e) => setForm({ ...form, last_maintenance_date: e.target.value })} />
-        <input placeholder="Historique incidents" value={form.incident_history} onChange={(e) => setForm({ ...form, incident_history: e.target.value })} />
-        <input type="number" min="0" step="1" placeholder="Seuil cycles batterie" value={form.battery_cycle_threshold} onChange={(e) => setForm({ ...form, battery_cycle_threshold: e.target.value })} />
-        <input type="number" min="0" step="0.1" placeholder="Seuil heures helices" value={form.propeller_hours_threshold} onChange={(e) => setForm({ ...form, propeller_hours_threshold: e.target.value })} />
-        <input placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-        <button style={{ gridColumn: "1 / -1" }}>Ajouter</button>
-      </form>
+    rows.sort((a, b) => {
+      if (sortBy === "flight") return Number(b.total_flight_hours || 0) - Number(a.total_flight_hours || 0);
+      if (sortBy === "status") return String(a.status || "").localeCompare(String(b.status || ""), "fr");
+      return `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`, "fr");
+    });
+
+    return rows;
+  }, [drones, query, statusFilter, sortBy]);
+
+  return (
+    <div className="drones-page">
+      <div className="page-header">
+        <div>
+          <p className="login-eyebrow">Flotte</p>
+        </div>
+        <h2 className="page-title">Gestion de flotte drone</h2>
+        <div className="page-action">
+          <button className="btn" type="button" onClick={openCreate}>+ Nouveau drone</button>
+        </div>
+      </div>
+      <p className="page-summary">Une vue claire sur l’état de chaque appareil, son usure, sa maintenance et sa disponibilité opérationnelle.</p>
 
       {error && <p className="error">{error}</p>}
 
-      <DataRowList
-        items={drones}
-        emptyMessage="Aucun drone."
-        renderTitle={(d) => `${d.brand} ${d.model}`}
-        renderSubtitle={(d) => `S/N ${d.serial_number}`}
-        renderDetails={(d) => (
-          <div className="data-row-info-grid">
-            <div className="data-row-info">
-              <span className="data-row-label">Etat</span>
-              <span className="data-row-value">{d.status}</span>
-            </div>
-            <div className="data-row-info">
-              <span className="data-row-label">Heures</span>
-              <span className="data-row-value">{Number(d.total_flight_hours).toFixed(1)}</span>
-            </div>
-            <div className="data-row-info">
-              <span className="data-row-label">Cycles</span>
-              <span className="data-row-value">{d.total_cycles}</span>
-            </div>
-            <div className="data-row-info">
-              <span className="data-row-label">Seuils</span>
-              <span className="data-row-value">
-                {d.battery_cycle_threshold || 300} cyc / {Number(d.propeller_hours_threshold || 120).toFixed(1)} h
-              </span>
-            </div>
-          </div>
-        )}
-        renderActions={(d) => (
-          <>
-            <button type="button" className="secondary" onClick={() => startEdit(d)}>
-              Modifier
-            </button>
-            <button type="button" className="danger" onClick={() => removeDrone(d)}>
-              Supprimer
-            </button>
-          </>
-        )}
-      />
+      <section className="card toolbar-card">
+        <div>
+          <p className="card-label">Pilotage rapide</p>
+          <h3 style={{ margin: "6px 0 0" }}>Recherche, filtres et tri en temps réel</h3>
+        </div>
+        <div className="inline-filters">
+          <input placeholder="Rechercher un drone" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <option value="name">Tri : Nom</option>
+            <option value="flight">Tri : Temps de vol</option>
+            <option value="status">Tri : Etat</option>
+          </select>
+        </div>
+      </section>
 
-      {editOpen && (
-        <div className="modal-backdrop" onClick={cancelEdit}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="page-head" style={{ marginBottom: 10 }}>
-              <h2 style={{ fontSize: "1.1rem" }}>Modifier le drone</h2>
+      <section className="fleet-grid">
+        {visibleDrones.map((drone) => {
+          const health = scoreHealth(drone);
+          return (
+            <article key={drone.id} className="fleet-card">
+              <div className="fleet-card-top">
+                <div>
+                  <p className="card-label">{statusLabel(drone.status)}</p>
+                  <h3>{drone.brand} {drone.model}</h3>
+                  <p className="muted-copy" style={{ margin: "6px 0 0" }}>S/N {drone.serial_number}</p>
+                </div>
+                <span className="status-badge">{health}% sante</span>
+              </div>
+
+              <div className="metrics-inline">
+                <div className="metric-inline">
+                  <span className="muted-copy">Temps de vol</span>
+                  <strong>{Number(drone.total_flight_hours || 0).toFixed(1)} h</strong>
+                </div>
+                <div className="metric-inline">
+                  <span className="muted-copy">Cycles</span>
+                  <strong>{Number(drone.total_cycles || 0)}</strong>
+                </div>
+                <div className="metric-inline">
+                  <span className="muted-copy">Maintenance</span>
+                  <strong>{drone.last_maintenance_date || "A definir"}</strong>
+                </div>
+                <div className="metric-inline">
+                  <span className="muted-copy">Seuils</span>
+                  <strong>{drone.battery_cycle_threshold || 300} / {Number(drone.propeller_hours_threshold || 120).toFixed(0)}</strong>
+                </div>
+              </div>
+
+              <div>
+                <div className="health-bar"><span style={{ width: `${health}%` }} /></div>
+                <p className="muted-copy" style={{ margin: "8px 0 0" }}>{drone.notes || "Aucune note de maintenance renseignée."}</p>
+              </div>
+
+              <div className="toolbar-actions">
+                <button type="button" className="secondary" onClick={() => openEdit(drone)}>Modifier</button>
+                <button type="button" className="secondary">Historique</button>
+                <button type="button" className="secondary">Maintenance</button>
+                <button type="button" className="danger" onClick={() => removeDrone(drone)}>Supprimer</button>
+              </div>
+            </article>
+          );
+        })}
+      </section>
+
+      {drawerOpen ? (
+        <div className="modal-backdrop" onClick={closeDrawer}>
+          <aside className="drawer-sheet drawer-sheet-wide" onClick={(e) => e.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <h3>{editingDrone ? "Modifier le drone" : "Nouveau drone"}</h3>
+                <p>Crée ou mets à jour un appareil sans quitter la vue flotte.</p>
+              </div>
+              <button type="button" className="btn btn-ghost drawer-close" onClick={closeDrawer}>✕</button>
             </div>
-            <form className="form-grid" onSubmit={saveEdit}>
-              <input placeholder="Marque" value={editForm.brand} onChange={(e) => setEditForm({ ...editForm, brand: e.target.value })} required />
-              <input placeholder="Modele" value={editForm.model} onChange={(e) => setEditForm({ ...editForm, model: e.target.value })} required />
-              <input placeholder="Numero de serie" value={editForm.serial_number} onChange={(e) => setEditForm({ ...editForm, serial_number: e.target.value })} required />
-              <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}>
-                <option value="active">Actif</option>
-                <option value="maintenance">Maintenance</option>
-                <option value="grounded">Au sol</option>
-                <option value="retired">Retire</option>
-              </select>
-              <input type="date" value={editForm.purchase_date} onChange={(e) => setEditForm({ ...editForm, purchase_date: e.target.value })} />
-              <input type="number" min="0" step="0.01" placeholder="Prix achat" value={editForm.purchase_price} onChange={(e) => setEditForm({ ...editForm, purchase_price: e.target.value })} />
-              <input type="date" value={editForm.last_maintenance_date} onChange={(e) => setEditForm({ ...editForm, last_maintenance_date: e.target.value })} />
-              <input placeholder="Historique incidents" value={editForm.incident_history} onChange={(e) => setEditForm({ ...editForm, incident_history: e.target.value })} />
-              <input type="number" min="0" step="1" placeholder="Seuil cycles batterie" value={editForm.battery_cycle_threshold} onChange={(e) => setEditForm({ ...editForm, battery_cycle_threshold: e.target.value })} />
-              <input type="number" min="0" step="0.1" placeholder="Seuil heures helices" value={editForm.propeller_hours_threshold} onChange={(e) => setEditForm({ ...editForm, propeller_hours_threshold: e.target.value })} />
-              <input placeholder="Notes" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
-              <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8 }}>
-                <button type="submit">Enregistrer</button>
-                <button type="button" className="secondary" onClick={cancelEdit}>Annuler</button>
+
+            <form className="form-panel" onSubmit={submit}>
+              <div className="form-section">
+                <p className="form-section-title">Identité appareil</p>
+                <div className="form-grid-2">
+                  <input placeholder="Marque" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} required />
+                  <input placeholder="Modele" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} required />
+                  <input placeholder="Numero de serie" value={form.serial_number} onChange={(e) => setForm({ ...form, serial_number: e.target.value })} required />
+                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                    {STATUS_OPTIONS.filter((option) => option.value !== "all").map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-section">
+                <p className="form-section-title">Cycle de vie et maintenance</p>
+                <div className="form-grid-2">
+                  <input type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} />
+                  <input type="number" min="0" step="0.01" placeholder="Prix achat" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} />
+                  <input type="date" value={form.last_maintenance_date} onChange={(e) => setForm({ ...form, last_maintenance_date: e.target.value })} />
+                  <input placeholder="Historique incidents" value={form.incident_history} onChange={(e) => setForm({ ...form, incident_history: e.target.value })} />
+                  <input type="number" min="0" step="1" placeholder="Seuil cycles batterie" value={form.battery_cycle_threshold} onChange={(e) => setForm({ ...form, battery_cycle_threshold: e.target.value })} />
+                  <input type="number" min="0" step="0.1" placeholder="Seuil heures helices" value={form.propeller_hours_threshold} onChange={(e) => setForm({ ...form, propeller_hours_threshold: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="form-section">
+                <p className="form-section-title">Notes</p>
+                <textarea placeholder="Commentaire interne, état, configuration, remarques atelier..." value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              </div>
+
+              <div className="toolbar-actions">
+                <button type="submit">{editingDrone ? "Enregistrer" : "Creer le drone"}</button>
+                <button type="button" className="secondary" onClick={closeDrawer}>Annuler</button>
               </div>
             </form>
-          </div>
+          </aside>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

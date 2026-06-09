@@ -82,7 +82,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout onLogout={logout} />}>
-          <Route index element={<DashboardPage />} />
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="drones" element={<DronesPage />} />
           <Route path="clients" element={<ClientsPage />} />
           <Route path="missions" element={<MissionsPage />} />
@@ -97,7 +98,7 @@ export default function App() {
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );

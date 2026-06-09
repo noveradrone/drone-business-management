@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
-import DataRowList from "../components/DataRowList";
 
 const EMPTY_FORM = {
   company_name: "",
@@ -14,10 +13,19 @@ const EMPTY_FORM = {
   is_prospect: 1
 };
 
+const FILTERS = [
+  { value: "all", label: "Tous" },
+  { value: "prospect", label: "Prospects" },
+  { value: "client", label: "Clients" }
+];
+
 export default function ClientsPage() {
   const [clients, setClients] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingClientId, setEditingClientId] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
 
   async function load() {
@@ -32,21 +40,10 @@ export default function ClientsPage() {
     load();
   }, []);
 
-  async function submit(e) {
-    e.preventDefault();
-    setError("");
-    try {
-      if (editingClientId) {
-        await api.clients.update(editingClientId, form);
-      } else {
-        await api.clients.create(form);
-      }
-      setForm(EMPTY_FORM);
-      setEditingClientId(null);
-      await load();
-    } catch (e) {
-      setError(e.message);
-    }
+  function openCreate() {
+    setEditingClientId(null);
+    setForm(EMPTY_FORM);
+    setDrawerOpen(true);
   }
 
   function startEdit(client) {
@@ -63,13 +60,26 @@ export default function ClientsPage() {
       source_channel: client.source_channel || "",
       is_prospect: Number(client.is_prospect ?? 1)
     });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setDrawerOpen(true);
   }
 
-  function cancelEdit() {
+  function closeDrawer() {
+    setDrawerOpen(false);
     setEditingClientId(null);
     setForm(EMPTY_FORM);
+  }
+
+  async function submit(e) {
+    e.preventDefault();
     setError("");
+    try {
+      if (editingClientId) await api.clients.update(editingClientId, form);
+      else await api.clients.create(form);
+      closeDrawer();
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
   }
 
   async function removeClient(client) {
@@ -77,98 +87,139 @@ export default function ClientsPage() {
     setError("");
     try {
       await api.clients.remove(client.id);
-      if (editingClientId === client.id) cancelEdit();
       await load();
     } catch (e) {
       setError(e.message);
     }
   }
 
-  return (
-    <div>
-      <div className="page-head">
-        <h2>Clients</h2>
-      </div>
+  const visibleClients = useMemo(() => {
+    return clients.filter((client) => {
+      const haystack = `${client.company_name} ${client.contact_name} ${client.email} ${client.phone}`.toLowerCase();
+      const matchesQuery = haystack.includes(query.toLowerCase());
+      const matchesFilter =
+        filter === "all"
+          ? true
+          : filter === "prospect"
+            ? Number(client.is_prospect) === 1
+            : Number(client.is_prospect) === 0;
+      return matchesQuery && matchesFilter;
+    });
+  }, [clients, query, filter]);
 
-      <form className="form-grid" onSubmit={submit}>
-        {editingClientId ? <p className="section-note" style={{ gridColumn: "1 / -1" }}>Modification du client selectionne.</p> : null}
-        <input placeholder="Entreprise" value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} required />
-        <input placeholder="Contact" value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} />
-        <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <input type="tel" inputMode="tel" placeholder="Téléphone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-        <input placeholder="Adresse de facturation" value={form.billing_address} onChange={(e) => setForm({ ...form, billing_address: e.target.value })} />
-        <input placeholder="SIRET client" value={form.siret} onChange={(e) => setForm({ ...form, siret: e.target.value })} />
-        <input placeholder="TVA client" value={form.vat_number} onChange={(e) => setForm({ ...form, vat_number: e.target.value })} />
-        <input placeholder="Source lead (Instagram, Google...)" value={form.source_channel} onChange={(e) => setForm({ ...form, source_channel: e.target.value })} />
-        <select value={String(form.is_prospect)} onChange={(e) => setForm({ ...form, is_prospect: Number(e.target.value) })}>
-          <option value="1">Prospect</option>
-          <option value="0">Client actif</option>
-        </select>
-        <div className="form-actions" style={{ gridColumn: "1 / -1" }}>
-          <button type="submit">{editingClientId ? "Enregistrer les modifications" : "Ajouter"}</button>
-          {editingClientId ? (
-            <button type="button" className="secondary" onClick={cancelEdit}>
-              Annuler
-            </button>
-          ) : null}
-        </div>
-      </form>
+  return (
+    <div className="clients-page">
+      <div className="page-header">
+        <div><p className="login-eyebrow">CRM</p></div>
+        <h2 className="page-title">Relation client et prospection</h2>
+        <div className="page-action"><button type="button" onClick={openCreate}>+ Nouveau client</button></div>
+      </div>
+      <p className="page-summary">Un CRM simple, rapide et opérationnel : accès immédiat au contact, au statut et aux actions utiles pour vendre plus vite.</p>
 
       {error && <p className="error">{error}</p>}
 
-      <DataRowList
-        items={clients}
-        className="client-row-list"
-        emptyMessage="Aucun client enregistre."
-        renderTitle={(c) => c.company_name}
-        renderSubtitle={(c) => c.contact_name || "Contact non renseigne"}
-        renderDetails={(c) => (
-          <div className="data-row-info-grid">
-            <div className="data-row-info">
-              <span className="data-row-label">Email</span>
-              <span className="data-row-value">{c.email || "-"}</span>
-            </div>
-            <div className="data-row-info">
-              <span className="data-row-label">Telephone</span>
-              <span className="data-row-value">{c.phone || "-"}</span>
-            </div>
-            <div className="data-row-info">
-              <span className="data-row-label">SIRET</span>
-              <span className="data-row-value">{c.siret || "-"}</span>
-            </div>
-            <div className="data-row-info">
-              <span className="data-row-label">Source</span>
-              <span className="data-row-value">{c.source_channel || "-"}</span>
-            </div>
-            {c.vat_number ? (
-              <div className="data-row-info">
-                <span className="data-row-label">TVA</span>
-                <span className="data-row-value">{c.vat_number}</span>
+      <section className="card toolbar-card">
+        <div>
+          <p className="card-label">Vue commerciale</p>
+          <h3 style={{ margin: "6px 0 0" }}>Recherche instantanée et segmentation rapide</h3>
+        </div>
+        <div className="inline-filters">
+          <input placeholder="Rechercher un client" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+            {FILTERS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </div>
+      </section>
+
+      <section className="crm-grid">
+        {visibleClients.map((client) => (
+          <article key={client.id} className="crm-card">
+            <div className="crm-card-top">
+              <div>
+                <p className="card-label">{Number(client.is_prospect) === 1 ? "Prospect" : "Client actif"}</p>
+                <h3>{client.company_name}</h3>
+                <p className="muted-copy" style={{ margin: "6px 0 0" }}>{client.contact_name || "Contact non renseigne"}</p>
               </div>
-            ) : null}
-          </div>
-        )}
-        renderActions={(c) => (
-          <>
-            <button type="button" className="secondary btn-sm" onClick={() => startEdit(c)}>
-              Modifier
-            </button>
-            {c.phone ? (
-              <a className="secondary action-link-btn btn-sm" href={`tel:${c.phone}`}>
-                Appeler
-              </a>
-            ) : null}
-            {c.email ? (
-              <a className="secondary action-link-btn btn-sm" href={`mailto:${c.email}`}>
-                Email
-              </a>
-            ) : null}
-            <button type="button" className="danger btn-sm" onClick={() => removeClient(c)}>
-              Supprimer
-            </button>
-          </>
-        )}
-      />
+              <span className="status-badge">{Number(client.is_prospect) === 1 ? "Prospect" : "Client"}</span>
+            </div>
+
+            <div className="metrics-inline">
+              <div className="metric-inline">
+                <span className="muted-copy">Email</span>
+                <strong>{client.email || "-"}</strong>
+              </div>
+              <div className="metric-inline">
+                <span className="muted-copy">Telephone</span>
+                <strong>{client.phone || "-"}</strong>
+              </div>
+              <div className="metric-inline">
+                <span className="muted-copy">SIRET</span>
+                <strong>{client.siret || "-"}</strong>
+              </div>
+              <div className="metric-inline">
+                <span className="muted-copy">Source</span>
+                <strong>{client.source_channel || "Direct"}</strong>
+              </div>
+            </div>
+
+            <p className="muted-copy" style={{ margin: 0 }}>{client.billing_address || "Aucune adresse de facturation renseignée."}</p>
+
+            <div className="toolbar-actions">
+              {client.phone ? <a className="action-link-btn secondary" href={`tel:${client.phone}`}>Appeler</a> : null}
+              {client.email ? <a className="action-link-btn secondary" href={`mailto:${client.email}`}>Email</a> : null}
+              <button type="button" className="secondary" onClick={() => startEdit(client)}>Modifier</button>
+              <button type="button" className="secondary">Créer devis</button>
+              <button type="button" className="secondary">Créer mission</button>
+              <button type="button" className="danger" onClick={() => removeClient(client)}>Supprimer</button>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      {drawerOpen ? (
+        <div className="modal-backdrop" onClick={closeDrawer}>
+          <aside className="drawer-sheet drawer-sheet-wide" onClick={(e) => e.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <h3>{editingClientId ? "Modifier le client" : "Nouveau client"}</h3>
+                <p>Renseigne uniquement l’essentiel. Le reste pourra être enrichi plus tard.</p>
+              </div>
+              <button type="button" className="btn btn-ghost drawer-close" onClick={closeDrawer}>✕</button>
+            </div>
+
+            <form className="form-panel" onSubmit={submit}>
+              <div className="form-section">
+                <p className="form-section-title">Identite</p>
+                <div className="form-grid-2">
+                  <input placeholder="Entreprise" value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} required />
+                  <input placeholder="Contact" value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} />
+                  <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                  <input type="tel" inputMode="tel" placeholder="Telephone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="form-section">
+                <p className="form-section-title">Administratif</p>
+                <div className="form-grid-2">
+                  <input placeholder="Adresse de facturation" value={form.billing_address} onChange={(e) => setForm({ ...form, billing_address: e.target.value })} />
+                  <input placeholder="SIRET" value={form.siret} onChange={(e) => setForm({ ...form, siret: e.target.value })} />
+                  <input placeholder="TVA" value={form.vat_number} onChange={(e) => setForm({ ...form, vat_number: e.target.value })} />
+                  <input placeholder="Source lead" value={form.source_channel} onChange={(e) => setForm({ ...form, source_channel: e.target.value })} />
+                  <select value={String(form.is_prospect)} onChange={(e) => setForm({ ...form, is_prospect: Number(e.target.value) })}>
+                    <option value="1">Prospect</option>
+                    <option value="0">Client actif</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="toolbar-actions">
+                <button type="submit">{editingClientId ? "Enregistrer les modifications" : "Creer le client"}</button>
+                <button type="button" className="secondary" onClick={closeDrawer}>Annuler</button>
+              </div>
+            </form>
+          </aside>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -22,26 +22,20 @@ export default function LoginPage({ onLogin }) {
     <div className="login-wrap">
       <div className="login-layout">
         <section className="login-intro">
-          <p className="login-eyebrow">Novera Drone</p>
-          <h1>Pilote ton activité drone depuis une seule plateforme</h1>
+          <p className="login-eyebrow">Drone Business Management</p>
+          <h1>Le cockpit premium pour piloter une activité drone comme un vrai SaaS.</h1>
           <p>
-            Suivi missions, devis, factures, assurances et documents officiels dans un espace
-            clair, rapide et sécurisé.
+            Gestion de flotte, CRM, missions, devis, factures, assurances et documents dans une interface claire,
+            rapide et premium pensée pour un usage quotidien.
           </p>
         </section>
 
         <div className="login-card">
           <h2>Connexion</h2>
-          <p>Gestion d’entreprise de drone</p>
+          <p>Accède à ton espace d’exploitation</p>
           <form onSubmit={submit} className="form-grid login-form">
             <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mot de passe"
-              type="password"
-              required
-            />
+            <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mot de passe" type="password" required />
             <button type="submit">Se connecter</button>
           </form>
           {error && <p className="error">{error}</p>}
