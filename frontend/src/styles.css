@@ -297,6 +297,27 @@ body.menu-open {
 
 .metrics-row {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.metrics-row .card {
+  min-height: 210px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+}
+
+.metrics-row .card-label {
+  margin: 0;
+}
+
+.metrics-row .card-value {
+  margin: 0;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .compact-grid {
@@ -769,9 +790,15 @@ table.data-table tbody tr:hover {
   padding: 24px;
   border-radius: 24px;
   align-items: center;
+  position: relative;
+  overflow: visible;
   background: linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 96%, transparent), color-mix(in srgb, var(--bg-color) 38%, var(--surface-strong)));
   border: 1px solid #E5E7EB;
   box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+}
+
+.quote-row-list .data-row-card.has-open-menu {
+  z-index: 18;
 }
 
 .quote-row-list .data-row-main {
@@ -874,6 +901,7 @@ table.data-table tbody tr:hover {
   gap: 12px;
   width: 100%;
   position: relative;
+  flex-wrap: nowrap;
 }
 
 .quote-card-actions > .primary-action,
@@ -902,32 +930,43 @@ table.data-table tbody tr:hover {
   top: calc(100% + 10px);
   right: 0;
   z-index: 25;
-  min-width: 220px;
+  min-width: 240px;
   display: grid;
-  gap: 6px;
+  gap: 8px;
   padding: 10px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface-strong) 96%, transparent);
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.14);
 }
 
-.quote-actions-menu__panel button {
-  min-height: 42px;
+.quote-actions-menu__item {
+  width: 100%;
+  min-height: 44px;
   justify-content: flex-start;
   padding: 0 14px;
-  background: transparent;
-  border: 1px solid transparent;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-strong) 92%, var(--bg-color));
+  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
   color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  box-shadow: none;
 }
 
-.quote-actions-menu__panel button:hover {
+.quote-actions-menu__item:hover {
   background: color-mix(in srgb, var(--primary-color) 8%, var(--surface-strong));
   border-color: color-mix(in srgb, var(--primary-color) 16%, var(--border));
+  transform: none;
+  filter: none;
 }
 
-.quote-actions-menu__panel button.is-danger {
+.quote-actions-menu__item.is-danger {
   color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 5%, var(--surface-strong));
+  border-color: color-mix(in srgb, var(--danger) 14%, var(--border));
 }
 
 .quote-row-list .data-row-value {
@@ -3780,12 +3819,16 @@ input,
 select,
 textarea {
   min-height: var(--input-height);
+  height: var(--input-height);
   border-radius: var(--input-radius);
   padding: 0 16px;
+  box-sizing: border-box;
+  line-height: 1.2;
 }
 
 textarea {
   min-height: 120px;
+  height: auto;
   padding: 14px 16px;
 }
 
@@ -4015,7 +4058,8 @@ button,
 
 .quote-preset-card {
   min-height: 172px;
-  padding: 20px;
+  width: 100%;
+  padding: 22px;
   border-radius: 24px;
   border: 1px solid var(--border);
   background:
@@ -4023,9 +4067,11 @@ button,
   color: var(--text);
   display: grid;
   align-content: start;
-  justify-items: start;
-  gap: 10px;
+  justify-items: stretch;
+  gap: 12px;
   text-align: left;
+  white-space: normal;
+  overflow: hidden;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
 }
 
@@ -4040,12 +4086,6 @@ button,
   border-color: color-mix(in srgb, var(--primary-color) 28%, var(--border));
 }
 
-.quote-preset-card strong,
-.quote-preset-card span,
-.quote-preset-card small {
-  text-align: left;
-}
-
 .quote-preset-icon {
   width: 44px;
   height: 44px;
@@ -4057,6 +4097,50 @@ button,
   color: var(--primary-color);
   font-size: 1.12rem;
   font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.quote-preset-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.quote-preset-card__title {
+  display: block;
+  margin: 0;
+  color: inherit;
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.quote-preset-card__hint {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.96rem;
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.quote-preset-card__price {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: fit-content;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-strong) 72%, var(--primary-color) 10%);
+  color: var(--primary-color);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .quote-line-list {
@@ -4208,6 +4292,19 @@ button,
   .quote-price-grid,
   .quote-kpi-grid {
     grid-template-columns: 1fr;
+  }
+
+  .quote-preset-card {
+    min-height: 0;
+    padding: 18px;
+  }
+
+  .quote-preset-card__title {
+    font-size: 1rem;
+  }
+
+  .quote-preset-card__hint {
+    font-size: 0.92rem;
   }
 }
 
@@ -4449,6 +4546,7 @@ button,
 
 .segmented-control__item {
   flex: 1 1 0;
+  min-width: 0;
   min-height: 40px;
   padding: 0 14px;
   border-radius: 12px;
@@ -4460,6 +4558,7 @@ button,
   justify-content: center;
   gap: 8px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .segmented-control__item:hover {
