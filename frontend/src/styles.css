@@ -3292,3 +3292,135 @@ textarea {
     min-width: 0;
   }
 }
+
+/* Global symmetry and structure cleanup */
+
+.site-main > div {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.page-header,
+.page-head {
+  grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.page-header > :first-child:not(.page-title):not(.page-action),
+.page-head > :first-child:not(h2):not(h3) {
+  min-height: 1px;
+}
+
+.page-summary {
+  margin-top: -4px;
+  margin-bottom: 0;
+}
+
+.card-grid,
+.analytics-grid,
+.kpi-grid,
+.fleet-grid,
+.crm-grid,
+.documents-grid,
+.insurance-grid,
+.export-hub-grid {
+  align-items: stretch;
+}
+
+.card,
+.toolbar-card,
+.details-panel,
+.data-row-card,
+.form-section {
+  background: var(--surface-strong);
+  border: 1px solid color-mix(in srgb, var(--border) 94%, transparent);
+}
+
+.toolbar-card,
+.details-panel,
+.summary-band {
+  width: 100%;
+}
+
+.inline-filters,
+.toolbar-actions,
+.form-actions,
+.quote-edit-actions,
+.invoice-actions,
+.actions-cell {
+  gap: 12px;
+}
+
+.toolbar-actions > *,
+.inline-filters > *,
+.actions-cell > * {
+  min-height: 44px;
+}
+
+.data-row-card {
+  align-items: center;
+}
+
+.data-row-main,
+.data-row-secondary,
+.data-row-actions {
+  align-self: stretch;
+}
+
+.data-row-secondary {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.data-row-actions {
+  justify-content: center;
+}
+
+.quote-row-list .data-row-card,
+.client-row-list .data-row-card,
+.drone-row-list .data-row-card {
+  min-height: 180px;
+}
+
+.status-badge,
+.quote-status-badge,
+.data-row-chip {
+  align-self: flex-start;
+}
+
+.details-panel > summary,
+.card-label,
+.muted-copy,
+.data-row-label,
+.data-row-note {
+  text-align: left;
+}
+
+@media (max-width: 900px) {
+  .page-header,
+  .page-head {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .page-header .page-title,
+  .page-head h2,
+  .page-head h3,
+  .page-header .page-action,
+  .page-head > :last-child:not(h2):not(h3),
+  .page-head > :first-child:not(h2):not(h3),
+  .page-header > :first-child:not(.page-title):not(.page-action) {
+    grid-column: auto;
+    justify-self: center;
+  }
+
+  .data-row-card,
+  .quote-row-list .data-row-card,
+  .client-row-list .data-row-card,
+  .drone-row-list .data-row-card {
+    min-height: 0;
+  }
+}

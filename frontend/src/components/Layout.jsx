@@ -40,6 +40,13 @@ const NAV_SECTIONS = [
 
 const TOKEN_KEYS = ["token", "authToken", "droneBusinessToken", "drone_business_token", "dbm_token"];
 
+function buildOpenSections(pathname) {
+  return NAV_SECTIONS.reduce((acc, section) => {
+    acc[section.title] = section.items.some((item) => pathname.startsWith(item.to));
+    return acc;
+  }, {});
+}
+
 function buildBreadcrumb(pathname) {
   const map = {
     "/dashboard": ["Dashboard"],
@@ -70,6 +77,7 @@ export default function Layout({ children, onLogout }) {
   const [themeMode, setThemeMode] = useState(() => document.documentElement.dataset.mode || "light");
   const location = useLocation();
   const navigate = useNavigate();
+  const [openSections, setOpenSections] = useState(() => buildOpenSections(window.location.pathname));
 
   useEffect(() => {
     document.body.classList.toggle("menu-open", mobileOpen);
@@ -79,6 +87,15 @@ export default function Layout({ children, onLogout }) {
   useEffect(() => {
     setQuery("");
     setMobileOpen(false);
+    setOpenSections((prev) => {
+      const next = { ...prev };
+      for (const section of NAV_SECTIONS) {
+        if (section.items.some((item) => location.pathname.startsWith(item.to))) {
+          next[section.title] = true;
+        }
+      }
+      return next;
+    });
   }, [location.pathname]);
 
   const renderedContent = useMemo(() => children ?? <Outlet />, [children]);
@@ -86,6 +103,10 @@ export default function Layout({ children, onLogout }) {
   const results = useMemo(() => searchItems(query), [query]);
 
   const closeMenu = () => setMobileOpen(false);
+
+  const toggleSection = (title) => {
+    setOpenSections((prev) => ({ ...prev, [title]: !prev[title] }));
+  };
 
   const handleLogout = () => {
     closeMenu();
@@ -148,8 +169,16 @@ export default function Layout({ children, onLogout }) {
         <nav className="site-sidebar__nav modern-sidebar__nav">
           {NAV_SECTIONS.map((section) => (
             <div key={section.title} className="site-nav-section modern-nav-section">
-              <div className="site-nav-section__title">{section.title}</div>
-              <div className="site-nav-links">
+              <button
+                type="button"
+                className={`site-nav-section__trigger ${openSections[section.title] ? "is-open" : ""}`}
+                onClick={() => toggleSection(section.title)}
+                aria-expanded={Boolean(openSections[section.title])}
+              >
+                <span className="site-nav-section__title">{section.title}</span>
+                <span className="site-nav-section__chevron" aria-hidden="true">⌄</span>
+              </button>
+              <div className={`site-nav-links ${openSections[section.title] ? "is-open" : ""}`}>
                 {section.items.map((item) => (
                   <NavLink
                     key={item.to}
