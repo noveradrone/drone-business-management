@@ -545,8 +545,8 @@ export default function InvoicesPage() {
 
       {error ? <p className="error">{error}</p> : null}
 
-      <section className="card toolbar-card">
-        <div>
+      <section className="card toolbar-card toolbar-card-centered">
+        <div className="toolbar-card-centered__copy">
           <p className="card-label">Pilotage facturation</p>
           <h3>Retrouve vite une facture, un client ou un statut avant de passer au paiement.</h3>
         </div>

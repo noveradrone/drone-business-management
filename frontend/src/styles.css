@@ -2904,6 +2904,36 @@ textarea {
   gap: 14px;
 }
 
+.toolbar-card-centered {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.toolbar-card-centered__copy {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+  max-width: 860px;
+}
+
+.toolbar-card-centered .inline-filters {
+  width: min(100%, 820px);
+  justify-content: center;
+}
+
+.toolbar-card-centered .inline-filters > * {
+  flex: 1 1 260px;
+  max-width: 400px;
+}
+
+.toolbar-card-centered .card-label,
+.toolbar-card-centered h3 {
+  text-align: center;
+}
+
 .toolbar-actions,
 .inline-filters {
   display: flex;
