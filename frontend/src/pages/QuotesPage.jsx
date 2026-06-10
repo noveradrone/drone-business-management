@@ -618,14 +618,6 @@ export default function QuotesPage() {
       };
     }
 
-    if (quote.status === "sent" || quote.status === "accepted") {
-      return {
-        label: "Voir",
-        className: "secondary",
-        onClick: () => previewPdf(quote)
-      };
-    }
-
     return {
       label: "Modifier",
       className: "primary-action",
@@ -778,6 +770,11 @@ export default function QuotesPage() {
                 </button>
                 {menuOpen ? (
                   <div className="quote-actions-menu__panel">
+                    {!quote.converted_invoice_id ? (
+                      <button type="button" className="quote-actions-menu__item" onClick={() => beginEdit(quote)}>
+                        Modifier
+                      </button>
+                    ) : null}
                     <button type="button" className="quote-actions-menu__item" onClick={() => previewPdf(quote)} disabled={previewLoading}>
                       {previewLoading ? "Ouverture..." : "Previsualiser PDF"}
                     </button>
