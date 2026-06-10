@@ -693,8 +693,8 @@ export default function QuotesPage() {
         </div>
       </section>
 
-      <section className="card toolbar-card">
-        <div>
+      <section className="card toolbar-card toolbar-card-centered">
+        <div className="toolbar-card-centered__copy">
           <p className="card-label">Pilotage commercial</p>
           <h3>Retrouve vite un devis, un client ou une plage de montant.</h3>
         </div>
