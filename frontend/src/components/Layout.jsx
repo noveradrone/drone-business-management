@@ -261,9 +261,9 @@ export default function Layout({ children, onLogout }) {
                 aria-expanded={userMenuOpen}
                 onClick={() => setUserMenuOpen((open) => !open)}
               >
-                <div className="tool-profile compact-profile">
-                  <div className="tool-profile-avatar">EO</div>
-                </div>
+                <span className="topbar-user-status" aria-hidden="true">
+                  <span className="topbar-user-status__dot" />
+                </span>
                 <span className="topbar-user-trigger__name">Enes Ozturk</span>
                 <span className="topbar-user-trigger__chevron" aria-hidden="true" />
               </button>

@@ -334,11 +334,31 @@
   align-items: center;
   gap: 10px;
   min-height: 42px;
-  padding: 4px 10px 4px 4px;
+  padding: 6px 12px;
   border: 1px solid var(--border);
   border-radius: 16px;
   background: var(--surface-strong);
   color: var(--text);
+}
+
+.topbar-user-status {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--success) 16%, var(--surface-strong));
+  border: 1px solid color-mix(in srgb, var(--success) 24%, var(--border));
+  flex: 0 0 auto;
+}
+
+.topbar-user-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--success);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 14%, transparent);
 }
 
 .topbar-user-trigger__name {
@@ -410,13 +430,6 @@
   background: var(--surface-strong);
   color: var(--text);
   border: 1px solid var(--border);
-}
-
-.compact-profile {
-  border: 1px solid var(--border);
-  background: var(--surface-strong);
-  border-radius: 14px;
-  padding: 4px;
 }
 
 .layout-drawer-spacer {
@@ -498,7 +511,7 @@
   }
 
   .topbar-user-trigger {
-    padding-right: 8px;
+    padding: 6px 10px;
     border-radius: 14px;
   }
 }
