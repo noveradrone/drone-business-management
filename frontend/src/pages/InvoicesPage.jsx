@@ -505,7 +505,7 @@ export default function InvoicesPage() {
 
   return (
     <div className="invoices-page">
-      <div className="page-header">
+      <div className="page-header page-header-wide-action">
         <div>
           <p className="login-eyebrow">Finance</p>
         </div>
@@ -636,7 +636,7 @@ export default function InvoicesPage() {
 
       <details className="details-panel">
         <summary>Articles prédéfinis (base)</summary>
-        <form className="form-grid" onSubmit={createArticle}>
+        <form className="form-grid article-base-grid" onSubmit={createArticle}>
           <input
             placeholder="Article: nom"
             value={articleForm.name}
