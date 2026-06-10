@@ -747,48 +747,277 @@ table.data-table tbody tr:hover {
 }
 
 .client-row-list .data-row-card {
-  grid-template-columns: minmax(220px, 1.2fr) minmax(320px, 1.5fr) 170px;
-  gap: 12px;
+  grid-template-columns: minmax(260px, 1.35fr) minmax(180px, 0.9fr) minmax(180px, 0.9fr) auto;
+  gap: 24px;
+  min-height: 150px;
+  padding: 24px;
 }
 
 .client-row-list .data-row-title {
-  font-size: 1.08rem;
-  font-weight: 700;
+  font-size: 1.18rem;
+  font-weight: 750;
 }
 
 .client-row-list .data-row-subtitle {
   margin-top: 6px;
-  font-size: 0.86rem;
+  font-size: 0.96rem;
+  color: var(--muted);
 }
 
 .client-row-list .data-row-secondary {
-  padding: 0 4px;
+  display: contents;
+  padding: 0;
 }
 
 .client-row-list .data-row-info-grid {
-  gap: 5px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  align-content: start;
 }
 
 .client-row-list .data-row-info {
   grid-template-columns: 84px minmax(0, 1fr);
-  gap: 6px;
+  gap: 8px;
+  align-items: start;
 }
 
 .client-row-list .data-row-label {
   text-transform: none;
   letter-spacing: 0;
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   font-weight: 600;
   color: color-mix(in srgb, var(--muted) 90%, var(--text) 10%);
 }
 
 .client-row-list .data-row-value {
-  font-size: 0.91rem;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.client-row-list .data-row-meta {
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+}
+
+.client-row-list .data-row-note {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 .client-row-list .data-row-actions {
   align-self: center;
-  gap: 7px;
+  justify-self: end;
+  gap: 10px;
+}
+
+.client-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.client-card-actions > .primary-action {
+  min-width: 140px;
+}
+
+.mission-form-card {
+  padding: 24px;
+}
+
+.mission-form-grid {
+  gap: 20px 24px;
+}
+
+.mission-form-details {
+  margin-top: 4px;
+}
+
+.mission-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+.mission-form-actions .primary-action {
+  width: 100%;
+  min-height: 52px;
+}
+
+.mission-row-list .data-row-card {
+  grid-template-columns: minmax(260px, 1.25fr) minmax(220px, 1fr) minmax(170px, 0.9fr) auto;
+  gap: 24px;
+  min-height: 170px;
+  padding: 24px;
+  align-items: center;
+}
+
+.mission-row-list .data-row-main {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mission-row-list .data-row-title {
+  font-size: 1.18rem;
+  font-weight: 750;
+}
+
+.mission-row-list .data-row-subtitle {
+  margin-top: 6px;
+  font-size: 0.96rem;
+  color: var(--muted);
+}
+
+.mission-row-list .data-row-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  align-content: center;
+}
+
+.mission-row-list .data-row-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 0;
+}
+
+.mission-row-list .data-row-actions {
+  justify-self: end;
+  align-self: center;
+}
+
+.mission-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mission-card-actions > .primary-action {
+  min-width: 190px;
+}
+
+.drone-row-list .data-row-card {
+  grid-template-columns: minmax(260px, 1.2fr) minmax(220px, 1fr) minmax(200px, 0.95fr) auto;
+  gap: 24px;
+  min-height: 170px;
+  padding: 24px;
+  align-items: center;
+}
+
+.drone-row-list .data-row-main {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.drone-row-list .data-row-title {
+  font-size: 1.18rem;
+  font-weight: 750;
+}
+
+.drone-row-list .data-row-subtitle {
+  margin-top: 6px;
+  font-size: 0.96rem;
+  color: var(--muted);
+}
+
+.drone-row-list .data-row-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  align-content: center;
+}
+
+.drone-row-list .data-row-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 0;
+}
+
+.drone-row-list .data-row-actions {
+  justify-self: end;
+  align-self: center;
+}
+
+.drone-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drone-card-actions > .primary-action {
+  min-width: 140px;
+}
+
+.insurance-row-list {
+  margin-top: 12px;
+}
+
+.insurance-row-list .data-row-card {
+  grid-template-columns: minmax(260px, 1.2fr) minmax(220px, 1fr) minmax(180px, 0.85fr) auto;
+  gap: 24px;
+  min-height: 170px;
+  padding: 24px;
+  align-items: center;
+}
+
+.insurance-row-list .data-row-main {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.insurance-row-list .data-row-title {
+  font-size: 1.18rem;
+  font-weight: 750;
+}
+
+.insurance-row-list .data-row-subtitle {
+  margin-top: 6px;
+  font-size: 0.96rem;
+  color: var(--muted);
+}
+
+.insurance-row-list .data-row-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  align-content: center;
+}
+
+.insurance-row-list .data-row-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 0;
+}
+
+.insurance-row-list .data-row-actions {
+  justify-self: end;
+  align-self: center;
 }
 
 .quote-edit-actions {
@@ -3827,6 +4056,154 @@ textarea {
 
 .form-panel {
   gap: 22px;
+}
+
+/* Clients page aligned like quotes */
+
+.client-row-list .data-row-card {
+  grid-template-columns: minmax(260px, 1.25fr) minmax(170px, 0.8fr) minmax(170px, 0.8fr) auto;
+  gap: 24px;
+  min-height: 170px;
+  padding: 24px;
+  align-items: center;
+}
+
+.client-row-list .data-row-main {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.client-row-list .data-row-secondary {
+  display: contents;
+}
+
+.client-row-list .data-row-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  align-content: center;
+}
+
+.client-row-list .data-row-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 0;
+}
+
+.client-row-list .data-row-actions {
+  justify-self: end;
+  align-self: center;
+}
+
+.client-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.client-card-actions > .primary-action {
+  min-width: 140px;
+}
+
+@media (max-width: 900px) {
+  .client-row-list .data-row-card {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    min-height: 0;
+  }
+
+  .client-row-list .data-row-secondary {
+    display: block;
+  }
+
+  .client-row-list .data-row-info-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .client-row-list .data-row-actions {
+    justify-self: stretch;
+  }
+
+  .client-card-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .client-card-actions > .primary-action {
+    flex: 1 1 auto;
+  }
+
+  .mission-row-list .data-row-card {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    min-height: 0;
+  }
+
+  .mission-row-list .data-row-info-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .mission-row-list .data-row-actions {
+    justify-self: stretch;
+  }
+
+  .mission-card-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .mission-card-actions > .primary-action {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .drone-row-list .data-row-card {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    min-height: 0;
+  }
+
+  .drone-row-list .data-row-info-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .drone-row-list .data-row-actions {
+    justify-self: stretch;
+  }
+
+  .drone-card-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .drone-card-actions > .primary-action {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .insurance-row-list .data-row-card {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    min-height: 0;
+  }
+
+  .insurance-row-list .data-row-info-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .insurance-row-list .data-row-actions {
+    justify-self: stretch;
+  }
 }
 
 .form-section {

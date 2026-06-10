@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import CustomSelect from "../components/CustomSelect";
 import DataRowList from "../components/DataRowList";
@@ -6,6 +6,13 @@ import SearchSelect from "../components/SearchSelect";
 
 const packOptions = ["Essentiel", "Premium", "Instagram"];
 const statusOptions = ["planned", "in_progress", "completed", "cancelled"];
+const missionFilterOptions = [
+  { value: "all", label: "Tous statuts" },
+  { value: "planned", label: "Planifiee" },
+  { value: "in_progress", label: "En cours" },
+  { value: "completed", label: "Terminee" },
+  { value: "cancelled", label: "Annulee" }
+];
 const MISSION_STATUS_LABELS = {
   planned: "Planifiee",
   in_progress: "En cours",
@@ -125,6 +132,9 @@ export default function MissionsPage() {
   const [prepGenerating, setPrepGenerating] = useState(false);
   const [prepUploading, setPrepUploading] = useState(false);
   const [selectedMission, setSelectedMission] = useState(null);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [missionActionMenuId, setMissionActionMenuId] = useState(null);
   const [preparation, setPreparation] = useState(null);
   const [recommendation, setRecommendation] = useState(null);
   const [checklist, setChecklist] = useState([]);
@@ -171,6 +181,15 @@ export default function MissionsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (!missionActionMenuId) return undefined;
+    function handleClose() {
+      setMissionActionMenuId(null);
+    }
+    document.addEventListener("click", handleClose);
+    return () => document.removeEventListener("click", handleClose);
+  }, [missionActionMenuId]);
 
   async function submit(e) {
     e.preventDefault();
@@ -232,6 +251,16 @@ export default function MissionsPage() {
       setError(e.message);
     }
   }
+
+  const visibleMissions = useMemo(() => {
+    return missions.filter((mission) => {
+      const haystack =
+        `${mission.company_name || ""} ${mission.location || ""} ${mission.selected_pack || ""} ${mission.department || ""}`.toLowerCase();
+      const matchesQuery = haystack.includes(query.trim().toLowerCase());
+      const matchesStatus = statusFilter === "all" ? true : mission.mission_status === statusFilter;
+      return matchesQuery && matchesStatus;
+    });
+  }, [missions, query, statusFilter]);
 
   function applyPreparationPayload(payload) {
     setPreparation(payload.preparation || null);
@@ -432,50 +461,80 @@ export default function MissionsPage() {
 
   return (
     <div className="missions-page">
-      <div className="page-head">
-        <h2>Missions</h2>
-        <span className="pill">Pilotage terrain</span>
+      <div className="page-header">
+        <div>
+          <p className="login-eyebrow">Terrain</p>
+        </div>
+        <h2 className="page-title">Missions simples a planifier et a suivre</h2>
+        <div className="page-action">
+          <span className="pill">Pilotage terrain</span>
+        </div>
       </div>
       <p className="page-summary">Crée la mission rapidement puis complète les champs avancés seulement si nécessaire.</p>
 
       {error && <p className="error">{error}</p>}
 
-      <form className="form-grid" onSubmit={submit}>
-        <SearchSelect value={form.client_id} onChange={(next) => setForm({ ...form, client_id: next })} options={clientSelectOptions} placeholder="Client" searchPlaceholder="Rechercher un client" />
-        <SearchSelect value={form.drone_id} onChange={(next) => setForm({ ...form, drone_id: next })} options={droneSelectOptions} placeholder="Drone" searchPlaceholder="Rechercher un drone" />
-        <input type="date" value={form.mission_date} onChange={(e) => setForm({ ...form, mission_date: e.target.value })} required />
-        <input placeholder="Lieu" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} required />
-        <input type="number" min="1" placeholder="Duree (min)" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} required />
-        <CustomSelect value={form.selected_pack} onChange={(next) => setForm({ ...form, selected_pack: next })} options={packSelectOptions} />
-        <CustomSelect value={form.mission_status} onChange={(next) => setForm({ ...form, mission_status: next })} options={missionStatusOptions} />
+      <section className="card mission-form-card">
+        <form className="form-grid mission-form-grid" onSubmit={submit}>
+          <SearchSelect value={form.client_id} onChange={(next) => setForm({ ...form, client_id: next })} options={clientSelectOptions} placeholder="Client" searchPlaceholder="Rechercher un client" />
+          <SearchSelect value={form.drone_id} onChange={(next) => setForm({ ...form, drone_id: next })} options={droneSelectOptions} placeholder="Drone" searchPlaceholder="Rechercher un drone" />
+          <input type="date" value={form.mission_date} onChange={(e) => setForm({ ...form, mission_date: e.target.value })} required />
+          <input placeholder="Lieu" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} required />
+          <input type="number" min="1" placeholder="Duree (min)" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} required />
+          <CustomSelect value={form.selected_pack} onChange={(next) => setForm({ ...form, selected_pack: next })} options={packSelectOptions} />
+          <CustomSelect value={form.mission_status} onChange={(next) => setForm({ ...form, mission_status: next })} options={missionStatusOptions} />
 
-        <details className="details-panel" style={{ gridColumn: "1 / -1" }}>
-          <summary>Options avancées</summary>
-          <div className="nested-grid">
-            <input type="number" min="0" step="0.1" placeholder="Heures log" value={form.flight_hours_logged} onChange={(e) => setForm({ ...form, flight_hours_logged: e.target.value })} required />
-            <input type="number" min="0" step="1" placeholder="Cycles" value={form.cycles_logged} onChange={(e) => setForm({ ...form, cycles_logged: e.target.value })} required />
-            <input type="number" min="0" step="0.1" placeholder="Temps preparation (h)" value={form.preparation_hours} onChange={(e) => setForm({ ...form, preparation_hours: e.target.value })} />
-            <input type="number" min="0" step="0.1" placeholder="Temps vol (h)" value={form.flight_time_hours} onChange={(e) => setForm({ ...form, flight_time_hours: e.target.value })} />
-            <input type="number" min="0" step="0.1" placeholder="Temps montage (h)" value={form.montage_hours} onChange={(e) => setForm({ ...form, montage_hours: e.target.value })} />
-            <input type="number" min="0" step="0.1" placeholder="Kilometrage" value={form.mileage_km} onChange={(e) => setForm({ ...form, mileage_km: e.target.value })} />
-            <input type="number" min="0" step="0.01" placeholder="Couts variables" value={form.variable_costs} onChange={(e) => setForm({ ...form, variable_costs: e.target.value })} />
-            <input placeholder="Departement" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
-            <input placeholder="URL photo (optionnel)" value={form.photo_url} onChange={(e) => setForm({ ...form, photo_url: e.target.value })} />
-            <input placeholder="Notes (optionnel)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          <details className="details-panel mission-form-details" style={{ gridColumn: "1 / -1" }}>
+            <summary>Options avancées</summary>
+            <div className="nested-grid">
+              <input type="number" min="0" step="0.1" placeholder="Heures log" value={form.flight_hours_logged} onChange={(e) => setForm({ ...form, flight_hours_logged: e.target.value })} required />
+              <input type="number" min="0" step="1" placeholder="Cycles" value={form.cycles_logged} onChange={(e) => setForm({ ...form, cycles_logged: e.target.value })} required />
+              <input type="number" min="0" step="0.1" placeholder="Temps preparation (h)" value={form.preparation_hours} onChange={(e) => setForm({ ...form, preparation_hours: e.target.value })} />
+              <input type="number" min="0" step="0.1" placeholder="Temps vol (h)" value={form.flight_time_hours} onChange={(e) => setForm({ ...form, flight_time_hours: e.target.value })} />
+              <input type="number" min="0" step="0.1" placeholder="Temps montage (h)" value={form.montage_hours} onChange={(e) => setForm({ ...form, montage_hours: e.target.value })} />
+              <input type="number" min="0" step="0.1" placeholder="Kilometrage" value={form.mileage_km} onChange={(e) => setForm({ ...form, mileage_km: e.target.value })} />
+              <input type="number" min="0" step="0.01" placeholder="Couts variables" value={form.variable_costs} onChange={(e) => setForm({ ...form, variable_costs: e.target.value })} />
+              <input placeholder="Departement" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+              <input placeholder="URL photo (optionnel)" value={form.photo_url} onChange={(e) => setForm({ ...form, photo_url: e.target.value })} />
+              <input placeholder="Notes (optionnel)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </div>
+          </details>
+          <div className="mission-form-actions">
+            <button className="primary-action" disabled={submitting}>
+              {submitting ? "Creation..." : "Creer la mission"}
+            </button>
           </div>
-        </details>
-        <button className="primary-action" style={{ gridColumn: "1 / -1" }} disabled={submitting}>
-          {submitting ? "Creation..." : "Creer la mission"}
-        </button>
-      </form>
+        </form>
+      </section>
+
+      <section className="card toolbar-card toolbar-card-centered">
+        <div className="toolbar-card-centered__copy">
+          <p className="card-label">Pilotage terrain</p>
+          <h3>Retrouve vite une mission, un lieu ou un statut de vol.</h3>
+        </div>
+        <div className="inline-filters">
+          <input
+            placeholder="Recherche client, lieu ou pack"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <CustomSelect value={statusFilter} onChange={setStatusFilter} options={missionFilterOptions} />
+        </div>
+      </section>
 
       <DataRowList
-        items={missions}
+        items={visibleMissions}
+        className="mission-row-list"
         emptyMessage="Aucune mission."
-        renderTitle={(m) => `Mission #${m.id}`}
-        renderSubtitle={(m) => `${m.company_name} - ${m.mission_date}`}
+        getItemClassName={(m) => (missionActionMenuId === m.id ? "has-open-menu" : "")}
+        renderTitle={(m) => m.company_name || `Mission #${m.id}`}
+        renderSubtitle={(m) => `${m.location || "Lieu non renseigne"} · ${m.mission_date}`}
         renderDetails={(m) => (
           <div className="data-row-info-grid">
+            <div className="data-row-info">
+              <span className="data-row-label">Date</span>
+              <span className="data-row-value">{m.mission_date || "-"}</span>
+            </div>
             <div className="data-row-info">
               <span className="data-row-label">Pack</span>
               <span className="data-row-value">{m.selected_pack || "-"}</span>
@@ -483,14 +542,6 @@ export default function MissionsPage() {
             <div className="data-row-info">
               <span className="data-row-label">Dep.</span>
               <span className="data-row-value">{m.department || "-"}</span>
-            </div>
-            <div className="data-row-info">
-              <span className="data-row-label">CA</span>
-              <span className="data-row-value">{Number(m.mission_revenue || 0).toFixed(2)} EUR</span>
-            </div>
-            <div className="data-row-info">
-              <span className="data-row-label">Cout</span>
-              <span className="data-row-value">{Number(m.total_cost || 0).toFixed(2)} EUR</span>
             </div>
             <div className="data-row-info">
               <span className="data-row-label">Marge</span>
@@ -505,14 +556,35 @@ export default function MissionsPage() {
           </>
         )}
         renderActions={(m) => (
-          <>
-            <button type="button" className="secondary" onClick={() => openPreparation(m)}>
+          <div className="mission-card-actions" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="primary-action" onClick={() => openPreparation(m)}>
               Preparation de vol
             </button>
-            <button type="button" className="danger" onClick={() => removeMission(m)}>
-              Supprimer
-            </button>
-          </>
+            <div className={`quote-actions-menu ${missionActionMenuId === m.id ? "is-open" : ""}`}>
+              <button
+                type="button"
+                className="quote-actions-menu__trigger"
+                aria-label="Ouvrir les actions de la mission"
+                aria-expanded={missionActionMenuId === m.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMissionActionMenuId((current) => (current === m.id ? null : m.id));
+                }}
+              >
+                ⋯
+              </button>
+              {missionActionMenuId === m.id ? (
+                <div className="quote-actions-menu__panel">
+                  <button type="button" className="quote-actions-menu__item" onClick={() => openPreparation(m)}>
+                    Ouvrir la preparation
+                  </button>
+                  <button type="button" className="quote-actions-menu__item is-danger" onClick={() => removeMission(m)}>
+                    Supprimer
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
         )}
       />
 

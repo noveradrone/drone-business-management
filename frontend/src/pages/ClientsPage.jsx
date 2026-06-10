@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import CustomSelect from "../components/CustomSelect";
 import DataRowList from "../components/DataRowList";
@@ -27,6 +28,7 @@ const PROSPECT_OPTIONS = [
 ];
 
 export default function ClientsPage() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingClientId, setEditingClientId] = useState(null);
@@ -34,6 +36,7 @@ export default function ClientsPage() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
+  const [clientActionMenuId, setClientActionMenuId] = useState(null);
 
   async function load() {
     try {
@@ -46,6 +49,15 @@ export default function ClientsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (!clientActionMenuId) return undefined;
+    function handleClose() {
+      setClientActionMenuId(null);
+    }
+    document.addEventListener("click", handleClose);
+    return () => document.removeEventListener("click", handleClose);
+  }, [clientActionMenuId]);
 
   function openCreate() {
     setEditingClientId(null);
@@ -125,10 +137,10 @@ export default function ClientsPage() {
 
       {error && <p className="error">{error}</p>}
 
-      <section className="card toolbar-card">
-        <div>
+      <section className="card toolbar-card toolbar-card-centered">
+        <div className="toolbar-card-centered__copy">
           <p className="card-label">Vue commerciale</p>
-          <h3 style={{ margin: "6px 0 0" }}>Recherche instantanée et segmentation rapide</h3>
+          <h3>Recherche instantanée et segmentation rapide</h3>
         </div>
         <div className="inline-filters">
           <input placeholder="Rechercher un client" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -140,6 +152,7 @@ export default function ClientsPage() {
         items={visibleClients}
         className="client-row-list"
         emptyMessage="Aucun client."
+        getItemClassName={(client) => (clientActionMenuId === client.id ? "has-open-menu" : "")}
         renderTitle={(client) => client.company_name}
         renderSubtitle={(client) => client.contact_name || "Contact non renseigné"}
         renderDetails={(client) => (
@@ -169,14 +182,48 @@ export default function ClientsPage() {
           </>
         )}
         renderActions={(client) => (
-          <>
-            {client.phone ? <a className="action-link-btn secondary" href={`tel:${client.phone}`}>Appeler</a> : null}
-            {client.email ? <a className="action-link-btn secondary" href={`mailto:${client.email}`}>Email</a> : null}
-            <button type="button" className="secondary" onClick={() => startEdit(client)}>Modifier</button>
-            <button type="button" className="secondary">Créer devis</button>
-            <button type="button" className="secondary">Créer mission</button>
-            <button type="button" className="danger" onClick={() => removeClient(client)}>Supprimer</button>
-          </>
+          <div className="client-card-actions" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="primary-action" onClick={() => startEdit(client)}>
+              Modifier
+            </button>
+            <div className={`quote-actions-menu ${clientActionMenuId === client.id ? "is-open" : ""}`}>
+              <button
+                type="button"
+                className="quote-actions-menu__trigger"
+                aria-label="Ouvrir les actions du client"
+                aria-expanded={clientActionMenuId === client.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setClientActionMenuId((current) => (current === client.id ? null : client.id));
+                }}
+              >
+                ⋯
+              </button>
+              {clientActionMenuId === client.id ? (
+                <div className="quote-actions-menu__panel">
+                  {client.phone ? (
+                    <a className="quote-actions-menu__item" href={`tel:${client.phone}`}>
+                      Appeler
+                    </a>
+                  ) : null}
+                  {client.email ? (
+                    <a className="quote-actions-menu__item" href={`mailto:${client.email}`}>
+                      Email
+                    </a>
+                  ) : null}
+                  <button type="button" className="quote-actions-menu__item" onClick={() => navigate("/quotes")}>
+                    Créer devis
+                  </button>
+                  <button type="button" className="quote-actions-menu__item" onClick={() => navigate("/missions")}>
+                    Créer mission
+                  </button>
+                  <button type="button" className="quote-actions-menu__item is-danger" onClick={() => removeClient(client)}>
+                    Supprimer
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
         )}
       />
 

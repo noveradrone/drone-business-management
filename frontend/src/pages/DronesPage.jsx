@@ -52,6 +52,7 @@ export default function DronesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("name");
   const [error, setError] = useState("");
+  const [droneActionMenuId, setDroneActionMenuId] = useState(null);
 
   async function load() {
     try {
@@ -64,6 +65,15 @@ export default function DronesPage() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (!droneActionMenuId) return undefined;
+    function handleClose() {
+      setDroneActionMenuId(null);
+    }
+    document.addEventListener("click", handleClose);
+    return () => document.removeEventListener("click", handleClose);
+  }, [droneActionMenuId]);
 
   function openCreate() {
     setEditingDrone(null);
@@ -157,10 +167,10 @@ export default function DronesPage() {
 
       {error && <p className="error">{error}</p>}
 
-      <section className="card toolbar-card">
-        <div>
+      <section className="card toolbar-card toolbar-card-centered">
+        <div className="toolbar-card-centered__copy">
           <p className="card-label">Pilotage rapide</p>
-          <h3 style={{ margin: "6px 0 0" }}>Recherche, filtres et tri en temps réel</h3>
+          <h3>Recherche, filtres et tri en temps réel</h3>
         </div>
         <div className="inline-filters">
           <input placeholder="Rechercher un drone" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -181,6 +191,7 @@ export default function DronesPage() {
         items={visibleDrones}
         className="drone-row-list"
         emptyMessage="Aucun drone."
+        getItemClassName={(drone) => (droneActionMenuId === drone.id ? "has-open-menu" : "")}
         renderTitle={(drone) => `${drone.brand} ${drone.model}`}
         renderSubtitle={(drone) => `S/N ${drone.serial_number}`}
         renderDetails={(drone) => (
@@ -218,12 +229,41 @@ export default function DronesPage() {
           );
         }}
         renderActions={(drone) => (
-          <>
-            <button type="button" className="secondary" onClick={() => openEdit(drone)}>Modifier</button>
-            <button type="button" className="secondary">Historique</button>
-            <button type="button" className="secondary">Maintenance</button>
-            <button type="button" className="danger" onClick={() => removeDrone(drone)}>Supprimer</button>
-          </>
+          <div className="drone-card-actions" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="primary-action" onClick={() => openEdit(drone)}>
+              Modifier
+            </button>
+            <div className={`quote-actions-menu ${droneActionMenuId === drone.id ? "is-open" : ""}`}>
+              <button
+                type="button"
+                className="quote-actions-menu__trigger"
+                aria-label="Ouvrir les actions du drone"
+                aria-expanded={droneActionMenuId === drone.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDroneActionMenuId((current) => (current === drone.id ? null : drone.id));
+                }}
+              >
+                ⋯
+              </button>
+              {droneActionMenuId === drone.id ? (
+                <div className="quote-actions-menu__panel">
+                  <button type="button" className="quote-actions-menu__item" onClick={() => openEdit(drone)}>
+                    Modifier
+                  </button>
+                  <button type="button" className="quote-actions-menu__item">
+                    Historique
+                  </button>
+                  <button type="button" className="quote-actions-menu__item">
+                    Maintenance
+                  </button>
+                  <button type="button" className="quote-actions-menu__item is-danger" onClick={() => removeDrone(drone)}>
+                    Supprimer
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
         )}
       />
 

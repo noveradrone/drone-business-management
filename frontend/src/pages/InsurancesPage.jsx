@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import CustomSelect from "../components/CustomSelect";
 import DataRowList from "../components/DataRowList";
@@ -7,6 +7,8 @@ export default function InsurancesPage() {
   const [insurances, setInsurances] = useState([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [form, setForm] = useState({
     provider: "",
     policy_number: "",
@@ -73,11 +75,28 @@ export default function InsurancesPage() {
     }
   }
 
+  const visibleInsurances = useMemo(() => {
+    return insurances.filter((insurance) => {
+      const haystack =
+        `${insurance.provider || ""} ${insurance.policy_number || ""} ${insurance.coverage_details || ""}`.toLowerCase();
+      const matchesQuery = haystack.includes(query.trim().toLowerCase());
+      const matchesType = typeFilter === "all" ? true : insurance.insured_entity_type === typeFilter;
+      return matchesQuery && matchesType;
+    });
+  }, [insurances, query, typeFilter]);
+
   return (
     <div className="insurances-page">
-      <div className="page-head">
-        <h2>Assurances</h2>
+      <div className="page-header">
+        <div>
+          <p className="login-eyebrow">Administration</p>
+        </div>
+        <h2 className="page-title">Assurances et contrats a suivre</h2>
+        <div className="page-action">
+          <span className="pill">Couverture pro</span>
+        </div>
       </div>
+      <p className="page-summary">Centralise les contrats, les dates de validité et les couvertures sans surcharger l’écran.</p>
 
       {error && <p className="error">{error}</p>}
 
@@ -151,8 +170,31 @@ export default function InsurancesPage() {
         </form>
       </section>
 
+      <section className="card toolbar-card toolbar-card-centered">
+        <div className="toolbar-card-centered__copy">
+          <p className="card-label">Pilotage assurance</p>
+          <h3>Retrouve vite un assureur, un contrat ou un type de couverture.</h3>
+        </div>
+        <div className="inline-filters">
+          <input
+            placeholder="Recherche assureur ou police"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <CustomSelect
+            value={typeFilter}
+            onChange={setTypeFilter}
+            options={[
+              { value: "all", label: "Tous types" },
+              { value: "company", label: "Entreprise" },
+              { value: "drone", label: "Drone" }
+            ]}
+          />
+        </div>
+      </section>
+
       <DataRowList
-        items={insurances}
+        items={visibleInsurances}
         className="insurance-row-list"
         emptyMessage="Aucun contrat d'assurance."
         renderTitle={(i) => i.provider}
@@ -176,6 +218,12 @@ export default function InsurancesPage() {
               <span className="data-row-value">{i.premium_amount ? `${Number(i.premium_amount).toFixed(2)} €` : "-"}</span>
             </div>
           </div>
+        )}
+        renderMeta={(i) => (
+          <>
+            <span className="status-badge">{i.insured_entity_type === "drone" ? "Drone" : "Entreprise"}</span>
+            {i.coverage_details ? <span className="data-row-note">{i.coverage_details}</span> : null}
+          </>
         )}
         renderActions={(i) => (
           <button type="button" className="danger" onClick={() => removeInsurance(i)}>
