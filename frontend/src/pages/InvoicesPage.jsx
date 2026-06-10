@@ -126,6 +126,7 @@ export default function InvoicesPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
   const [clientSearch, setClientSearch] = useState("");
+  const [invoiceActionMenuId, setInvoiceActionMenuId] = useState(null);
   const [articleForm, setArticleForm] = useState({
     name: "",
     description: "",
@@ -185,6 +186,15 @@ export default function InvoicesPage() {
     loadInvoiceDetails(invoiceId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search, invoices, selectedInvoiceId]);
+
+  useEffect(() => {
+    if (!invoiceActionMenuId) return undefined;
+    function handleClose() {
+      setInvoiceActionMenuId(null);
+    }
+    document.addEventListener("click", handleClose);
+    return () => document.removeEventListener("click", handleClose);
+  }, [invoiceActionMenuId]);
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
@@ -477,6 +487,22 @@ export default function InvoicesPage() {
     ? Math.max(0, Number(selectedInvoice.total || 0) - Number(selectedInvoice.amount_received || 0))
     : 0;
 
+  function getPrimaryInvoiceAction(invoice) {
+    if (invoice.status === "paid") {
+      return {
+        label: "Voir",
+        className: "secondary",
+        onClick: () => loadInvoiceDetails(invoice.id)
+      };
+    }
+
+    return {
+      label: "Paiement",
+      className: "primary-action",
+      onClick: () => loadInvoiceDetails(invoice.id)
+    };
+  }
+
   return (
     <div className="invoices-page">
       <div className="page-header">
@@ -532,6 +558,7 @@ export default function InvoicesPage() {
 
       <DataRowList
         items={filteredInvoices}
+        className="quote-row-list invoice-row-list"
         emptyMessage="Aucune facture."
         renderTitle={(invoice) => invoice.invoice_number}
         renderSubtitle={(invoice) => invoice.company_name}
@@ -548,16 +575,10 @@ export default function InvoicesPage() {
                 <span className="data-row-value">{formatDateFr(invoice.due_date)}</span>
               </div>
               <div className="data-row-info">
-                <span className="data-row-label">Total</span>
+                <span className="data-row-label">Montants</span>
                 <span className="data-row-value">{formatMoney(invoice.total || 0, invoice.currency || "EUR")}</span>
-              </div>
-              <div className="data-row-info">
-                <span className="data-row-label">Recu</span>
-                <span className="data-row-value">{formatMoney(invoice.amount_received || 0, invoice.currency || "EUR")}</span>
-              </div>
-              <div className="data-row-info">
-                <span className="data-row-label">Reste</span>
-                <span className="data-row-value">{formatMoney(due, invoice.currency || "EUR")}</span>
+                <span className="muted-copy">Recu {formatMoney(invoice.amount_received || 0, invoice.currency || "EUR")}</span>
+                <span className="muted-copy">Reste {formatMoney(due, invoice.currency || "EUR")}</span>
               </div>
             </div>
           );
@@ -568,24 +589,49 @@ export default function InvoicesPage() {
             <span className="data-row-chip">Relances: {invoice.nombre_relances || 0}</span>
           </>
         )}
-        renderActions={(invoice) => (
-          <>
-            <button className="secondary" onClick={() => loadInvoiceDetails(invoice.id)}>
-              Paiement
-            </button>
-            <button className="secondary" onClick={() => downloadInvoicePdf(invoice)}>
-              PDF
-            </button>
-            {invoice.status !== "paid" ? (
-              <button type="button" className="secondary" onClick={() => markAsPaid(invoice)}>
-                Marquer payee
+        renderActions={(invoice) => {
+          const primaryAction = getPrimaryInvoiceAction(invoice);
+          const menuOpen = invoiceActionMenuId === invoice.id;
+          return (
+            <div className="quote-card-actions" onClick={(e) => e.stopPropagation()}>
+              <button type="button" className={primaryAction.className} onClick={primaryAction.onClick}>
+                {primaryAction.label}
               </button>
-            ) : null}
-            <button type="button" className="danger" onClick={() => removeInvoice(invoice)}>
-              Supprimer
-            </button>
-          </>
-        )}
+              <div className={`quote-actions-menu ${menuOpen ? "is-open" : ""}`}>
+                <button
+                  type="button"
+                  className="quote-actions-menu__trigger"
+                  aria-label="Ouvrir les actions de la facture"
+                  aria-expanded={menuOpen}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInvoiceActionMenuId((current) => (current === invoice.id ? null : invoice.id));
+                  }}
+                >
+                  ⋯
+                </button>
+                {menuOpen ? (
+                  <div className="quote-actions-menu__panel">
+                    <button type="button" className="quote-actions-menu__item" onClick={() => loadInvoiceDetails(invoice.id)}>
+                      Voir encaissements
+                    </button>
+                    <button type="button" className="quote-actions-menu__item" onClick={() => downloadInvoicePdf(invoice)}>
+                      Telecharger PDF
+                    </button>
+                    {invoice.status !== "paid" ? (
+                      <button type="button" className="quote-actions-menu__item" onClick={() => markAsPaid(invoice)}>
+                        Marquer payee
+                      </button>
+                    ) : null}
+                    <button type="button" className="quote-actions-menu__item is-danger" onClick={() => removeInvoice(invoice)}>
+                      Supprimer
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          );
+        }}
       />
 
       <details className="details-panel">
